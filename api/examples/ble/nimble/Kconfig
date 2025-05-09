@@ -1,0 +1,35 @@
+if DEMO_NIMBLE
+
+choice
+    prompt "NIMBLE BLE demo select"
+    default NIMBLE_BLECLI
+
+config NIMBLE_BLE_SIMPLE
+    bool "NIMBLE BLE simple demo(peripheral/central)"
+
+config NIMBLE_BLECLI
+    bool "NIMBLE BLE CLI demo"
+
+config NIMBLE_BLEHOGP
+    bool "NIMBLE BLE HID over GATT profile demo"
+
+config NIMBLE_BLECOMP
+    bool "NIMBLE BLE compatibility test demo"
+
+endchoice
+
+config NIMBLE_DEFAULT_APP
+	string
+    default "bt init" if NIMBLE_BLECLI
+    default "blehogp" if NIMBLE_BLEHOGP
+    default "blecomp" if NIMBLE_BLECOMP
+
+if NIMBLE_BLECLI
+
+config NIMBLE_PTS
+    bool "NIMBLE BLE CLI for PTS"
+    default n
+
+endif
+
+endif

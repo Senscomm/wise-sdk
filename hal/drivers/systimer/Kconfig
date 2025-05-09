@@ -1,0 +1,19 @@
+menu "SYSTIMER Support"
+
+config SYSTIMER
+	bool "System Specific Timer"
+    default y
+	help
+	  Implementation dependent system specific timer 
+
+if SYSTIMER
+
+config SYSTIMER_SCM2010
+
+	bool "SCM2010 SYSTIMER support"
+	default y
+
+endif
+
+endmenu
+

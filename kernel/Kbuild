@@ -1,0 +1,10 @@
+obj-y += console.o
+obj-y += kmem.o
+obj-y += bug.o
+obj-y += timer.o
+obj-y += version.o
+obj-y += time.o
+obj-$(CONFIG_SUPPORT_MEM_SLAB) += mem_slab.o
+obj-$(CONFIG_SUPPORT_VQUEUE) += vqueue.o
+obj-$(CONFIG_SUPPORT_GCOV) += gcov.o
+obj-$(CONFIG_SUPPORT_MTSMP) += mtsmp.o

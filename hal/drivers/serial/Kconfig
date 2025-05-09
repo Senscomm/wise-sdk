@@ -1,0 +1,61 @@
+#
+# Serial device configuration
+#
+
+menuconfig SERIAL
+	bool "Serial drivers"
+	help
+
+if SERIAL
+
+config BAUDRATE
+	int "Default baudrate"
+	default 115200
+	help
+	  Select a default baudrate, where "default" has a driver-specific
+	  meaning of either setting the baudrate for the early debug UART
+	  in the SPL stage (most drivers) or for choosing a default baudrate
+	  in the absence of an environment setting (serial_mxc.c).
+
+config SERIAL_BUFFER_SIZE
+	int "Software FIFO size"
+	default 256
+	help
+	  The size of the software FIFO
+
+config SERIAL_CONSOLE
+	bool "Serial console"
+	depends on SERIAL
+	default y
+	help
+	  Say Y to enable serial console
+
+config SERIAL_CONSOLE_PORT
+	int "Console serial port #"
+	depends on SERIAL_CONSOLE
+	default 0
+	help
+	  Configures the serial port index used as console.
+
+config FREERTOS_SERIAL_API
+       bool "FreeRTOS serial API support (not recommended)"
+       default n
+       help
+        Say Y to enable FreeRTOS serial API such as xSerialPortInit() and PutChar().
+	WISE does not recommend use of these APIs.
+
+config SERIAL_SCM2020
+	bool "Senscomm SCM2020 UART support"
+
+config SERIAL_PL011
+	bool "Arm Primecell PL011 UART support"
+
+config SERIAL_ATCUART
+	bool "AndesTech AndeShape ATCUART support"
+	default y
+	depends on USE_UART0 || USE_UART1 || USE_UART2
+
+config SERIAL_SANDBOX
+	bool "Sandbox virtual UART support"
+
+endif

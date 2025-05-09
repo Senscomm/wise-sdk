@@ -1,0 +1,31 @@
+/*
+ * Copyright 2018-2024 Senscomm Semiconductor Co., Ltd.	All rights reserved.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+ * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+
+#ifndef __WISE_SYS_IOCTL_H__
+#define __WISE_SYS_IOCTL_H__
+
+#ifdef __USE_NATIVE_HEADER__
+
+#include_next <sys/ioctl.h>
+
+#else
+
+#include <sys/ioccom.h>
+#include <sys/filio.h>
+
+extern int (*os_ioctl) (int fd, unsigned long request, void *arg);
+
+#define ioctl os_ioctl
+
+#endif /* __USE_NATIVE_HEADER__ */
+
+#endif /* __WISE_SYS_IOCTL_H__ */

@@ -1,0 +1,390 @@
+if SOC_SCM2010
+
+config SYS_SOC
+	default "scm2010"
+
+menu "Build configuration"
+
+config LINK_TO_ROM
+    bool "Build a regular wise that is linked to symbols in ROM"
+    default y
+
+if LINK_TO_ROM
+
+config LINK_TO_ROM_VER_MAJOR
+    int
+    default 1
+
+config LINK_TO_ROM_VER_MINOR
+    int
+    default 1
+
+config ROM_LDSCRIPT
+    string "Specify a ROM linker script"
+    default "hal/soc/scm2010/wise.rom_v2.ld"
+
+endif
+
+config IMAGE_VER_MAJOR
+    int "Image version major number"
+    default 0
+
+config IMAGE_VER_MINOR
+    int "Image version minor number"
+    default 1
+
+config XIP
+    bool "Build a flash binary, wise.bin"
+    default y
+
+config FLASH_BASE_OFFSET
+    hex
+    default 0x80000000
+
+config FLASH_IMAGE_OFFSET
+    hex "Flash image offset"
+    default 0x80080000
+
+config FLASH_IMAGE_SIZE
+    hex "Flash image size"
+    default 0x180000
+
+config SCMBOOT_SECURE
+    bool "Add secure scmboot signature"
+    default n
+
+if XIP
+
+config SYNC_FLASH_ACCESS
+    bool "Enable synchronization mechanism of flash access"
+    default n
+
+if SYNC_FLASH_ACCESS
+
+config SYNC_RX_IRQ
+    int "PLIC interrupt source for incoming sync signal"
+    default 49
+
+config SYNC_TX_IRQ
+    int "PLIC interrupt source for outgoing sync signal"
+    default 50
+
+endif
+
+config FLASH_ENCRYPTION
+    bool "Flash encryption (create encrypted binary)"
+    default n
+
+endif
+
+config SYS_LDSCRIPT
+    string "Specify a linker script"
+    default "hal/soc/scm2010/wise.xip.lds"
+
+
+config HOSTBOOT
+    bool "Build binary files for host boot"
+    default n
+
+if HOSTBOOT
+
+config MULTI_BINS
+	bool "Support multiple binaries to be loaded into different regions"
+	default n
+
+endif
+
+config N22_ONLY
+	bool "Enable only N22"
+	default y
+	help
+	  Choose y to enable only N22 and utilize D25 local memories as system memory
+
+config MCUBOOT_OTA
+	bool "Enable OTA"
+	depends on N22_ONLY
+
+config MCUBOOT_OTA_SECURE
+	bool "Add secure mcuboot signature"
+	depends on MCUBOOT_OTA
+
+endmenu
+
+menu "Power management"
+
+config PM_SCM2010
+	bool "Enable SCM2010 PM"
+	depends on PM_DM
+    depends on SOC_SCM2010
+    default y
+
+if PM_SCM2010
+
+config PM_HIBERNATION_PARTITION_ADDR
+	hex "Hibernation partition address"
+	default 0x80018000
+
+config PM_HIBERNATION_LIMIT_DURATION
+    int "Hibernation limit count clear duration (sec)"
+    default 86400
+
+config PM_HIBERNATION_LIMIT_MAX
+    int "Hibernation limit count"
+    default 27
+
+config PM_HIBERNATION_VERIFY
+    bool "Hibernation content verify"
+    default y
+
+config PM_RTC_RATIO_INVALID_TIME
+    int "Calculated RTC ratio valid time (s)"
+    default 10
+
+config SUPPORT_PMP_CMD
+    bool "set pmp to update pm features by cli command"
+    default y
+
+config PM_CMD_RTC_CAL
+    bool "set RTC calibration period by cli command"
+    default n
+
+config SCM2010_PM_WIFI_AUTO_RUN
+    bool "Enable SCM2010 PM Enter automatically after connection"
+    default y
+
+config SCM2010_PM_HOLE_PUNCH
+    bool "Enable SCM2010 PM TCP/UDP Hole punch function"
+    default n
+
+config PM_TEST
+    bool
+    default n
+
+menu "Power management feature"
+
+config PM_VOLTAGE_CTRL
+	bool "PM voltage control"
+	default y
+	help
+     Regulator voltage down when enter lowpower mode.
+
+config PM_AON_VOLTAGE_CTRL_OCR
+	bool "PM AON voltage switch by OCR"
+	default y
+	help
+	 Always ON domain voltage switch by OCR mode.
+
+config PM_AON_VOLTAGE_CTRL
+	bool "PM AON voltage control"
+	default n
+	depends on !PM_AON_VOLTAGE_CTRL_OCR
+	help
+	 Always ON domain voltage down when enter lowpower mode.
+
+config PM_PLL_CTRL
+	bool "PM PLL control"
+	default y
+	help
+	 PLL turn off when enter lowpower mode.
+
+config PM_LOWPOWER_IO_OFF
+	bool "PM IO LDO off sleep"
+	default y
+	help
+	 IO LDO turn off in lowpower mode.
+
+config PM_WAKEUP_IO_OFF
+	bool "PM IO LDO off wakeup"
+	default n
+	help
+	 Wakeup with IO LDO off.
+
+config PM_WAKEUP_LOG_ON
+	bool "PM wakeup log on"
+	default n
+	depends on !PM_WAKEUP_IO_OFF
+	help
+	 Wakeup with log on.
+
+config PM_FLASH_DPD
+	bool "PM FLASH deep powerdown"
+	default y
+	help
+	 Flash enter deep power down mode.
+
+config PM_WC_LOG
+	bool "PM log in watcher"
+	default y
+	help
+	 Enable PM LOG in watcher.
+
+config PM_WC_UART1
+	bool "PM log use UART1 in watcher"
+	default n
+	help
+	 Enable Use UART1 for PM log in watcher. If not set, use UART0.
+
+config PM_AON_GPIO_CTRL
+	bool "PM AON GPIO control"
+	default y
+	help
+	 AON GPIO not set by the user are converted to input when enter lowpower mode.
+
+config PM_RFC_LP_BYS
+	bool "PM RFC LP bypass"
+	default y
+	help
+	 RFC lowpower mode bypass.
+
+config PM_DLDO_DCDC_CTRL
+	bool "PM Capless LDO/DCDC control"
+	default y
+	help
+	 PM Capless LDO and DCDC control.
+
+config PM_GPIO_DBG
+	bool "PM GPIO DBG"
+	default n
+
+endmenu
+
+endif
+
+endmenu
+
+menu "Device configuration"
+
+menu "Clock configuration"
+
+config USE_DEFAULT_CLK
+	bool
+	default n
+
+config SUPPORT_CORE_240MHZ
+	bool "Enable 240MHz for cores (EXPERIMENTAL)"
+	default n
+	depends on !USE_DEFAULT_CLK && N22_ONLY
+
+endmenu
+
+menu "UART configuration"
+
+config USE_UART0
+	bool "Enable UART0"
+	default y
+
+config USE_UART1
+	bool "Enable UART1"
+	default y
+
+config USE_UART2
+	bool "Enable UART2"
+	default n
+
+endmenu
+
+menu "TIMER configuration"
+
+config USE_TIMER0
+	bool "Enable TIMER0"
+	default n
+
+config USE_TIMER0_PWM
+	bool "Enable PWM mode of TIMER0"
+	default y
+	depends on USE_TIMER0
+
+config USE_TIMER1
+	bool "Enable TIMER1"
+	default n
+
+config USE_TIMER1_PWM
+	bool "Enable PWM mode of TIMER1"
+	default y
+	depends on USE_TIMER1
+
+endmenu
+
+menu "SPI configuration"
+
+config USE_SPI0
+	bool "Enable SPI0 (QSPI)"
+	default y
+
+config USE_SPI0_FLASH
+    bool "Support SPI Flash on SPI0"
+    default y
+    depends on USE_SPI0
+
+config USE_SPI1
+	bool "Enable SPI1"
+	default n
+
+config USE_SPI1_FLASH
+    bool "Support SPI Flash on SPI1"
+    default n
+    depends on USE_SPI1
+
+config USE_SPI2
+	bool "Enable SPI2"
+	default n
+
+config USE_SPI2_FLASH
+    bool "Support SPI Flash on SPI2"
+    default n
+    depends on USE_SPI2
+
+config SPIFFS_ON_SPI2
+    bool "Mount SPIFFS on SPI2"
+    default n
+    depends on USE_SPI2_FLASH
+
+endmenu
+
+menu "I2C configuration"
+
+config USE_I2C0
+	bool "Enable I2C0"
+	default n
+
+config USE_I2C1
+	bool "Enable I2C1"
+	default n
+
+config USE_I2C_GPIO
+	bool "Enable I2C GPIO"
+	default n
+
+if USE_I2C_GPIO
+
+config I2C_GPIO_PIN_SCL
+	int "GPIO pin number for I2C SCL"
+	default 23
+
+config I2C_GPIO_PIN_SDA
+	int "GPIO pin number for I2C SDA"
+	default 24
+
+endif
+
+endmenu
+
+menu "I2S configuration"
+
+config USE_I2S
+	bool "Enable I2S"
+	default n
+
+endmenu
+
+menu "ADC configuration"
+
+config USE_AUXADC
+	bool "Enable AUXADC"
+	default n
+
+endmenu
+
+endmenu
+
+endif

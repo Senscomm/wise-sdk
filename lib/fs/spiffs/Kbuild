@@ -1,0 +1,14 @@
+ccflags-y += -I$(src)/src
+ccflags-y += -DCONFIG_BUILD_SPIFFS
+ccflags-y += -DSPIFFS_USE_MAGIC=1
+ccflags-y += -DSPIFFS_USE_MAGIC_LENGTH=1
+ccflags-y += -DSPIFFS_ALIGNED_OBJECT_INDEX_TABLES=1
+ccflags-y += -DSPIFFS_HAL_CALLBACK_EXTRA=1
+ccflags-y += -DSPIFFS_FILEHDL_OFFSET=0
+
+obj-y += src/spiffs_nucleus.o
+obj-y += src/spiffs_gc.o
+obj-y += src/spiffs_hydrogen.o
+obj-y += src/spiffs_cache.o
+obj-y += src/spiffs_check.o
+obj-y += vfs-spiffs.o

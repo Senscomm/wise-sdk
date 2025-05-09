@@ -1,0 +1,541 @@
+menu "FreeRTOS kernel"
+
+config FREERTOS
+        bool
+	default y
+
+if FREERTOS
+
+config FREERTOS_ASSERT_VERBOSITY
+	int
+	default 2
+	help
+	0 = configASSERT() is empty
+	1 = configASSERT() causes the kernel crash
+	2 = configASSERT() prints file, line, function, and then causes the crash
+
+config FREERTOS_VERSION
+	string
+	default "10.2.1"
+
+config PORT_NEWLIB
+	bool
+	default n
+	select USE_NEWLIB_REENTRANT
+    select HEAP_AUTO_SIZE
+	help
+	 Include newlib ports implemented on FreeRTOS so that application can fully
+	 utilize POSIX APIs including dynamic memory primitives such as malloc, free.
+
+menu "Task options"
+
+config DEFAULT_STACK_SIZE
+	int
+	default 4096
+        help
+	 This specifies the stack size (in bytes) of the idle
+	 task. The tasks created by osThreadNew() also have the stack
+	 of this size if the stack size is not specified in attribute
+	 parameter.
+
+config MAX_PRIORITIES
+       int
+       default 8
+       help
+         Task has the priority in [0..MAX_PRIORITY-1] range.
+
+config DEFAULT_TASK_PRIORITY
+       int
+       range 0 MAX_PRIORITIES
+       default 0
+
+config MAX_TASK_NAME_LEN
+       int
+       default 32
+
+config IDLE_TASK_NAME
+       string
+       default "idle"
+
+config USE_PREEMPTION
+       bool
+       default y
+
+if USE_PREEMPTION
+config USE_TIME_SLICING
+       bool
+       default y
+       help
+        If y, FreeRTOS uses prioritized preemptive scheduling with
+        time slicing. That means the RTOS scheduler will always run
+        the highest priority task that is in the Ready state, and will
+        switch between tasks of equal priority on every RTOS tick
+        interrupt. If n, then the RTOS scheduler will still run the
+        highest priority task that is in the Ready state, but will not
+        switch between tasks of equal priority just because a tick
+        interrupt executed.
+
+config IDLE_SHOULD_YIELD
+       bool
+       default y
+       help
+        configIDLE_SHOULD_YIELD controls the behavior of the idle task
+        if there are application tasks that also run at the idle
+        priority. It only has an effect if the preemptive scheduler is
+        being used.
+
+endif
+
+config USE_PORT_OPTIMISED_TASK_SELECTION
+       bool
+       default n
+       help
+        Say Y if you want to use task selection algorithm provided by
+        your port.
+
+config USE_NEWLIB_REENTRANT
+       bool
+       default n
+
+
+config USE_DAEMON_TASK_STARTUP_HOOK
+       bool
+       default n
+       help
+        Say y to add a hook before the timer task starts. The hook
+        function prototype is void
+        vApplicationDaemonTaskStartupHook(void). If unsure, say N.
+
+config USE_TASK_FPU_SUPPORT
+       int
+       default 1
+
+config USE_IDLE_HOOK
+       bool
+       default n
+       help
+        Say y to have the idle task call to custom
+        'void vApplicationIdleeHook(void)' function in its ilde loop.
+
+config GENERATE_RUN_TIME_STATS
+       bool
+       default y
+       help
+        The task run time statistics feature collects information on
+        the amount of processing time each task is receiving. The
+        feature requires the application to configure a run time
+        statistics time base. The frequency of the run time statistics
+        time base must be at least ten times greater than the
+        frequency of the tick interrupt. Setting
+        configGENERATE_RUN_TIME_STATS to 1 will include the run time
+        statistics gathering functionality and associated API in the
+        build. Setting configGENERATE_RUN_TIME_STATS to 0 will
+        exclude the run time statistics gathering functionality and
+        associated API from the build. If
+        configGENERATE_RUN_TIME_STATS is set to 1, then the
+        application must also provide definitions for the macros
+        described in Table 2. If configGENERATE_RUN_TIME_STATS is set
+        to 0 then the application must not define any of the macros
+        described in Table 2, otherwise there is a risk that the
+        application will not compiler and/or link.
+
+config USE_TRACE_FACILITY
+       #Wise mandate this to be set to Y
+       #bool "Support task trace feature"
+       bool
+       default y
+       select GENERATE_RUN_TIME_STATS
+       help
+        Say Y to support additional structure members and functions
+        that assist with execution visualization and tracing being
+        included in the build.
+
+config USE_TASK_NOTIFICATIONS
+       bool
+       default y
+       help
+        Setting configUSE_TASK_NOTIFICATIONS to 1 (or leaving
+        configUSE_TASK_NOTIFICATIONS undefined) will include direct to
+        task notification functionality and its associated API in the
+        build. Setting configUSE_TASK_NOTIFICATIONS to 0 will exclude
+        direct to task notification functionality and its associated
+        API from the build. Each task consumes 8 additional bytes of
+        RAM when direct to task notifications are included in the
+        build.
+
+config USE_APPLICATION_TASK_TAG
+       bool
+       default n
+
+config NUM_THREAD_LOCAL_STORAGE_POINTERS
+       int
+       default 2
+       help
+        Number of TLS pointers to use, 0 means disabled.
+
+config USE_STATS_FORMATTING_FUNCTIONS
+       bool
+       select USE_TRACE_FACILITY
+       default n
+       help
+        Say y to include the vTaskList() and
+        vTaskGetRunTimeStats(). functions in the build, which visualize
+        the snapshot of task eecution. Say N if unsure (WISE has its
+        own implementation)
+
+config INCLUDE_eTaskGetState
+	bool
+	default y
+
+config INCLUDE_uxTaskGetStackHighWaterMark
+	bool
+	default y
+
+config INCLUDE_uxTaskPriorityGet
+	bool
+	default y
+
+config INCLUDE_vTaskDelay
+	bool
+	default y
+
+config INCLUDE_vTaskDelayUntil
+	bool
+	default y
+
+config INCLUDE_vTaskDelete
+	bool
+	default y
+
+config INCLUDE_vTaskPrioritySet
+	bool
+	default y
+
+config INCLUDE_vTaskSuspend
+	bool
+	default y
+
+config INCLUDE_xTaskAbortDelay
+	bool
+	default y
+
+config INCLUDE_xTaskGetCurrentTaskHandle
+	bool
+	default y
+
+config INCLUDE_xTaskGetHandle
+	bool
+	default y
+
+config INCLUDE_xTaskGetIdleTaskHandle
+	bool
+	default y
+
+config INCLUDE_xTaskGetSchedulerState
+	bool
+	default y
+
+config INCLUDE_xTaskResumeFromISR
+	bool
+	default y
+
+endmenu
+
+
+menu "Synchronization primitives"
+
+config USE_MUTEXES
+       bool
+       default y
+
+config USE_RECURSIVE_MUTEXES
+	bool
+	depends on USE_MUTEXES
+	default y
+
+config USE_COUNTING_SEMAPHORES
+       bool
+       default y
+
+config USE_QUEUE_SETS
+       bool
+       default y
+
+config INCLUDE_xQueueGetMutexHolder
+	bool
+	default y
+
+config INCLUDE_xSemaphoreGetMutexHolder
+	bool
+	default y
+
+config USE_POSIX_ERRNO
+	bool
+	default y
+
+endmenu
+
+
+menu "Tick, clock and timer options"
+
+config TICK_RATE_HZ
+       int
+       default 1000
+
+config USE_TICK_HOOK
+       bool
+       default n
+       help
+        Say y if you want your 'void vApplicationTickHook(void)'
+        function to be called by system tick handler.
+
+config USE_16_BIT_TICKS
+       bool
+       default n
+
+config USE_TICKLESS_IDLE
+       int
+       default 1
+       help
+        ?
+
+config TIMER_HZ
+	int
+	default 1000000
+
+config XTAL_CLOCK_HZ
+       int
+       default 40000000
+
+config USE_TIMERS
+       bool
+       default y
+
+if USE_TIMERS
+config TIMER_SERVICE_TASK_NAME
+       string
+       default "ksofttimerd"
+
+config TIMER_TASK_PRIORITY
+       int
+       default 5
+
+config TIMER_TASK_STACK_SIZE
+       int
+       default 1024
+
+config TIMER_QUEUE_LENGTH
+       int
+       default 32
+
+config INCLUDE_xTimerPendFunctionCall
+	bool
+	default y
+
+endif
+
+endmenu
+
+menu "Memory option"
+
+config HEAP_AUTO_SIZE
+       bool
+       default y
+       help
+        Say Y to let the linker decide the heap region to be used in
+        each memory.
+
+if !HEAP_AUTO_SIZE
+config HEAP1_SIZE
+	int
+	default 0
+
+config HEAP2_SIZE
+	int
+	default 0
+
+config HEAP3_SIZE
+	int
+	default 0
+endif
+
+if !PORT_NEWLIB
+
+config SUPPORT_DMA_DYNAMIC_ALLOC
+    bool "Enable DMA dynamic allocation"
+	default y
+
+config USE_MALLOC_DEBUG
+    bool "Debug enabled malloc/free"
+    default n
+    help
+     Track allocated memory and detect orphaned ones as well as
+     overflows.
+
+if USE_MALLOC_DEBUG
+
+config SIZE_ALLOC_LIST
+    int "Number of tracked alloc list"
+    default 1024
+
+config MEM_HEAP_DEBUG
+	bool "Record memory allocated function"
+#	depends on !LINK_TO_ROM
+	default n
+
+if MEM_HEAP_DEBUG
+
+config MEM_HEAP_DEBUG_FUNCNAMELEN
+	int "Function Name Length"
+	depends on MEM_HEAP_DEBUG
+	default 16
+	help
+	 Length of Function name to be printed
+
+endif
+
+config MEM_HEAP_PERIOD_TIME_DEBUG
+    bool "Record memory max usage in a period of time"
+	default n
+
+endif
+endif
+
+config CHECK_FOR_STACK_OVERFLOW
+       int
+       default 0
+
+config RECORD_STACK_HIGH_ADDRESS
+       int
+       default 1
+
+config SUPPORT_DYNAMIC_ALLOCATION
+       bool
+       default y
+
+config SUPPORT_STATIC_ALLOCATION
+       bool
+       default y
+
+endmenu
+
+if ARM && ARM_CORTEX_A7
+
+menu "ARMv7-A port"
+
+config FPU_D32
+	int
+	default 0
+
+config INTERRUPT_CONTROLLER_BASE_ADDRESS
+	hex
+	default 0x0
+	help
+	  Must be set to the base address of the ARM Generic Interrupt Controller
+
+config INTERRUPT_CONTROLLER_CPU_INTERFACE_OFFSET
+	hex
+	default 0x0
+	help
+	  The offset from configINTERRUPT_CONTROLLER_BASE_ADDRESS at which the GIC's CPU interface starts.
+
+config UNIQUE_INTERRUPT_PRIORITIES
+	int
+	default 0
+	help
+	  The number of unique priorities that can be specified in the GIC
+
+config MAX_API_CALL_INTERRUPT_PRIORITY
+	int
+	default 0
+	help
+	  Interrupts assigned a priority at or below this priority can call interrupt safe FreeRTOS
+	  API function, and will nest.
+
+endmenu
+
+endif
+
+if NDSV5
+
+menu "NDSV5 (RISC-V) port"
+
+config MTIME_BASE_ADDRESS
+	hex
+	default 0xE6000000
+	help
+	  Must be set to the base address of the Machine Timer (NCEPLMT100)
+
+config MTIME_CLK_DIV
+    int
+    default 4
+    help
+      mtime_clk_div = cpu_clk / mtime_clk
+
+config CLINT_BASE_ADDRESS
+	hex
+	default 0x0
+
+endmenu
+
+endif
+
+#
+# Other options
+#
+
+config USE_LIST_DATA_INTEGRITY_CHECK_BYTES
+       int
+       default 0
+
+config USE_CO_ROUTINES
+       bool
+       default n
+
+
+config USE_ALTERNATIVE_API
+       bool
+       default n
+
+config FREERTOS_INDIRECT_PORT_FUNCTION
+	bool
+	default n
+	default n
+	help
+ 	 In case FreeRTOS port layer functions (*Port*()) should not
+ 	 be called directly from FreeRTOS kernel core for some reason
+ 	 (e.g. kernel core is ROMized), include this ile after defining
+ 	 FREERTOS_PORT macro in port.c file.
+
+ 	 This will rename port function, and register a function table
+	 structure via freertos_register_port() call, and makes the
+ 	 port function call indirect via this table.
+
+	 Different ports define different port function, so this is not
+ 	 a very general solution yet. Currently, only Andes D10 port
+ 	 has been implemented and tested.
+endif
+
+config USE_T32
+	bool
+	default n
+
+config USE_QUEUE_POOL
+    bool
+    default y
+
+config QUEUE_POOL_SIZE
+    int
+    default 120
+	depends on USE_QUEUE_POOL
+
+config USE_TIMER_POOL
+    bool
+    default y
+
+config TIMER_POOL_SIZE
+    int
+    default 32
+	depends on USE_TIMER_POOL
+
+endmenu

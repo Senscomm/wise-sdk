@@ -1,0 +1,74 @@
+choice
+	prompt "Peripherals Demo"
+
+config DEMO_LEDC_BLINK
+    bool "LED Control Demo - BLINK"
+	select WISE_API
+	select API_GPIO
+    help
+     Include LED Control BLINK Demo in SDK
+
+config DEMO_LEDC_PWM
+    bool "LED Control Demo - PWM"
+	select WISE_API
+	select API_GPIO
+	select API_TIMER
+	select CLI_TIMER
+	select USE_TIMER0
+	select USE_TIMER1
+    help
+     Include LED Control PWM Demo in SDK
+
+config DEMO_I2C_EEPROM_SIM
+    bool "I2C EEPROM Simulation "
+	select WISE_API
+	select USE_I2C0
+	select USE_I2C1
+	select I2C
+	select DMA
+	select API_I2C
+    help
+     Include I2C EEPROM simulation
+
+config DEMO_SPI_TRANSFER
+    bool "SPI transfer Demo"
+	select WISE_API
+	select USE_SPI1
+	select USE_SPI2
+	select SPI
+	select DMA
+	select API_SPI
+    help
+     Include SPI transfer demo
+
+config DEMO_ADC
+    bool "ADC value read Demo"
+	select WISE_API
+	select USE_AUXADC
+	select ADC
+	select API_ADC
+    help
+     Include ADC value read demo
+
+config DEMO_ADC_TEMPERATURE
+    bool "ADC temperature Demo"
+	select WISE_API
+	select USE_AUXADC
+	select ADC
+	select API_ADC
+    help
+     Include read temperature value via ADC demo
+
+config DEMO_TIMER_PWM_IR
+    bool "TIMER PWM IR Demo"
+	select WISE_API
+	select USE_TIMER0
+	select USE_TIMER1
+	select USE_TIMER0_PWM
+	select USE_TIMER1_PWM
+	select TIMER
+	select API_TIMER
+    help
+     Include SPI transfer demo
+
+endchoice

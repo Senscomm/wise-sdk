@@ -1,0 +1,8 @@
+menu "printf"
+
+config USE_SIMPLE_PRINTF
+	bool "Use a printf with less stack usage"
+	default y
+
+endmenu
+

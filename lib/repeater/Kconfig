@@ -1,0 +1,30 @@
+menu "repeater"
+
+config SUPPORT_WIFI_REPEATER
+    bool "Support wifi repeater"
+	default n
+
+if SUPPORT_WIFI_REPEATER
+
+config SUPPORT_WIFI_REPEATER_IPV4_CNT
+    int "Support wifi repeater ipv4 count"
+	depends on LWIP_IPV4
+	default 15
+
+config SUPPORT_WIFI_REPEATER_IPV6_CNT
+    int "Support wifi repeater ipv6 count"
+	depends on LWIP_IPV6
+	default 15
+
+config SUPPORT_REPEATER_CMD
+	bool "Support cmd to control repeater"
+	depends on SUPPORT_WIFI_REPEATER
+	default n
+
+config WIFI_REPEATER_DEBUG
+	int "wifi repeater debug level 1 - 3"
+	default 1
+
+endif
+
+endmenu

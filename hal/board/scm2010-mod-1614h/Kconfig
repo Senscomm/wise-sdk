@@ -1,0 +1,9 @@
+if BOARD_SCM2010_MODULE_1614H
+
+config SYS_BOARD
+	default "scm2010-mod-1614h"
+
+config SERIAL_CONSOLE_PORT
+	default 1
+
+endif

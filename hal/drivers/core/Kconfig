@@ -1,0 +1,8 @@
+menu "Generic Driver Options"
+
+config PM_DM
+	bool "Enable Driver Model for PM"
+	help
+	  This config option enables pm_suspend_device and pm_resume_device.
+
+endmenu

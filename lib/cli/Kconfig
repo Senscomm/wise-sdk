@@ -1,0 +1,270 @@
+menuconfig DEBUG_MODE
+bool "Enable WISE debug configurations"
+	select CMDLINE
+	select IFCONFIG if LWIP && NET80211
+	select IFCONFIG_WIRELESS if LWIP && NET80211
+	default n
+	help
+	 Enable WISE debug configurations.
+
+menuconfig CMDLINE
+	bool "Command line interface"
+	default y
+	help
+	 Enable WISE command line interface.
+
+if CMDLINE
+
+config CMDLINE_PROMPT
+	string "Command line prompt"
+	default "$ "
+	help
+	 Command line interface prompt
+
+config CMDLINE_MAX_LEN
+	int "Command line max. length"
+	default 256
+
+config CLI_HISTORY
+    bool "Command history"
+    default y
+    help
+     Enable command history
+
+config CLI_MAX_HISTORY
+    int "Number of history entries" if CLI_HISTORY
+    default 8
+
+config CLI_AUTOCOMPLETE
+    bool "Command auto completion"
+    default n
+
+config CLI_EXT
+    bool "Enable CLI extension framework"
+    default y
+
+config CLI_STAYTIMEOUT
+    int "Enable CLI stay active" if PM_SCM2010
+    default 3000
+     help
+      If there is CLI input after wakeup, stay active for n ms so that CLI can work
+
+menuconfig CMD_UTIL_PROC
+	bool "Proc utilities"
+	default y
+	select USE_TRACE_FACILITY
+	help
+	 Process (task) commands
+
+if CMD_UTIL_PROC
+config CMD_TOP
+	bool "top"
+	default y
+
+config CMD_PS
+	bool "ps"
+	default y
+
+config CMD_SUSPEND
+	bool "suspend"
+	default n
+
+config CMD_RESUME
+	bool "resume"
+	default n
+
+config CMD_KILL
+	bool "kill"
+	default n
+
+config CMD_IRQ
+	bool "irq"
+	default y
+
+endif # CMD_PROC
+
+menuconfig CMD_UTIL_FILE
+	bool "File utilities"
+	default n
+
+if CMD_UTIL_FILE
+source "lib/fs/Kconfig"
+endif
+
+menuconfig CMD_UTIL_NET
+	depends on NET
+	bool "Networking utilities"
+	default y
+
+if CMD_UTIL_NET
+
+source lib/ifconfig/Kconfig
+#config CMD_IFCONFIG
+#	bool "ifconfig"
+#	select LIBIFCONFIG
+#	default y
+
+config CMD_PING
+	bool "ping"
+	depends on LWIP
+	default y
+
+config CMD_DHCLIENT
+	bool "dhclient"
+	depends on LWIP_DHCP
+	default n
+	help
+	 dhclient is an LWIP Dynamic Host Configuration Protocol client
+	 command
+
+config CMD_DHCPS
+	bool "dhcps"
+	depends on LWIP_DHCPS
+	default y
+	help
+	 dhcps is an LWIP Dynamic Host Configuration Protocol server
+	 command
+
+config CMD_MDNS
+	bool "mdns"
+	depends on LWIP_MDNS_RESPONDER
+	default n
+	help
+	 mdns is an LWIP Multicase DNS command
+
+config CMD_SNTP
+	bool "sntp"
+	depends on LWIP_SNTP
+	default n
+	help
+	 mdns is an LWIP simple NTP
+
+config CMD_IPERF
+	bool "iperf3"
+	depends on LWIP
+	default y
+	help
+	 iperf3 based client and server
+
+config CMD_NET
+	bool "net"
+	depends on LWIP
+	default y
+
+config CMD_NETTOOL
+	bool "net tool"
+	depends on LWIP
+	depends on N22_ONLY
+	default n
+
+config CMD_WSHARK
+	bool "wshark"
+	depends on LWIP
+	depends on NET80211
+	depends on WPA_SUPPLICANT
+	default n
+	help
+	 frame monitor
+
+
+#source "lib/hostap/wpa_supplicant/Kconfig"
+
+endif # CMD_UTIL_NET
+
+menuconfig CMD_UTIL_MISC
+	bool "Miscellaneous utilities"
+	default y
+
+if CMD_UTIL_MISC
+
+config CMD_HELP
+	bool "help"
+	default y
+
+config CMD_VERSION
+	bool "version"
+	default y
+
+config CMD_DMESG
+	bool "dmesg"
+	default y
+
+config CMD_MEM
+	bool "hexdump/read/write command"
+	default y
+
+config CMD_HEAP
+	bool "heap command"
+	default y
+
+config CMD_FLASH
+	bool "flash command"
+	default n
+	select SPI_FLASH
+    select XYZMODEM
+
+config CMD_LOADB
+	bool "load{xy} command"
+	default n
+	select SPI_FLASH
+    select XYZMODEM
+
+config CMD_RTC
+	bool "rtc command"
+	default n
+
+config CMD_USB
+	bool "usb command"
+	default n
+
+config CMD_EFUSE
+	bool "eFuse command"
+	depends on EFUSE
+	default n
+
+config CMD_SDIO
+    bool "SDIO command"
+    default n
+
+config CMD_I2C_TEST
+    bool "I2C command"
+    default n
+    depends on TEST_PERIPHERAL
+
+config CMD_JUMP
+	bool "Jump to an address"
+	default n
+
+config CMD_REBOOT
+    bool "Reboot the system"
+	default y
+	depends on WDT
+	depends on WISE_API
+
+config CMD_RESET
+	bool "Reset the system"
+	default n
+	help
+	 Lightweight SW reset w/o Boot ROM or bootloader
+
+config CMD_PMU
+	bool "PMU command"
+	default n
+
+config CMD_RTC_PIT_SNAP
+	bool "SNAP command"
+	default n
+
+config CMD_PTA
+	bool "PTA command"
+	default n
+
+endif
+
+config CMD_AT
+	bool "at" if AT
+	default n
+	help
+	 at is the command entering AT mode
+
+endif # CMDLINE

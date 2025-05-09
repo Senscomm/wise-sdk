@@ -1,0 +1,13 @@
+choice
+	prompt "BLE Demo"
+
+config DEMO_NIMBLE
+    bool "NIMBLE BLE Demo"
+	select CMDLINE
+    depends on BLE_NIMBLE_HOST
+
+endchoice
+
+if DEMO_NIMBLE
+source "api/examples/ble/nimble/Kconfig"
+endif

@@ -1,0 +1,214 @@
+menuconfig TINYUSB
+    bool "TinyUSB USB stack"
+	depends on CMSIS_FREERTOS
+    select SUPPORT_STATIC_ALLOCATION
+    select SCDC_DATA_REORDER if SCDC
+    default n
+    help
+     Enable TinyUSB USB controller stack.
+
+if TINYUSB
+
+choice
+    prompt "TUSB OS"
+    default TUSB_OS_CMSIS
+
+config TUSB_OS_CMSIS
+	bool "CMSIS-FreeRTOS"
+
+config TUSB_OS_FREERTOS
+	bool "FreeRTOS"
+
+endchoice
+
+config TUSB_DEVICE_RHPORT_NUM
+    int
+    default 0 
+
+comment "Device driver"
+
+config TUSB_DEVICE_SPEED_HIGH
+    bool "Support high speed"
+    default y
+
+config TUSB_MEM_SECTION
+    string "SRAM region for USB memory"
+    default ".usb_ram"
+
+config TUSB_MEM_ALIGN
+    int "SRAM alignment for USB memory"
+    default 4
+
+config TUSB_EPIN_SECTION
+    string "D25 region for USB EPIN memory"
+    default ".dma_desc"
+
+config TUSB_EPIN_ALIGN
+    int "D25 alignment for USB EPIN memory"
+    default 4
+
+config TUSB_TUD_ENDPOINT0_SIZE
+	int "Max. buffer size of the endpoint 0"
+	default 64
+
+config TUSB_WIFI_FILTER
+	bool "support wifi filter"
+	select SUPPORT_WIFI_REPEATER
+	default n
+
+config TUSB_DMA
+    bool "Support DMA"
+    default n
+
+if TUSB_DMA
+
+config TUSB_NUM_DMA_CHANNELS
+    int "Number of DMA channels"
+    default 8
+
+config TUSB_DMA_EP0
+    bool "Support DMA for EP0"
+    default y
+
+config TUSB_DMA_BULK_OUT_MODE0
+	bool "Use Mode 0 for Bulk OUT EP"
+	default y
+
+config TUSB_DMA_BULK_IN_MODE0
+	bool "Use Mode 0 for Bulk IN EP"
+	default n
+
+config TUSB_BULK_OUT_DMA_CP_FIFO
+	bool "Copy bulk out data to array fifo by usb dma"
+	default y
+
+config TUSB_BULK_OUT_DMA_CP_EXT_BUF
+	bool "copy bulk out data to external memory"
+	default n
+	depends on TUSB_BULK_OUT_DMA_CP_FIFO
+
+config TUSB_FIFO_MIN_LINEAR_SIZE
+	int "minimum linear size in fifo array"
+	default 1650
+	depends on TUSB_BULK_OUT_DMA_CP_FIFO
+
+config TUSB_BULK_IN_DMA_CP_EPINBUF
+	bool "Copy bulk in data to epin buffer by sys dma"
+	default n
+
+endif
+
+comment "Debug"
+
+config TUSB_DEBUG
+    int "Debug level (0 - 3)"
+    default 0
+
+if TUSB_DEBUG != 0
+
+config TUSB_DEBUG_PRINTF
+    string "TUSB debug printf function"
+    default "printk"
+
+if CMD_DMESG
+
+config TUSB_DEBUG_STDOUT
+	bool "Print debug messages to stdout."
+	default n
+
+endif
+
+endif
+
+comment "Class drivers"
+
+config TUSB_TUD_CDC
+    bool "Support CDC"
+    default n
+
+config TUSB_TUD_MSC
+    bool "Support MSC"
+    default n
+
+config TUSB_TUD_HID
+    bool "Support HID"
+    default n
+
+config TUSB_TUD_VIDEO
+    bool "Support VIDEO"
+    default n
+
+config TUSB_TUD_MIDI
+    bool "Support MIDI"
+    default n
+
+config TUSB_TUD_VENDOR
+    bool "Support vendor-specific class"
+    default n
+
+if TUSB_TUD_VENDOR
+
+config TUD_VENDOR_EPOUT_NUM
+	int "Number of Bulk OUT EPs"
+	default 1
+
+config TUD_VENDOR_EPIN_NUM
+	int "Number of Bulk IN EPs"
+	default 1
+
+config TUD_VENDOR_EPSIZE
+    int "Vendor EP IN/OUT buffer size in bytes"
+    default 2048
+
+config TUD_VENDOR_RX_BUFSIZE
+    int "Vendor receive buffer size in bytes"
+    default 4096
+	range 2048 65535
+
+config TUD_VENDOR_TX_BUFSIZE
+    int "Vendor transmit buffer size in bytes"
+    default 4096
+
+config TUD_VENDOR_TEST
+	bool "Vendor EP for test only"
+	default n
+
+config TUD_VENDOR_DUMP_BULK_STATUS
+    bool "cli command for dump bulk status"
+	default n
+
+endif
+
+config TUSB_TUD_USBTMC
+    bool "Support USBTMC"
+    default n
+
+config TUSB_TUD_DFU_RUNTIME
+    bool "Support DFU Runtime"
+    default n
+
+config TUSB_TUD_DFU
+    bool "Support DFU"
+    default n
+
+if TUSB_TUD_DFU
+
+config TUD_DFU_XFER_BUFSIZE
+    int "DFU transfer size in bytes"
+    default 4096
+
+endif
+
+config TUSB_TUD_BTH
+    bool "Support BTH"
+    default n
+
+config TUSB_TUD_ECM_RNDIS
+    bool "Support ECM RNDIS"
+    default n
+
+config TUSB_TUD_NCM
+    bool "Support NCM"
+    default n
+
+endif

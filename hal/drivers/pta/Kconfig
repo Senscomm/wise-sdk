@@ -1,0 +1,19 @@
+menu "PTA Support"
+
+config PTA
+	bool "Enable PTA driver framework"
+    default y
+	help
+	  Packet Transmit Arbiter for WLAN and BLE
+
+if PTA
+
+config PTA_SCM2010
+
+	bool "SCM2010 PTA support"
+	default y
+
+endif
+
+endmenu
+

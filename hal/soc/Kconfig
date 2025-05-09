@@ -1,0 +1,17 @@
+choice
+	prompt "System-On-A-Chip select"
+	default SOC_SCM2010
+
+config SOC_SCM2010
+	bool "Senscomm SCM2010 SoC"
+	select NDSV5
+    select DEVICE_REGION
+    select ICACHE_ENABLE
+    select DCACHE_ENABLE if BOOTLOADER
+    select PM_DM if !BOOTLOADER && !BOOTROM
+    select CLK_SCM2010 if !BOOTROM
+
+endchoice
+
+source "hal/soc/scm2010/Kconfig"
+

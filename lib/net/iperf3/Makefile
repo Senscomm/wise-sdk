@@ -1,0 +1,22 @@
+ccflags-y += -I$(srctree)/include/freebsd
+ccflags-y += -I$(srctree)/lib/net80211
+ccflags-y += -I$(srctree)/lib/lwip/src/include
+ccflags-y += -I$(srctree)/lib/lwip/ports/freertos/include
+ccflags-y += -I$(srctree)/lib/cjson
+
+obj-y += iperf.o
+obj-y += dscp.o
+obj-y += iperf_api.o
+obj-y += iperf_client_api.o
+obj-y += iperf_error.o
+obj-y += iperf_locale.o
+obj-y += iperf_sctp.o
+obj-y += iperf_server_api.o
+obj-y += iperf_tcp.o
+obj-y += iperf_udp.o
+obj-y += iperf_util.o
+obj-y += net.o
+obj-y += timer.o
+obj-y += units.o
+#obj-y += iperf_auth.o
+#obj-y += tcp_info.o

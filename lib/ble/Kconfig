@@ -1,0 +1,89 @@
+
+menuconfig BLE
+	bool "BLE library"
+	default y
+	select PTA
+	help
+	 Enable BLE library
+
+if BLE
+
+config BLE_TELINK
+	bool
+    default n
+	help
+	  Enable Link Layer model for TELINK BLE.
+
+config BLE_NIMBLE_CTRL
+	bool
+    default y
+	select SYSTIMER
+	select TINYCRYPT
+	select PTA
+	select HW_CRYPTO
+	help
+	  Enable NIMBLE BLE controller
+
+if BLE_NIMBLE_CTRL
+
+config BLE_CLI_DTM
+	bool "Enable BLE DTM from CLI"
+	default n
+
+config BLE_CLI_CW
+	bool "Enable BLE continuous wave from CLI"
+	default n
+
+config DEFAULT_BLE_MACADDR
+	string "BLE device address"
+	default "01:02:03:04:05:06"
+
+choice BLE_NIMBLE_HCI_TRANSPORT
+	prompt "HCI interface"
+	default BLE_NIMBLE_HCI_TRANSPORT_UART
+
+config BLE_NIMBLE_HCI_TRANSPORT_SCM2010_IPC
+	bool "Bluetooth HCI IPC"
+
+config BLE_NIMBLE_HCI_TRANSPORT_UART
+	bool "Bluetooth HCI UART"
+
+config BLE_NIMBLE_HCI_TRANSPORT_NATIVE
+	bool "Bluetooth HCI NATIVE"
+
+endchoice
+
+if BLE_NIMBLE_HCI_TRANSPORT_UART
+
+config BLE_NIMBLE_HCI_TRANSPORT_UART_PORT
+	int "HCI UART port"
+	default 1
+
+config BLE_NIMBLE_HCI_TRANSPORT_UART_BAUDRATE
+	int "HCI UART baudrate"
+	default 115200
+
+endif
+
+config BLE_STATICS
+    bool
+    default n
+
+config BLE_SCA
+    int
+    default 2500
+
+config BLE_ADV_DISABLE_RND_DELAY
+    bool
+    default n
+
+endif
+
+config BLE_NIMBLE_HOST
+	bool "BLE Host"
+	depends on BLE_NIMBLE_HCI_TRANSPORT_NATIVE
+	default y
+	help
+	 Enable BLE host stack
+
+endif

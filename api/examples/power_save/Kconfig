@@ -1,0 +1,9 @@
+choice
+	prompt "Power Save Demo"
+
+config DEMO_POWERSAVE_DTIM10
+    bool "Power Save DTIM10 Demo"
+    help
+     Include Power Save DTIM10 Demo in SDK
+
+endchoice

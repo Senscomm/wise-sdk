@@ -1,0 +1,19 @@
+config CMD_CAT
+	bool "cat"
+	default y
+
+config CMD_CP
+	bool "cp"
+	default y
+
+config CMD_LS
+	bool "ls"
+	default y
+
+config CMD_MV
+	bool "mv"
+	default y
+
+config CMD_RM
+	bool "rm"
+	default y

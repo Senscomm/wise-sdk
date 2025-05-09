@@ -1,0 +1,21 @@
+config MQTT_AGENT_MAX_OUTSTANDING_ACKS
+	int "Max. number of pending acks"
+	default 20
+	help
+	 Maximum number of pending acks to track per a connection.
+
+config MQTT_AGENT_MAX_EVENT_QUEUE_WAIT_TIME
+	int "Max. event queue wait time in ms"
+	default 0
+	help
+     Time in milliseconds that the MQTT agent task will wait
+	 in the Blocked state (so not using any CPU time)
+ 	 for a command to arrive in its command queue
+	 before exiting the blocked state so it can call MQTT_ProcessLoop().
+
+config MQTT_AGENT_USE_QOS_1_2_PUBLISH
+	bool "Allow QOS greater than 0"
+	default true
+	help
+     Whether the agent should configure the coreMQTT library
+	 to be used with publishes greater than QoS0.

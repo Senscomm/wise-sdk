@@ -1,0 +1,264 @@
+menu "Memory management options"
+
+config MEM_LIBC_MALLOC
+       bool "Use stdlib malloc/free/realloc"
+       default y
+       help
+        Use malloc/free/realloc provided by your C-library
+	instead of the lwip internal allocator. Can save code size if you
+	already use it.
+
+config MEMP_MEM_MALLOC
+       bool "Use mem_malloc/mem_free as pool allocator"
+       default n
+       help
+        Use mem_malloc/mem_free instead of the lwip pool allocator.
+	Especially useful with MEM_LIBC_MALLOC but handle with care regarding execution
+	speed (heap alloc can be much slower than pool alloc) and usage from interrupts
+	(especially if your netif driver allocates PBUF_POOL pbufs for received frames
+	from interrupt)!
+	ATTENTION: Currently, this uses the heap for ALL pools (also for private pools,
+	not only for internal pools defined in memp_std.h)! This means you cannot designate
+	memory sections for particular pool.
+
+config MEMP_MEM_INIT
+       bool "Zero initialize memory pool"
+       default y
+       help
+        Force use of memset to initialize pool memory.
+	Useful if pool are moved in uninitialized section of memory. This will ensure
+	default values in pcbs struct are well initialized in all conditions.
+
+config MEM_ALIGNMENT
+       int "Memory alignment"
+       default 4
+
+# Not used
+#config MEM_SIZE
+#      int
+#      default HEAP_SIZE
+
+config MEMP_STATS_LOCAL
+       bool "Enable Memory pool statistics"
+	   default n
+	   select MEMP_STATS
+	   select LWIP_STATS
+	   depends on !LWIP
+
+config MEMP_OVERFLOW_CHECK
+       int "Check Memory pool overflow"
+       default 0
+       help
+        memp overflow protection reserves a configurable
+	amount of bytes before and after each memp element in every pool and fills
+	it with a prominent default value.
+	MEMP_OVERFLOW_CHECK == 0 no checking
+	MEMP_OVERFLOW_CHECK == 1 checks each element when it is freed
+	MEMP_OVERFLOW_CHECK >= 2 checks each element in every pool every time memp_malloc() or memp_free() is called (useful but slow!)
+
+config MEMP_OWNER_CHECK
+       bool "Check Memory pool users"
+       default n
+       help
+        Added to help detect memp leaks
+
+
+config MEMP_SANITY_CHECK
+	bool "Check memory pool sanity"
+	default n
+	help
+	 run a sanity check after each memp_free() to make sure that there are no cycles in the linked lists.
+
+config MEM_SANITY_CHECK
+	bool "Check memory sanity"
+	default n
+	help
+	 run a sanity check after each mem_free() to make
+	 sure that the linked list of heap elements is not corrupted.
+
+config MEM_USE_POOLS
+	bool "Use memory pool allocator"
+	default n
+	help
+	 Use an alternative to malloc() by allocating from a set
+	 of memory pools of various sizes. When mem_malloc is called, an element of
+	 the smallest pool that can provide the length needed is returned.
+	 To use this, MEMP_USE_CUSTOM_POOLS also has to be enabled.
+
+config MEM_USE_POOLS_TRY_BIGGER_POOL
+	bool "Try larger pool if malloc-pool fails"
+	default n
+
+config MEMP_USE_CUSTOM_POOLS
+	bool "Add user-defined pools"
+	default FREEBSD
+	help
+	 whether to include a user file lwippools.h
+	 that defines additional pools beyond the "standard" ones required
+	 by lwIP. If you set this to 1, you must have lwippools.h in your
+	 include path somewhere.
+
+config LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT
+       bool "Allow mem_free() to be called other than tcp thread"
+       default 0
+       help
+        Set this to 1 if you want to free PBUF_RAM pbufs (or call mem_free()) from
+	interrupt context (or another context that doesn't allow waiting for a
+	semaphore).
+	If set to 1, mem_malloc will be protected by a semaphore and SYS_ARCH_PROTECT,
+	while mem_free will only use SYS_ARCH_PROTECT. mem_malloc SYS_ARCH_UNPROTECTs
+	with each loop so that mem_free can run.
+	ATTENTION: As you can see from the above description, this leads to dis-/
+	enabling interrupts often, which can be slow! Also, on low memory, mem_malloc
+	can need longer.
+	If you don't want that, at least for NO_SYS=0, you can still use the following
+	functions to enqueue a deallocation call which then runs in the tcpip_thread
+	context:
+	- pbuf_free_callback(p);
+	- mem_free_callback(m);
+
+comment "Memory pool size"
+
+config MEMP_NUM_PBUF
+       int "# of memp struct pbufs (used for PBUF_ROM and PBUF_REF)"
+       default 0
+       help
+        The number of memp struct pbufs (used for PBUF_ROM and PBUF_REF).
+	If the application sends a lot of data out of ROM (or other static memory),
+	this should be set high.
+
+config MEMP_NUM_RAW_PCB
+	depends on LWIP_RAW
+	int "# of RAW PCBs"
+	default 0
+
+config MEMP_NUM_UDP_PCB
+	depends on LWIP_UDP
+	int "# of UDP PCBs"
+	default 0
+
+config MEMP_NUM_TCP_PCB
+	depends on LWIP_TCP
+	int "# of TCP PCBs"
+	default 0
+
+config MEMP_NUM_TCP_PCB_LISTEN
+	int "# of listening TCP connections"
+	depends on LWIP_TCP
+	default 0
+
+config MEMP_NUM_TCP_SEG
+	int "# of simultaneously queued TCP segments"
+	depends on LWIP_TCP
+	default 0
+
+config MEMP_NUM_ALTCP_PCB
+	int "# of simultaneously active altcp layer pcbs"
+	depends on LWIP_ALTTCP
+	default MEMP_NUM_TCP_PCB
+
+config MEMP_NUM_REASSDATA
+	int "# of IP packets (not fragments) simultaneously queued for reassembly"
+	default 0
+
+config MEMP_NUM_FRAG_PBUF
+	int "# of IP fragments simultaneously sent"
+	default 0
+	depends on !LWIP_NETIF_TX_SINGLE_PBUF
+
+config MEMP_NUM_ARP_QUEUE
+	int "# of outgoing packets waiting for address resolution"
+	default 0
+	depends on ARP_QUEUEING
+
+config MEMP_NUM_IGMP_GROUP
+	int "# of multicast groups"
+	default 0
+	depends on LWIP_IGMP
+	help
+	 # of multicast groups whose network interfaces
+	 can be members at the same time (one per netif - allsystems group -, plus one
+	 per netif membership).
+
+config MEMP_NUM_NETBUF
+	int "# of struct netbufs"
+	default 0
+	depends on LWIP_NETCONN || (LWIP_SOCKET || WISE_SOCKET)
+
+#lwipopt.h
+#config MEMP_NUM_NETCONN
+#	int "# of struct netconns"
+#	default 0
+
+config MEMP_NUM_SELECT_CB
+	int "# of struct lwip_select_cb"
+	default 0
+    depends on (LWIP_SOCKET || WISE_SOCKET) && (LWIP_SOCKET_SELECT || LWIP_SOCKET_POLL)
+
+
+config MEMP_NUM_TCPIP_MSG_API
+	int "# of struct tcpip_msg"
+	default 0
+
+config MEMP_NUM_TCPIP_MSG_INPKT
+	int "# of struct tcpip_msg for incoming packets"
+	default 0
+    depends on !LWIP_TCPIP_CORE_LOCKING_INPUT
+
+config MEMP_NUM_NETDB
+	int "# of concurrently running lwip_addrinfo() calls"
+	default 0
+
+config MEMP_NUM_LOCALHOSTLIST
+	int "# of host entries in the local host list"
+	default 0
+    depends on LWIP_DNS && DNS_LOCAL_HOSTLIST && DNS_LOCAL_HOSTLIST_IS_DYNAMIC
+
+config PBUF_POOL_SIZE
+	int "# of buffers in the pbuf pool"
+	default 0
+
+config MEMP_NUM_API_MSG
+	int "# of active socket/netconn/tcpip calls"
+	default MEMP_NUM_TCPIP_MSG_API
+
+config MEMP_NUM_DNS_API_MSG
+	int "# of active calls to netconn_gethostbyname"
+	default MEMP_NUM_TCPIP_MSG_API
+    depends on LWIP_DNS
+
+config MEMP_NUM_SOCKET_SETGETSOCKOPT_DATA
+	int "# of active calls to getsockopt/setsockopt"
+	default MEMP_NUM_TCPIP_MSG_API
+
+config MEMP_NUM_NETIFAPI_MSG
+	int "# of active calls to the netifapi functions"
+	default MEMP_NUM_TCPIP_MSG_API
+    depends on LWIP_NETIF_API
+
+config MEMP_NUM_MBUF_CACHE
+       int "# of buffers in the mbuf cache pool"
+       depends on NET80211
+       default 25
+
+config MEMP_NUM_MBUF_CHUNK
+       int "# of buffers in the mbuf chunk pool"
+       depends on NET80211
+       default 5
+
+config MEMP_NUM_MBUF_DYNA_EXT
+       int "# of buffers in the mbuf dynamic ext. pool"
+       depends on NET80211 && FREEBSD_MBUF_DYNA_EXT
+       default 25
+
+config MEMP_NUM_MDNS_TIMERS
+       int "# of timers for mDNS responder"
+	   depends on LWIP_MDNS_RESPONDER
+	   default 8
+
+config MEMP_NUM_SNTP_TIMERS
+       int "# of timers for SNTP client"
+	   depends on LWIP_SNTP
+	   default 6
+
+endmenu # Memory management

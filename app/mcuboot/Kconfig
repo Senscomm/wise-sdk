@@ -1,0 +1,14 @@
+menu "MCUBoot related configuration"
+
+comment "Build"
+
+config BOOT_BIN
+	string "Name of the boot loader binary file"
+	default "wise.scmboot.bin"
+
+config BOOT_TIMEOUT
+    int "Seconds to wait before entering CLI mode"
+    default 3
+
+
+endmenu

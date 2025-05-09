@@ -1,0 +1,16 @@
+
+config CMSIS_FREERTOS
+	bool
+	default y
+	select FREERTOS
+	help
+	 Include FreeRTOS port for CMSIS-RTOS2
+
+config LOW_MEMORY_LOW_THRESHOLD
+	int
+	default 3000
+
+config LOW_MEMORY_HIGH_THRESHOLD
+	int
+	default 15000
+

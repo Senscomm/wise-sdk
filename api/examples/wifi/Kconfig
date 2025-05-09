@@ -1,0 +1,18 @@
+menu "Wi-Fi API Demo"
+
+choice
+    prompt "Type"
+
+config WIFI_API_CLI_DEMO
+    bool "Command-line Demo"
+
+config WIFI_API_STA_DEMO
+    bool "Wi-Fi Station API Demo"
+
+config WIFI_API_SOFTAP_DEMO
+    bool "Wi-Fi SoftAP API Demo"
+	select API_SOFTAP
+
+endchoice
+
+endmenu

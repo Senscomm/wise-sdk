@@ -1,0 +1,625 @@
+menuconfig LWIP_IPV4
+	bool "IPv4 support"
+	default y
+
+if LWIP_IPV4
+config IP_FORWARD
+	bool "IP: packet forwarding"
+	default n
+	help
+ 	 Enables the ability to forward IP packets across network
+ 	 interfaces. If you are going to run lwIP on a device with only one network
+	 interface, define this to 0.
+
+if IP_FORWARD
+config IP_FORWARD_ALLOW_TX_ON_RX_NETIF
+	bool "Allow forwarding packets back to the received netif"
+	default n
+	help
+ 	 allow ip_forward() to send packets back
+ 	 out on the netif where it was received. This should only be used for
+ 	 wireless networks.
+ 	 ATTENTION: When this is 1, make sure your netif driver correctly marks incoming
+ 	 link-layer-broadcast/multicast packets as such using the corresponding pbuf flags!
+endif # IP_FORWARD
+
+config IP_FRAG
+	bool "IP: fragmentation"
+	default y
+	help
+	 Fragment outgoing IP packets if their size exceeds MTU. Note
+ 	 that this option does not affect incoming packet sizes, which can be
+ 	 controlled via IP_REASSEMBLY.
+
+config IP_REASSEMBLY
+	bool "IP: reassembly"
+	default y
+	help
+	 Reassemble incoming fragmented IP packets. Note that
+ 	 this option does not affect outgoing packet sizes, which can be controlled
+ 	 via IP_FRAG.
+
+if IP_REASSEMBLY
+
+config IP_REASS_MAXAGE
+	int "Reassembly timeout"
+	default 15
+	help
+	 In unit of IP_TMR_INTERVAL.
+	 If not all fragments arrived in this time, the whole packet is discarded.
+
+config IP_REASS_MAX_PBUFS
+	int "Number of outstanding fragments (pbufs)"
+	default 10
+	help
+ 	 Since the received pbufs are enqueued, be sure to configure
+ 	 PBUF_POOL_SIZE > IP_REASS_MAX_PBUFS so that the stack is still able to receive
+ 	 packets even if the maximum amount of fragments is enqueued for reassembly!
+endif
+
+config IP_SOF_BROADCAST
+	bool "IP: broadcast transmission"
+	default n
+	help
+	 Enable broadcast filter per pcb for udb/raw send"
+ 	 Use the SOF_BROADCAST field to enable broadcast
+ 	 filter per pcb on udp and raw send operations. To enable broadcast filter
+ 	 on recv operations, you also have to set IP_SOF_BROADCAST_RECV=1.
+
+config IP_SOF_BROADCAST_RECV
+	bool "IP: broadcast reception"
+	default n
+
+config LWIP_MULTICAST_TX_OPTIONS
+	bool "IP: multicast transmission"
+	default y if ((LWIP_IGMP || LWIP_IPV6_MLD) && (LWIP_UDP) || (LWIP_RAW))
+	help
+	 Enable multicast TX support like the socket options
+ 	 IP_MULTICAST_TTL/IP_MULTICAST_IF/IP_MULTICAST_LOOP, as well as (currently only)
+ 	 core support for the corresponding IPv6 options.
+
+config IP_OPTIONS_ALLOWED
+	bool "IP: accept packets with IP options"
+	default y
+	help
+
+config IP_DEFAULT_TTL
+	int "IP: time-to-live (TTL)"
+	default 255
+
+config IP_CHECKSUM_OFFLOADING
+       bool "IP: checksum offloading"
+       default n
+
+config CHECKSUM_GEN_IP
+	bool
+	default !IP_CHECKSUM_OFFLOADING
+
+config CHECKSUM_CHECK_IP
+	bool
+	default !IP_CHECKSUM_OFFLOADING
+
+# Protocols
+
+config LWIP_ARP
+	bool "ARP support"
+	depends on LWIP_IPV4 && LWIP_ETHERNET
+	default y
+
+if LWIP_ARP
+config ARP_TABLE_SIZE
+	int "ARP: number of cached address translation"
+	default 10
+
+config ARP_MAXAGE
+	int "ARP: ARP cache expiry (in multiple of ARP_TMR_INTERVAL)"
+	default 300
+
+config ARP_QUEUEING
+	bool "ARP: enable ARP queining (?)"
+	default n
+	help
+	 Multiple outgoing packets are queued during hardware address
+	 resolution. By default, only the most recent packet is queued per IP address.
+	 This is sufficient for most protocols and mainly reduces TCP connection
+	 startup time. Set this to 1 if you know your application sends more than one
+	 packet in a row to an IP address that is not in the ARP cache.
+
+config ARP_QUEUE_LEN
+       int "ARP: ARP queue length in # of packets"
+       default 3
+       depends on ARP_QUEUEING
+
+endif # LWIP_ARP
+
+config LWIP_ICMP
+	bool "ICMP support"
+	default y
+	help
+ 	 Be careful, disable that make your product non-compliant to RFC1122
+
+if LWIP_ICMP
+config ICMP_TTL
+	int "ICMP: time-to-live"
+	default IP_DEFAULT_TTL
+
+config LWIP_BROADCAST_PING
+ 	bool "ICMP: Respond to broadcast pings"
+	default n
+
+config LWIP_MULTICAST_PING
+ 	bool "ICMP: Respond to multicast pings"
+	default n
+
+config ICMP_CHECKSUM_OFFLOADING
+       bool "ICMP: checksum offloading"
+       default n
+
+config CHECKSUM_GEN_ICMP
+	bool
+	default !ICMP_CHECKSUM_OFFLOADING
+
+config CHECKSUM_CHECK_ICMP
+	bool
+	default !ICMP_CHECKSUM_OFFLOADING
+
+endif #LWIP_ICMP
+
+config LWIP_IGMP
+ 	bool "IGMP support"
+	default n
+
+
+config LWIP_UDP
+	bool "UDP support"
+	default y
+
+if LWIP_UDP
+config LWIP_UDPLITE
+	bool "UDP: UDP-lite support"
+	default n
+
+config UDP_TTL
+	int "UDP: time-to-live"
+	default IP_DEFAULT_TTL
+
+config LWIP_NETBUF_RECVINFO
+	int "UDP: append destination addr and port to every netbuf"
+	default 0
+	#FIXME: should this be here?
+
+config UDP_CHECKSUM_OFFLOADING
+       bool "UDP: checksum offloading"
+       default n
+
+config CHECKSUM_GEN_UDP
+	bool
+	default !UDP_CHECKSUM_OFFLOADING
+
+config CHECKSUM_CHECK_UDP
+	bool
+	default !UDP_CHECKSUM_OFFLOADING
+
+endif # LWIP_UDP
+
+config LWIP_TCP
+	bool "TCP support"
+	default  y
+
+if LWIP_TCP
+config TCP_TTL
+	int "TCP: time-to-live"
+	default IP_DEFAULT_TTL
+
+# tcp.h
+config TCP_MSS
+	int "TCP: maximum segment size (MSS)"
+	default 536
+	help
+	 For the receive side, this MSS is advertised to the remote side
+ 	 when opening a connection. For the transmit size, this MSS sets
+ 	 an upper limit on the MSS advertised by the remote host.
+
+config TCP_MSL
+	int "TCP: maximum segment lifetime"
+	default 60000
+	help
+	  The maximum segment lifetime in milliseconds.
+
+config TCP_WND_FACTOR
+	int "TCP: window size in unit of MSS"
+	range 2 16
+	default 2
+	help
+	 This must be at least (2*TCP_MSS) for things to work well.
+ 	 ATTENTION: when using TCP_RCV_SCALE, TCP_WND is the total size
+ 	 with scaling applied. Maximum window value in the TCP header
+ 	 will be TCP_WND >> TCP_RCV_SCALE
+
+config TCP_MAXRTX
+	int "TCP: DATA max retransmissions"
+	default 12
+
+config TCP_SYNMAXRTX
+	int "TCP: SYNC max retransmissions"
+	default 6
+
+config TCP_QUEUE_OOSEQ
+	bool "TCP: queue out-of-sequence segments for reassembly"
+	default n
+ 	help
+	 Define to 0 if your device is low on memory.
+
+if TCP_QUEUE_OOSEQ
+config TCP_OOSEQ_MAX_BYTES
+	int "The maximum OOSEQ bytes"
+	default 0
+	help
+	 default maximum number of bytes queued on ooseq per
+	 pcb if TCP_OOSEQ_BYTES_LIMIT is not defined. Default is 0 (no limit).
+ 	 Only valid for TCP_QUEUE_OOSEQ==1.
+
+config TCP_OOSEQ_MAX_PBUFS
+	int "The maximum number of OOSEQ pbufs"
+	default 0
+	help
+	 default maximum number of pbufs queued on ooseq per
+ 	 pcb if TCP_OOSEQ_BYTES_LIMIT is not defined. Default is 0 (no limit).
+ 	 Only valid for TCP_QUEUE_OOSEQ==1.
+endif # TCP_QUEUE_OOSEQ
+
+config LWIP_TCP_SACK_OUT
+	bool "TCP: selective acknowledgements (SACKs)"
+	default n
+
+config LWIP_TCP_MAX_SACK_NUM
+	depends on LWIP_TCP_SACK_OUT
+	int "The maximum number of SACK values to include in TCP segments"
+	default 4
+	help
+ 	 Must be at least 1, but is only used if LWIP_TCP_SACK_OUT is enabled.
+ 	 NOTE: Even though we never send more than 3 or 4 SACK ranges in a single segment
+ 	 (depending on other options), setting this option to values greater than 4 is not pointless.
+ 	 This is basically the max number of SACK ranges we want to keep track of.
+ 	 As new data is delivered, some of the SACK ranges may be removed or merged.
+ 	 In that case some of those older SACK ranges may be used again.
+ 	 The amount of memory used to store SACK ranges is LWIP_TCP_MAX_SACK_NUM 8 bytes
+	 for each TCP PCB.
+
+config TCP_CALCULATE_EFF_SEND_MSS
+	bool "TCP: effective MSS for transmission"
+	default y
+	help
+	 The maximum size of a segment that TCP really sends, the 'effective send MSS,'
+	 MUST be the smaller of the send MSS (which reflects the available reassembly
+	 buffer size at the remote host) and the largest size permitted by the IP layer" (RFC 1122)
+ 	 Setting this to 1 enables code that checks TCP_MSS against the MTU of the
+ 	 netif used for a connection and limits the MSS if it would be too big otherwise.
+
+config TCP_SND_BUF_FACTOR
+	int "TCP: send buffer space (in unit of MSS)"
+	range 2 16
+	default 2
+	help
+ 	 To achieve good performance, this should be at least 2 TCP_MSS.
+
+config TCP_SND_QUEUELEN_FACTOR
+	int "TCP: send buffer space (in number of pbufs)"
+	range 2 16
+	default 2
+	help
+	 This must be at least as much as (2 TCP_SND_BUF/TCP_MSS) for things to work.
+
+# FIXME: does this affect select() or poll() for TCP socket?
+#config TCP_SNDLOWAT
+#	int "TCP writable space watermark (bytes)"
+#	default  LWIP_MIN(LWIP_MAX(((TCP_SND_BUF)/2), (2 TCP_MSS) + 1), (TCP_SND_BUF) - 1)
+#	help
+#	 This must be less than TCP_SND_BUF. It is the amount of space which must be available
+#	 in the TCP snd_buf for select to return writable (combined with TCP_SNDQUEUELOWAT).
+
+#config TCP_SNDQUEUELOWAT
+#	int "TCP writable bufs (pbuf count)"
+#	help
+#	 This must be less than TCP_SND_QUEUELEN. If the number of pbufs queued on a
+#	 pcb drops below this number, select returns writable (combined with TCP_SNDLOWAT).
+
+config TCP_LISTEN_BACKLOG
+	bool "TCP: enable the backlog option for tcp listen pcb"
+	default n
+
+config TCP_DEFAULT_LISTEN_BACKLOG
+	int "TCP: The maximum allowed backlog for TCP listen netconns"
+	range 1 255
+	default 255
+	help
+ 	 This backlog is used unless another is explicitly specified.
+ 	 0xff is the maximum (u8_t).
+
+config TCP_OVERSIZE
+	int "TCP: pre-allocated send buffer size"
+	default 1
+	help
+	 The maximum number of bytes that tcp_write may
+ 	 allocate ahead of time in an attempt to create shorter pbuf chains
+ 	 for transmission. The meaningful range is 0 to TCP_MSS. Some
+ 	 suggested values are:
+ 	 0:         Disable oversized allocation. Each tcp_write() allocates a new
+              	    pbuf (old behaviour).
+ 	 1:         Allocate size-aligned pbufs with minimal excess. Use this if your
+                    scatter-gather DMA requires aligned fragments.
+ 	 128:       Limit the pbuf/memory overhead to 20%.
+ 	 TCP_MSS:   Try to create unfragmented TCP packets.
+ 	 TCP_MSS/4: Try to create 4 fragments or less per TCP packet.
+
+config LWIP_TCP_TIMESTAMPS
+	bool  "TCP: timestamp"
+	default n
+	help
+ 	 The timestamp option is currently only used to help remote hosts, it is not
+ 	 really used locally. Therefore, it is only enabled when a TS option is
+ 	 received in the initial SYN packet from a remote host.
+
+config LWIP_WND_SCALE
+	bool "TCP: window scaling"
+	default n
+
+config LWIP_RCV_SCALE
+	int "TCP: receive window scaling factor"
+	range 0 14
+	default 0
+	help
+ 	 Set TCP_RCV_SCALE to the desired scaling factor (shift count in the
+ 	 range of [0..14]). When LWIP_WND_SCALE is enabled but TCP_RCV_SCALE is 0, we can use a large
+ 	 send window while having a small receive window only.
+
+config LWIP_ALTCP
+ 	bool "TCP: altcp API"
+	default n
+	help
+ 	 altcp is an abstraction layer that prevents applications linking against the
+ 	 tcp.h functions but provides the same functionality. It is used to e.g. add
+ 	 SSL/TLS or proxy-connect support to an application written for the tcp callback
+ 	 API without that application knowing the protocol details.
+ 	 Applications written against the altcp API are directly linked against the
+ 	 tcp callback API for LWIP_ALTCP==0, but then cannot use layered protocols.
+
+config LWIP_ALTCP_TLS
+ 	bool "TCP: TLS support for altcp API"
+	default n
+	help
+ 	 This needs a port of the functions in altcp_tls.h to a TLS library.
+ 	 A port to ARM mbedtls is provided with lwIP, see apps/altcp_tls/ directory
+ 	 and LWIP_ALTCP_TLS_MBEDTLS option.
+
+config TCP_CHECKSUM_OFFLOADING
+       bool "TCP: checksum offloading"
+       default n
+
+config CHECKSUM_GEN_TCP
+	bool
+	default !TCP_CHECKSUM_OFFLOADING
+
+config CHECKSUM_CHECK_TCP
+	bool
+	default !TCP_CHECKSUM_OFFLOADING
+
+endif # LWIP_TCP
+
+config LWIP_RAW
+ 	bool "IP: application-level IPv4 protocol (raw socket)"
+	default y
+	help
+	 Allow IPv4 protocol other than ICMP, IGMP, UDP and TCP to be implemented
+	 by applications.
+
+if LWIP_RAW
+config LWIP_RAW_TTL
+ 	int "Raw socket time-to-live"
+	default IP_DEFAULT_TTL
+endif #LWIP_RAW
+
+config LWIP_DHCP
+ 	bool "IP: DHCP client support"
+	default n if LWIP_IPv4 = 0
+
+if LWIP_DHCP
+config DHCP_DOES_ARP_CHECK
+	bool "DHCP: check ARP on the offered address"
+	default LWIP_ARP.
+
+config LWIP_DHCP_CHECK_LINK_UP
+	bool "DHCP: start DHCP only when the network interface is up"
+	default y
+	help
+ 	 dhcp_start() only really starts if the netif has
+ 	 NETIF_FLAG_LINK_UP set in its flags. As this is only an optimization and
+ 	 netif drivers might not set this flag, the default is off. If enabled,
+ 	 netif_set_link_up() must be called to continue dhcp starting.
+
+config LWIP_DHCP_BOOTP_FILE
+	bool "DHCP: store offered_si_addr and boot_file_name"
+	default n
+
+config LWIP_DHCP_GET_NTP_SRV
+	bool "DHCP: request NTP servers with discover/select"
+	default n
+	help
+	 For each response packet, an callback is called, which has to be
+	 provided by the port:
+ 	 void dhcp_set_ntp_servers(u8_t num_ntp_servers, ip_addr_t* ntp_server_addrs);
+
+config LWIP_DHCP_MAX_NTP_SERVERS
+	int "DHCP: max number of NTP servers requested"
+	default 1
+
+config LWIP_DHCP_MAX_DNS_SERVERS
+	int "DHCP: max number of DNS servers requested"
+	default DNS_MAX_SERVERS
+ 	help
+	 DHCP servers received in the response are passed to DNS via @ref dns_setserver()
+ 	 (up to the maximum limit defined here).
+
+config LWIP_DHCP_DOES_ACD_CHECK
+	bool "ACD: Address Conflict Detection support"
+	default n
+
+config LWIP_NETIF_HOSTNAME
+	bool "Use DHCP_OPTION_HOSTNAME with netif's hostname field (?)"
+	default n
+
+config DHCP_OPTIONS_LEN
+	int "DHCP: max number of bytes for options"
+	default 68 if !LWIP_DHCPS
+	default 308 if LWIP_DHCPS
+
+endif #LWIP_DHCP
+
+config LWIP_DHCPS
+ 	bool "IP: DHCP server support"
+	default n if LWIP_IPv4 = 0
+
+if LWIP_DHCPS
+
+config LWIP_DHCPS_MAX_LEASE
+	int "DHCPS: maximum number of leases"
+	default 100
+
+config LWIP_DHCPS_LEASE_TIME
+	int "DHCPS: lease duration in minutes"
+	default 120
+
+endif #LWIP_DHCP
+
+config LWIP_AUTOIP
+	bool "IP: Auto IP support"
+	default n if !LWIP_IPv4
+
+config LWIP_DHCP_AUTOIP_COOP
+ 	bool "IP: enable both DHCP and Auto IP"
+	default LWIP_DHCP && LWIP_AUTOIP
+
+config LWIP_DHCP_AUTOIP_COOP_TRIES
+	int "IP: max number of DHCP trial before falling back to auto IP"
+	depends on LWIP_DHCP_AUTOIP_COOP
+	default 9
+	help
+	 Set to the number of DHCP DISCOVER probes that should be sent before
+	 falling back on AUTOIP (the DHCP client keeps running in this case).
+	 This can be set as low as 1 to get an AutoIP address very  quickly,
+	 but you should be prepared to handle a changing IP address when DHCP
+	 overrides AutoIP.
+
+config LWIP_MIB2_CALLBACKS
+	bool "IP: SNMP MIB2 support"
+	depends on MIB2_STATS
+	default n
+	help
+ 	 Turn this on to get callbacks needed to implement MIB2.
+ 	 Usually MIB2_STATS should be enabled, too.
+
+config LWIP_DNS
+ 	bool "IP: DNS support"
+	depends on LWIP_UDP
+	default y
+
+if LWIP_DNS
+config DNS_TABLE_SIZE
+	int "DNS: max DNS entries"
+	default 4
+
+config DNS_MAX_NAME_LENGTH
+	int "DNS: max host name length"
+	default 256
+
+config DNS_MAX_SERVERS
+	int "DNS: max number of DNS servers"
+	default 2
+	help
+ 	 The first server can be initialized automatically by defining
+ 	 DNS_SERVER_ADDRESS(ipaddr), where 'ipaddr' is an 'ip_addr_t*'
+
+config DNS_MAX_RETRIES
+	int "DNS: max DNS retries"
+	default 4
+
+config DNS_DOES_NAME_CHECK
+	bool "DNS: check name between the query and the response"
+	default n
+
+config LWIP_DNS_SECURE
+	int "DNS: seculrity level"
+	default 7
+	help
+	 Controls the security level of the DNS implementation
+	 Use all DNS security features by default.
+ 	 This is overridable but should only be needed by very small targets
+ 	 or when using against non standard DNS servers.
+	 A list of DNS security features follows:
+	 LWIP_DNS_SECURE_RAND_XID                1
+	 LWIP_DNS_SECURE_NO_MULTIPLE_OUTSTANDING 2
+	 LWIP_DNS_SECURE_RAND_SRC_PORT           4
+
+config DNS_LOCAL_HOSTLIST
+	bool "DNS: enable local host-to-address list"
+	default n
+	help
+	 If enabled, you have to define an initializer:
+	 #define DNS_LOCAL_HOSTLIST_INIT {DNS_LOCAL_HOSTLIST_ELEM("host_ip4", IPADDR4_INIT_BYTES(1,2,3,4)), DNS_LOCAL_HOSTLIST_ELEM("host_ip6", IPADDR6_INIT_HOST(123, 234, 345, 456)}
+  	 Instead, you can also use an external function:
+  	 #define DNS_LOOKUP_LOCAL_EXTERN(x) extern err_t my_lookup_function(const char *name, ip_addr_t *addr, u8_t dns_addrtype) that looks up the IP address and returns ERR_OK if found (LWIP_DNS_ADDRTYPE_xxx is passed in dns_addrtype).
+
+config DNS_LOCAL_HOSTLIST_IS_DYNAMIC
+	bool "DNS: enable dynamic host list"
+	default n
+	help
+	 If this is turned on, the local host-list can be dynamically changed
+  	 at runtime.
+
+config LWIP_DNS_SUPPORT_MDNS_QUERIES
+	bool "DNS: enable mDNS queries (obsolete)"
+	default n
+	help
+	 Set this to 1 to enable querying ".local" names via mDNS
+  	 using a One-Shot Multicast DNS Query */
+
+endif # LWIP_DNS
+
+config LWIP_MDNS_RESPONDER
+ 	bool "IP: mDNS responder support"
+	depends on LWIP_UDP
+	select LWIP_IGMP
+	select LWIP_IPV6_MLD if LWIP_IPV6
+	default n
+
+if LWIP_MDNS_RESPONDER
+
+config MDNS_MAX_SERVICES
+    int "Max. number of services"
+	default 1
+
+config MDNS_PROBE_DELAY_MS
+    int "Max. number of services"
+	default 250
+
+config MDNS_MAX_STORED_PKTS
+    int "Max. number of stored packets"
+	default 4
+
+config LWIP_MDNS_SEARCH
+    bool "Enable mDNS search for services"
+	default n
+
+config MDNS_MAX_REQUESTS
+    int "Max. number of mDNS search requests"
+	depends on LWIP_MDNS_SEARCH
+	default 2
+
+endif # LWIP_MDNS_RESPONDER
+
+config LWIP_SNTP
+	bool "IP: SNTP support"
+	depends on LWIP_UDP
+	default n
+
+endif # IPV4

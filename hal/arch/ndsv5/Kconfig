@@ -1,0 +1,73 @@
+menu "NDSV5 architecture"
+	depends on NDSV5
+
+config SYS_ARCH
+	default "ndsv5"
+
+config TOOLCHAIN_PATH
+	string "Cross toolchain path"
+	default "/opt/nds32le-elf-mculib-v5/bin/"
+
+config MARCH_OPTION
+	string "-march option"
+	default "rv32imac"
+
+config MABI_OPTION
+	string "-mabi option"
+	default "ilp32"
+
+config NR_IRQ
+	int "number of interrupt lines"
+	default 49
+
+config NR_SW_IRQ
+	int "number of SW interrupt lines"
+	default 2
+
+config DEVICE_REGION
+	bool "Device region defined"
+	default y
+
+config CACHE_LINE
+	int "(I/D)-Cache line size"
+	default 32
+
+config HW_PRIO_SUPPORT
+	bool "Support prioritized interrupt"
+	default n
+
+config IRQ_STACK_SIZE
+	int "interrupt stack size (bytes)"
+	default 2048
+
+config ICACHE_ENABLE
+	bool "Instruction cache"
+	default y
+
+config DCACHE_ENABLE
+	bool "Data cache"
+	default n
+
+config SUPPORT_EXECIT
+	bool "Support EXEC.IT optimization"
+	default n
+	help
+	 Say y if you want to support Executaion on Instruction Table Optimization. It will replace 32-bit instruction by the 16-bit instruction when it appears more than 3 times.
+
+config OPTIM_OPTION
+	string "GCC optimization option"
+	default "-Os -g3"
+
+config CORE_DUMP
+    bool "Enable core dump"
+    default y
+
+config FRAME_POINTER
+	bool "Compile the Wise with frame pointers"
+	default n
+	---help---
+		If you say Y here the resulting Wise image will be slightly
+		larger and slower, but it gives very useful debugging information
+		in case of bugs.
+
+endmenu

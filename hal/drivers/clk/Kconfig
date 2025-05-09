@@ -1,0 +1,41 @@
+menu "Clock"
+
+config CLK
+	bool
+    default y
+	help
+	  This allows drivers to be provided for clock generators, including
+	  oscillators and PLLs. Devices can use a common clock API to request
+	  a particular clock rate and check on available clocks. Clocks can
+	  feed into other clocks in a tree structure, with multiplexers to
+	  choose the source for each clock.
+
+if CLK
+
+config CLK_SCM2020
+	bool
+    default n
+
+config CLK_TS8266
+	bool
+    default n
+
+config CLK_SCM1010
+	bool
+    default n
+
+config CLK_BCM2836
+	bool
+    default n
+
+config CLK_AE250_N22
+	bool
+    default n
+
+config CLK_SCM2010
+	bool
+    default y
+
+endif
+
+endmenu

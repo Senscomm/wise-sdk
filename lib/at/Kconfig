@@ -1,0 +1,223 @@
+menuconfig AT
+	bool "AT commands"
+	select WISE_API
+	select CMD_AT
+	default n
+	help
+	 Enable WISE at commands.
+
+if AT
+
+config AT_UART_PORT
+    int "UART port # for AT"
+    default 0
+
+config AT_OVER_IPC
+	bool
+	default n
+
+config AT_OVER_SCDC
+	bool "AT over SCDC"
+	default n
+
+comment "System AT commands"
+
+config ATCMD_AT
+	bool "\"AT\" : Tests if AT is enabled"
+	default y
+
+config ATCMD_AT_RST
+	bool "\"AT+RST\" : Restart system"
+	default y
+
+config ATCMD_AT_CMD
+	bool "\"AT+CMD\" : List AT CMDs"
+	default y
+
+config ATCMD_ATE
+	bool "\"ATE\" : Switch echo on or off"
+	default y
+	help
+	 ATE0/ATE1 will turn echo off, on respectively
+
+config ATCMD_AT_UART_CUR
+	bool "\"AT+UART_CUR\" : Current UART Configuration"
+	default y
+
+config ATCMD_AT_SYSRAM
+	bool "\"AT+SYSRAM\" : Get currently free heap memory size"
+	default y
+
+config ATCMD_AT_SLEEP
+	bool "\"AT+SLEEP\" : Set the Sleep Mode"
+	default y
+
+config ATCMD_AT_SLEEPWKCFG
+	bool "\"AT+SLEEPWKCFG\" : Set the Wakeup Source"
+	default y
+
+config ATCMD_AT_GSLP
+	bool "\"AT+GSLP\" : Enter into the deep sleep mode"
+	default y
+
+config ATCMD_AT_PME
+	bool "\"AT+PME\" : Enable/Disable WISE pm"
+	default n
+
+config ATCMD_AT_PMEW
+	bool "\"AT+PMEW\" : Enable/Disable WISE WLAN pm"
+	default n
+
+config ATCMD_AT_PMES
+	bool "\"AT+PMES\" : Enable/Disable PM state LS/DS/HI"
+	default n
+
+config ATCMD_AT_PMEWU
+	bool "\"AT+PMEWU\" : Enable/Disable PM wakeup GPIO"
+	default n
+
+config ATCMD_AT_PMR
+	bool "\"AT+PMR\" : Register/Unregister PM cb through system cmd"
+	default n
+
+comment "Wi-Fi AT commands"
+
+config ATCMD_AT_CWMAC
+	bool "\"AT+CWMAC\" : Set/Query the Wi-Fi mac address to interface"
+	default y
+
+config ATCMD_AT_CWMODE
+	bool "\"AT+CWMODE\" : Set/Query the Wi-Fi mode (Station/SoftAP)"
+	default y
+
+config ATCMD_AT_CWSTR
+	bool "\"AT+CWSTR\" : Exec the network enable (Station/SoftAP)"
+	default y
+
+config ATCMD_AT_CWSTOP
+	bool "\"AT+CWSTOP\" : Exec the network disable (Station/SoftAP)"
+	default y
+
+config ATCMD_AT_CWSCAP
+	bool "\"AT+CWSCAP\" : Exec the network enable (Station)"
+	default y
+
+config ATCMD_AT_CWDHCP
+	bool "\"AT+CWDHCP\" : Enable/Disable/Query DHCP for Station mode/SoftAP mode"
+	default y
+
+config ATCMD_AT_CWDHCPS
+	bool "\"AT+CWDHCPS\" : Set/Query IP Address range for SoftAP mode"
+	default y
+
+config ATCMD_AT_CWLIF
+	bool "\"AT+CWLIF\" : Show IP of Stations for AP mode"
+	default y
+
+config ATCMD_AT_CWLAP
+	bool "\"AT+CWLAP\" : Show Available APs"
+	default y
+
+config ATCMD_AT_CWLAPN
+	bool "\"AT+CWLAPN\" : Show Number of Available AP"
+	default y
+
+config ATCMD_AT_CWSSCN
+	bool "\"AT+CWSSCN\" : Exec Stop Scan"
+	default y
+
+config ATCMD_AT_CWCOUNTRY
+	bool "\"AT+CWCOUNTRY\" : Set Country"
+	default y
+
+config ATCMD_AT_CWPS
+	bool "\"AT+CWPS\" : Set Power Save mode"
+	default y
+
+config ATCMD_AT_CWPWR
+	bool "\"AT+CWPWR\" : Set Max Power Limited"
+	default y
+
+config ATCMD_AT_CWLAPOPT
+	bool "\"AT+CWLAPOPT\" : Set show elements in \"AT+CWLAP\""
+	depends on ATCMD_AT_CWLAP
+	default y
+
+config ATCMD_AT_CWSAP
+	bool "\"AT+CWSAP\" : Set/Query Configuration for SoftAP mode"
+	default y
+
+config ATCMD_AT_CWJAP
+	bool "\"AT+CWJAP\" : Exec ssid password bssid configuration"
+	default y
+
+config ATCMD_AT_CWQAP
+	bool "\"AT+CWQAP\" : Disconnects from the AP"
+	default y
+
+config ATCMD_AT_CWSMART
+	bool "\"AT+CWSTARTSMART\" : Start SMARTCONFIG , \"AT+CWSTOPSMART\" : Stop SMARTCONFIG"
+	default y
+	depends on AIRKISS
+
+comment "TCP/IP AT commands"
+
+config ATCMD_AT_CIFSR
+	bool "\"AT+CIFSR\" : Retrieves the IP Address and MAC Address"
+	default y
+
+config ATCMD_AT_CIPSTA
+	bool "\"AT+CIPSTA\" : Set/Query the IP Address for Station mode"
+	default y
+
+config ATCMD_AT_CIPSTAMAC
+	bool "\"AT+CIPSTAMAC\" : Set/Query the MAC Address for Station mode"
+	default y
+
+config ATCMD_AT_CIPAP
+	bool "\"AT+CIPAP\" : Set/Query the IP Address for AP mode"
+	default y
+
+config ATCMD_AT_CIPAPMAC
+	bool "\"AT+CIPAPMAC\" : Set/Query the MAC Address for AP mode"
+	default y
+
+config ATCMD_AT_PING
+	bool "\"AT+PING\" : Ping"
+	default y
+
+config ATCMD_AT_CIPSTART
+	bool "\"AT+CIPSTART\" : Set up a TCP/UDP/SSL connection"
+	select TCP_TRANSPORT
+	select ESP_TLS
+	select ESP_TLS_INSECURE
+	select ESP_TLS_SKIP_SERVER_CERT_VERIFY
+	default y
+
+config ATCMD_AT_CIPCLOSE
+	bool "\"AT+CIPCLOSE\" : Close a TCP/UDP/SSL connection"
+	default y
+
+config ATCMD_AT_CIPDINFO
+	bool "\"AT+CIPDINFO\" : Show the remote ip address and port"
+	default y
+
+config ATCMD_AT_CIPSEND
+	bool "\"AT+CIPSEND\" : Send data"
+	default y
+
+if ATCMD_AT_CIPSEND
+config AT_CIPSEND_MAX
+	int "Maximum bytes to be sent via \"AT+CIPSEND\""
+	default 2048
+endif
+
+config ATCMD_AT_CIPSTATUS
+	bool "\"AT+CIPSTATUS\" : Get connection status"
+	default y
+
+config ATCMD_AT_APDHCP_AUTO
+	bool "\"AT+APDHCP_AUTO\" : Enable SoftAP auto dhcp start"
+	default n
+
+endif # AT

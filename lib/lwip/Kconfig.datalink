@@ -1,0 +1,75 @@
+#menu "Datalink support"
+
+menuconfig LWIP_ETHERNET
+	bool "IEEE802.3 Ethernet"
+	default y
+#	select LWIP_ARP
+
+if LWIP_ETHERNET
+config ETHARP_SUPPORT_VLAN
+	bool "IEEE802.1q VLAN support"
+	depends on LWIP_ETHERNET
+	help
+	 If enabled, support receiving and sending ethernet packets with
+	 VLAN header. See the description of LWIP_HOOK_VLAN_CHECK and
+	 LWIP_HOOK_VLAN_SET hooks to check/set VLAN headers.
+	 Additionally, you can define ETHARP_VLAN_CHECK to an u16_t VLAN ID to check.
+	 If ETHARP_VLAN_CHECK is defined, only VLAN-traffic for this VLAN is accepted.
+	 If ETHARP_VLAN_CHECK is not defined, all traffic is accepted.
+	 Alternatively, define a function/define ETHARP_VLAN_CHECK_FN(eth_hdr, vlan)
+	 that returns 1 to accept a packet or 0 to drop a packet.
+
+config ETH_PAD_SIZE
+	int "Ethernet header padding bytes"
+	default 0
+	help
+	 number of bytes added before the ethernet header to ensure
+	 alignment of payload after that header. Since the header is 14 bytes long,
+	 without this padding e.g. addresses in the IP header will not be aligned
+	 on a 32-bit boundary, so setting this to 2 can speed up 32-bit-platforms.
+
+config ETHARP_SUPPORT_STATIC_ENTRIES
+	bool "ARP: static ARP table"
+	default n
+	help
+	 etharp_add_static_entry/etharp_remove_static are used
+
+config ETHARP_TABLE_MATCH_NETIF
+	bool "ARP: match netif for ARP table entries"
+	default n
+	help
+	 If disabled, duplicate IP address on multiple netifs are not supported
+	 (but this should only occur for AutoIP).
+
+# opt.h
+#config PBUF_LINK_HLEN
+#	int "Link-layer header length"
+#	default (18 + ETH_PAD_SIZE) if LWIP_HOOK_VLAN_SET = 1
+#	default (14 + ETH_PAD_SIZE) if LWIP_HOOK_VLAN_SET = 0
+
+endif # LWIP_ETHERNET
+
+menu "Other data links"
+config LWIP_SLIP
+       bool "SLIP (Serial Line Internet Protocol) not yet supported)"
+       default n
+       help
+        WISE currently does not support SLIP
+
+config PPP_SUPPORT
+       bool "PPP (Point-to-Point Protocol) (not yet supported)"
+       default n
+       help
+        WISE currently does not support PPP
+endmenu
+
+# FIXME: elsewhere
+# Do we still use this?
+config PBUF_LINK_ENCAPSULATION_HLEN
+	int "Additional link-layer encapsulation headroom"
+	default 96
+	help
+	 The number of bytes that should be allocated
+ 	 for an additional encapsulation header before ethernet headers (e.g. 802.11)
+
+#endmenu # Datalink support

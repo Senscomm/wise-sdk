@@ -1,0 +1,12 @@
+#
+# WLAN (802.11) driver
+#
+
+if WLAN
+menu "WLAN (802.11) drivers"
+
+source "hal/drivers/wlan/senscomm/Kconfig"
+
+endmenu # menu "WLAN (802.11) drivers"
+
+endif

@@ -1,0 +1,617 @@
+menu "LWIP options"
+
+menu "LWIP sequential API options"
+
+config LWIP_NETCONN
+ 	bool "Enable Netconn API"
+	default y
+	help
+	 require to use api_lib.c
+
+config LWIP_NETCONN_SEM_PER_THREAD
+	bool "Use per-thread semaphore instead of per-netconn semaphore"
+	default n
+	help
+ 	 Use one (thread-local) semaphore per
+ 	 thread calling socket/netconn functions instead of allocating one
+ 	 semaphore per netconn (and per select etc.)
+ 	 ATTENTION: a thread-local semaphore for API calls is needed:
+ 	 - LWIP_NETCONN_THREAD_SEM_GET() returning a sys_sem_t*
+ 	 - LWIP_NETCONN_THREAD_SEM_ALLOC() creating the semaphore
+ 	 - LWIP_NETCONN_THREAD_SEM_FREE() freeing the semaphore
+ 	 The latter 2 can be invoked up by calling netconn_thread_init()/netconn_thread_cleanup().
+ 	 Ports may call these for threads created with sys_thread_new().
+
+config LWIP_NETCONN_FULLDUPLEX
+	bool "Enable duplex netconn"
+	default n
+	help
+ 	 Enable code that allows reading from one thread,
+ 	 writing from a 2nd thread and closing from a 3rd thread at the same time.
+ 	 ATTENTION: This is currently really alpha! Some requirements:
+ 	 - LWIP_NETCONN_SEM_PER_THREAD==1 is required to use one socket/netconn from
+   	 multiple threads at once
+ 	 - sys_mbox_free() has to unblock receive tasks waiting on recvmbox/acceptmbox
+   	 and prevent a task pending on this during/after deletion
+
+comment "Netconn rx mailbox size"
+
+config DEFAULT_RAW_RECVMBOX_SIZE
+	int "RAW netconn"
+	default 4
+	help
+	 The mailbox size for the incoming packets on a
+ 	 NETCONN_RAW. The queue size value itself is platform-dependent, but is passed
+ 	 to sys_mbox_new() when the recvmbox is created.
+
+config DEFAULT_UDP_RECVMBOX_SIZE
+	int "UDP netconn"
+	default 4
+	help
+	 The mailbox size for the incoming packets on a
+ 	 NETCONN_UDP. The queue size value itself is platform-dependent, but is passed
+ 	 to sys_mbox_new() when the recvmbox is created.
+
+config DEFAULT_TCP_RECVMBOX_SIZE
+	int "TCP netconn"
+	default 4
+	help
+	 The mailbox size for the incoming packets on a
+ 	 NETCONN_TCP. The queue size value itself is platform-dependent, but is passed
+ 	 to sys_mbox_new() when the recvmbox is created.
+
+config DEFAULT_ACCEPTMBOX_SIZE
+	int "TCP accept mbox"
+	default 4
+	help
+	 The mailbox size for the incoming connections.
+ 	 The queue size value itself is platform-dependent, but is passed to
+ 	 sys_mbox_new() when the acceptmbox is created.
+
+# hidden
+config LWIP_MPU_COMPATIBLE
+	bool
+	default n
+	help
+         LWIP_MPU_COMPATIBLE: enables special memory management mechanism
+	 which makes lwip able to work on MPU (Memory Protection Unit) system
+	 by not passing stack-pointers to other threads
+	 (this decreases performance as memory is allocated from pools instead
+	  of keeping it on the stack)
+
+comment "LWIP TCP/IP main thread"
+config TCPIP_THREAD_NAME
+	string "Main tcpip thread name"
+	default "knetd"
+
+config TCPIP_THREAD_STACKSIZE
+	int "Main tcpip thread stack size"
+	default 4096
+	#default DEFAULT_STACK_SIZE
+	help
+ 	 The stack size value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+
+config TCPIP_THREAD_PRIO
+	int "Main tcpip thread priority"
+	default 1
+	help
+ 	 The priority value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+
+config TCPIP_MBOX_SIZE
+	int "The tcpip thread messages mailbox size"
+	default 4
+	help
+ 	 The queue size value itself is platform-dependent, but is passed to
+ 	 sys_mbox_new() when tcpip_init is called.
+
+if SLIP
+comment "SLIP thread"
+config SLIPIF_THREAD_NAME
+	string "The slipif_loop thread name"
+	default "slipif_loop"
+
+config SLIP_THREAD_STACKSIZE
+	int "The slipif_loop thread stack size"
+	default DEFAULT_STACK_SIZE
+	help
+ 	 The stack size value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+
+#FIXME: default
+config SLIPIF_THREAD_PRIO
+	int "The slipif_loop thread priority"
+	default 1
+	help
+ 	 The priority value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+endif # SLIP
+
+if 0
+comment "Other LWIP thread"
+
+config DEFAULT_THREAD_NAME
+	string "Any other lwIP thread name"
+	default "lwIP"
+
+config DEFAULT_THREAD_STACKSIZE
+	int "Any other lwIP thread stack size"
+	default DEFAULT_STACK_SIZE
+	help
+ 	 The stack size value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+
+#FIXME: default
+config DEFAULT_THREAD_PRIO
+	int "Any other lwIP thread priority"
+	default 1
+	help
+ 	 The priority value itself is platform-dependent, but is passed to
+ 	 sys_thread_new() when the thread is created.
+
+comment "LWIP thread/irq synchronization"
+endif
+
+config LWIP_TCPIP_CORE_LOCKING
+	bool "Client locks and unlocks the global mutex"
+	default y
+	help
+	 Creates a global mutex that is held during TCPIP thread operations.
+	 Can be locked by client code to perform lwIP operations without changing
+	 into TCPIP thread using callbacks. See LOCK_TCPIP_CORE() and
+	 UNLOCK_TCPIP_CORE().
+	 Your system should provide mutexes supporting priority inversion to use this.
+
+config LWIP_TCPIP_CORE_LOCKING_INPUT
+	bool "Inject coming packets with the global mutex held"
+	default n
+	help
+	 LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
+	 this lets tcpip_input() grab the mutex for input packets as well,
+	 instead of allocating a message and passing it to tcpip_thread.
+ 	 ATTENTION: this does not work when tcpip_input() is called from
+	 interrupt context!
+
+config SYS_LIGHTWEIGHT_PROT
+	bool "Synchronization by disabling interrupts"
+	default y
+	help
+        enable inter-task protection (and task-vs-interrupt
+	protection) for certain critical regions during buffer allocation, deallocation
+	and memory allocation and deallocation.
+	ATTENTION: This is required when using lwIP from more than one context! If
+	you disable this, you must be sure what you are doing!
+
+config LWIP_TCPIP_TIMEOUT
+ 	bool "Enable tcpip_timeout/tcpip_untimeout"
+	default n
+	help
+ 	 Enable tcpip_timeout/tcpip_untimeout to create
+ 	 timers running in tcpip_thread from another thread.
+
+config LWIP_TIMERS
+	bool "Enable LWIP timeout and periodic timers"
+	default y
+
+if LWIP_TIMERS
+config LWIP_TIMERS_CUSTOM
+	bool
+	default n
+	help
+	 Provide your own timer implementation.
+	 Function prototypes in timeouts.h and the array of lwip-internal cyclic timers
+	 are still included, but the implementation is not. The following functions
+	 will be required: sys_timeouts_init(), sys_timeout(), sys_untimeout(),
+         sys_timeouts_mbox_fetch()
+
+config LWIP_TIMERS_ONDEMAND
+        bool "Enable LWIP Timers on demand"
+        default y
+	depends on PM_SCM2010
+        help
+            If this feature is enabled, ETHARP, DNS, DHCP, IP4 Frag, IGMP and MLD6 timers will be activated only
+            when joining groups or receiving QUERY packets.
+
+            This feature will reduce the power consumption for applications which do not
+            use ETHARP, DNS, IP4 Frag, IGMP and MLD6.
+
+config LWIP_TCPTIMER_ONDEMAND
+	bool "Enable LWIP TCP Timer on demand"
+	default n
+	depends on PM_SCM2010 && LWIP_TCP
+	help
+	 If this feature is enabled, TCP timer will be activated only when TX or RX packets.
+
+endif #LWIP_TIMERS
+
+endmenu
+
+menu "Network interface options"
+
+config LWIP_CHECKSUM_CTRL_PER_NETIF
+	bool "Per-netif checksum generation/verification"
+	default n
+	help
+	 Say Y if you want each netif to enable/disable
+	 checksum against different set of protocols. If you are
+	 unsure, say N.
+
+config LWIP_SINGLE_NETIF
+	bool "Allow a single network interface only"
+	default n
+	help
+ 	 use a single netif only. This is the common case for
+ 	 small real-life targets. Some code like routing etc. can be left out.
+
+config LWIP_NETIF_API
+	bool "Support netif api"
+	default y
+	help
+	 Support netif api (in netifapi.c)
+
+if LWIP_NETIF_API
+
+config LWIP_NETIF_STATUS_CALLBACK
+	bool "NETIF: status change callback"
+	default n
+	help
+ 	 Support a callback function whenever an interface
+ 	 changes its up/down status (i.e., due to DHCP IP acquisition)
+
+config LWIP_NETIF_EXT_STATUS_CALLBACK
+	bool "NETIF: extra status callback"
+	default n
+	help
+ 	 Support an extended callback function
+ 	 for several netif related event that supports multiple subscribers.
+ 	 see netif_ext_status_callback
+
+config LWIP_NETIF_LINK_CALLBACK
+	bool "NETIF: link status change callback"
+	default n
+	help
+ 	 Support a callback function from an interface
+ 	 whenever the link changes (i.e., link down)
+
+config LWIP_NETIF_REMOVE_CALLBACK
+	bool "NETIF: removal callback"
+	default n
+	help
+ 	 Support a callback function that is called
+ 	 when a netif has been removed
+
+config LWIP_NETIF_HWADDRHINT
+	bool "NETIF: cache HW address"
+	default n
+	help
+ 	 Cache link-layer-address hints (e.g. table
+ 	 indices) in struct netif. TCP and UDP can make use of this to prevent
+ 	 scanning the ARP table for every sent packet. While this is faster for big
+ 	 ARP tables or many concurrent connections, it might be counterproductive
+ 	 if you have a tiny ARP table or if there never are concurrent connections.
+
+config LWIP_NETIF_TX_SINGLE_PBUF
+	bool "NETIF: single pbuf transmission"
+	default y
+	help
+	 if this is set to 1, lwIP *tries* to put all data
+ 	 to be sent into one single pbuf. This is for compatibility with DMA-enabled
+ 	 MACs that do not support scatter-gather.
+ 	 Beware that this might involve CPU-memcpy before transmitting that would not
+ 	 be needed without this flag! Use this only if you need to!
+
+ 	 pbufs for being in one piece. If not, @ref pbuf_clone can be used to get
+ 	 a single pbuf:
+   	 if (p->next != NULL) {
+     	 struct pbuf *q = pbuf_clone(PBUF_RAW, PBUF_RAM, p);
+     	 if (q == NULL) {
+       	 return ERR_MEM;
+     	 }
+     	 p = q; ATTENTION: do NOT free the old 'p' as the ref belongs to the caller!
+   	 }
+
+config LWIP_HAVE_LOOPIF
+ 	bool "Loopback interface"
+	default n
+	help
+	 Support loop interface (127.0.0.1).
+	 This is only needed when no real netifs are available. If at least one other
+ 	 netif is available, loopback traffic uses this netif.
+
+if LWIP_HAVE_LOOPIF
+
+config LWIP_LOOPIF_MULTICAST
+ 	bool "LO: multicast/IGMP"
+	default n
+
+config LWIP_NETIF_LOOPBACK
+	bool "LO: TX/RX loopback"
+	default y
+ 	help
+	 Support sending packets with a destination IP address equal to the
+	 netif IP address, looping them back up the stack.
+
+config LWIP_LOOPBACK_MAX_PBUFS
+	int "LO: # of tx pbufs on queue"
+	default 0
+	help
+	 Maximum number of tx pbufs on queue for loopback sending for each netif (0 = disabled)
+
+#opt.h
+#config LWIP_NETIF_LOOPBACK_MULTITHREADING
+#	bool "LO: support multithreading"
+#	default y
+#	help
+#	 Indicates whether threading is enabled in
+#	 the system, as netifs must change how they behave depending on this setting
+#	 for the LWIP_NETIF_LOOPBACK option to work.
+# 	 Setting this is needed to avoid reentering non-reentrant functions like
+# 	 tcp_input().
+#    	 LWIP_NETIF_LOOPBACK_MULTITHREADING==1
+# 	    Indicates that the user is using a
+#           multithreaded environment like tcpip.c. In this case, netif->input()
+#           is called directly.
+#         LWIP_NETIF_LOOPBACK_MULTITHREADING==0: Indicates a polling (or NO_SYS) setup.
+#         The packets are put on a list and netif_poll() must be called in
+#         the main application loop.
+
+endif
+
+endif
+endmenu
+
+menu "Misc. options"
+
+config LWIP_CHECKSUM_ON_COPY
+	bool "Re-calculate checksum when copying data to pbufs"
+	default n
+
+endmenu
+
+
+menu "Statistics options"
+
+config NETIF_STATS
+	bool "Enable netif stats"
+	default n
+
+config LWIP_STATS
+	bool "Enable statistics collection in lwip_stats"
+	default y
+
+if LWIP_STATS
+config LWIP_STATS_DISPLAY
+	bool "Enable statistics output"
+	default LWIP_STATS
+
+config LINK_STATS
+ 	bool "Link"
+	default LWIP_STATS
+
+config ETHARP_STATS
+	bool "Ether ARP"
+	default LWIP_STATS
+
+config IP_STATS
+	bool "IP"
+	default LWIP_STATS
+
+config IPFRAG_STATS
+	bool "IP fragmentation"
+	default LWIP_STATS
+	depends on IP_FRAG || IP_REASSEMBLY
+
+config ICMP_STATS
+	bool "ICMP"
+	default 1
+
+config IGMP_STATS
+ 	bool "IGMP"
+	default LWIP_IGMP
+
+config UDP_STATS
+ 	bool "UDP"
+	default LWIP_UDP
+
+config TCP_STATS
+ 	bool "TCP"
+	default LWIP_TCP
+
+config MEM_STATS
+	bool "mem.c"
+	default MEM_LIBC_MALLOC = 0 && MEM_USE_POOLS = 0
+
+config MEMP_STATS
+	bool "memp.c pool"
+	default MEMP_MEM_MALLOC = 0
+
+config SYS_STATS
+	bool "Enable system stats (sem and mbox counts, etc)"
+	default 1
+
+config IP6_STATS
+	bool "IPv6"
+	default (LWIP_IPV6)
+
+config ICMP6_STATS
+	bool "ICMPv6"
+	default (LWIP_IPV6 && LWIP_ICMP6)
+
+config IP6_FRAG_STATS
+	bool "IPv6 fragmentation"
+	default (LWIP_IPV6 && (LWIP_IPV6_FRAG || LWIP_IPV6_REASS))
+
+config MLD6_STATS
+	bool "MLD"
+	default (LWIP_IPV6 && LWIP_IPV6_MLD)
+
+config ND6_STATS
+ 	bool "Neighbor discovery"
+	default (LWIP_IPV6)
+
+config MIB2_STATS
+	bool "SNMP MIB2"
+	default n
+
+endif
+
+endmenu
+
+menu "LWIP debugging options"
+
+config LWIP_DEBUG_ENABLE
+	bool "Enable LWIP debugging logs"
+	default y
+
+config LWIP_ASSERT_VERBOSITY
+	int "LWIP_ASSERT() verbosity"
+	default 2
+	help
+	Set the verbosity level of LWIP_ASSERT().
+	0: LWIP_ASSERT() is empty.
+	1: LWIP_ASSERT() causes the kernel crash.
+	2: LWIP_ASSERT() prints out more information (files, line, function, and etc)
+
+config LWIP_DBG_MIN_LEVEL
+	int "Minimum debugging level"
+	default 0
+	help
+	 0: all
+	 1: warning
+	 2: serious
+	 3: severe
+
+config ETHARP_DEBUG
+	hex "etharp.c"
+	default 0x00
+	help
+	 Set ETHARP_DEBUG to 0x80 to enable debugging
+	 0x00 to disable debugging
+
+config NETIF_DEBUG
+	hex "netif.c"
+	default 0x00
+
+config PBUF_DEBUG
+	hex "pbuf.c"
+	default 0x00
+
+config API_LIB_DEBUG
+	hex "api_lib.c"
+	default 0x00
+
+config API_MSG_DEBUG
+	hex "api_msg.c"
+	default 0x00
+
+config SOCKETS_DEBUG
+	hex "sockets.c"
+	default 0x00
+
+config ICMP_DEBUG
+	hex "icmp.c"
+	default 0x00
+
+config IGMP_DEBUG
+	hex "igmp.c"
+	default 0x00
+
+config INET_DEBUG
+	hex "inet.c"
+	default 0x00
+
+config IP_DEBUG
+	hex "IP"
+	default 0x00
+
+config IP_REASS_DEBUG
+	hex "ip_frag.c for both frag & reass"
+	default 0x00
+
+config RAW_DEBUG
+	hex "raw.c"
+	default 0x00
+
+config MEM_DEBUG
+	hex "mem.c"
+	default 0x00
+
+config MEMP_DEBUG
+	hex "memp.c"
+	default 0x00
+
+config SYS_DEBUG
+	hex "sys.c"
+	default 0x00
+
+config TIMERS_DEBUG
+	hex "timers.c"
+	default 0x00
+
+config TCP_DEBUG
+	hex "TCP"
+	default 0x00
+
+config TCP_INPUT_DEBUG
+	hex "tcp_in.c for incoming debug"
+	default 0x00
+
+config TCP_FR_DEBUG
+	hex "tcp_in.c for fast retransmit"
+	default 0x00
+
+config TCP_RTO_DEBUG
+	hex "TCP for retransmit timeout"
+	default 0x00
+
+config TCP_CWND_DEBUG
+	hex "Enable debugging for TCP congestion window"
+	default 0x00
+
+config TCP_WND_DEBUG
+	hex "tcp_in.c for window updating"
+	default 0x00
+
+config TCP_OUTPUT_DEBUG
+	hex "tcp_out.c output functions"
+	default 0x00
+
+config TCP_RST_DEBUG
+	hex "TCP with the RST message"
+	default 0x00
+
+config TCP_QLEN_DEBUG
+	hex "TCP queue lengths"
+	default 0x00
+
+config UDP_DEBUG
+	hex "UDP"
+	default 0x00
+
+config TCPIP_DEBUG
+	hex "tcpip.c"
+	default 0x00
+
+config SLIP_DEBUG
+	hex "slipif.c"
+	default 0x00
+
+config DHCP_DEBUG
+	hex "dhcp.c"
+	default 0x00
+
+config AUTOIP_DEBUG
+	hex "autoip.c"
+	default 0x00
+
+config DNS_DEBUG
+	hex "DNS"
+	default 0x00
+
+config IP6_DEBUG
+	hex "IPv6"
+	default 0x00
+endmenu
+
+endmenu # LWIP options

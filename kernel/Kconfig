@@ -1,0 +1,142 @@
+source kernel/FreeRTOS/Kconfig
+source kernel/cmsis-freertos/Kconfig
+source kernel/freebsd/Kconfig
+
+menu "General setup"
+
+config PRINTK_BUF_LEN
+	int "printk buffer size"
+	default 4096
+
+config BACKTRACE
+	bool "Backtrace on kernel panic (EXPERIMENTAL)"
+	default n
+
+config NV_LOG
+    bool "Kernel logging to retention memory"
+    default n
+
+config DEFAULT_ASSERT_VERBOSITY
+    int "Default Assert verbosity"
+    default 2
+
+config SUPPORT_MTSMP
+	bool "Record mbuf timestamp"
+    default n
+
+config SUPPORT_MEM_SLAB
+	bool "Enable slab memory"
+    default y
+
+config SUPPORT_VQUEUE
+	bool "Enable vqueue"
+    default y
+
+config ILM_O1
+	bool "O1 for ilm"
+    default n
+
+config SUPPORT_GCOV
+	bool "Analyze code coverage"
+    default n
+
+if SUPPORT_GCOV
+
+menu "GCOV enable section"
+
+config SUPPORT_GCOV_ALL
+	bool "gcov enable for all files"
+	default n
+
+config SUPPORT_GCOV_LIB_HOSTAP
+	bool "gcov enable for lib/hostap, wpa_supplican..."
+	default n
+
+config SUPPORT_GCOV_LIB_LWIP
+	bool "gcov enable for lib/lwip."
+	default n
+
+config SUPPORT_GCOV_WLAN
+	bool "gcov enable for Senscomm wlan"
+	default n
+
+config SUPPORT_GCOV_BLE
+	bool "gcov enable for Senscomm ble"
+	default n
+
+config SUPPORT_GCOV_LIB_NIMBLE
+	bool "gcov enable for lib/nimble."
+	default n
+
+config SUPPORT_GCOV_TUSB
+	bool "gcov enable for tusb."
+	default n
+
+config SUPPORT_GCOV_SCDC
+	bool "gcov enable for scdc."
+	default n
+
+endmenu
+
+endif # SUPPORT_GCOV
+
+endmenu
+
+menu "Power management"
+
+config PM_IO
+	bool "Enable control IO during PM"
+	default n
+
+config PM_DEBUG
+	bool "Enable debugging log"
+	default n
+
+config PM_WISE_RTC_CAL
+	bool "Enable rtc cal in wise"
+	default n
+
+endmenu
+
+menuconfig FS
+	bool "Filesystem support"
+	default y
+
+if FS
+
+source hal/fs/Kconfig
+
+endif
+
+menuconfig NET
+	bool "Networking support"
+	default y
+
+if NET
+
+menuconfig WLAN
+	bool "IEEE802.11 Wireless LAN"
+	default y
+	select NET80211
+
+if WLAN
+source lib/net80211/Kconfig
+endif
+
+source lib/lwip/Kconfig.mem
+source lib/lwip/Kconfig
+
+if LWIP
+
+source lib/lwip/Kconfig.socket
+source lib/lwip/Kconfig.inet
+source lib/lwip/Kconfig.inet6
+source lib/lwip/Kconfig.datalink
+source lib/lwip/Kconfig.core
+source lib/lwip/Kconfig.freertos
+
+endif
+
+endif # if NET
+
+source hal/drivers/Kconfig

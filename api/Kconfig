@@ -1,0 +1,328 @@
+menuconfig SDK
+	bool "SDK"
+	default y
+	help
+	 Enable public APIs in SDK build.
+
+if SDK
+
+config USE_DMA_ALLOCATION
+	bool "Use DMA allocation"
+	default y
+	depends on SUPPORT_DMA_DYNAMIC_ALLOC
+
+config API_WIFI
+	bool "Include Wi-FI APIs"
+	default y
+	depends on NET80211
+	select WISE_API
+	help
+	 Include Wi-Fi APIs in SDK
+
+if API_WIFI
+
+menu "Wi-Fi API"
+
+config API_SOFTAP
+    bool "Include Senscomm SoftAP APIs"
+	default y
+	help
+	 Include Senscomm SoftAP APIs in SDK
+
+config API_SCAN
+    bool "Include Senscomm Scan APIs"
+	default y
+	help
+	 Include Senscomm Scan APIs in SDK
+
+config API_SCMCHANNEL
+	bool "Include Senscomm Channel APIs"
+	default n
+	depends on SCDC_SUPPORT_SCM_CHANNEL
+	help
+	 Include Senscomm Channel APIs in SDK
+
+config API_WATCHER
+    bool "Include Senscomm WATCHER APIs"
+	default y
+	depends on PM_SCM2010
+	help
+	 Include Senscomm WATCHER APIs in SDK
+
+config API_MONITOR
+    bool "Include Senscomm Wi-Fi Monitor APIs"
+	default n
+	help
+	 Include Senscomm Wi-Fi Monitor APIs in SDK
+
+endmenu
+endif # API_WIFI
+
+config CLI_WIFI
+	bool "Include Wi-FI CLIs for API testing"
+	default y
+	depends on API_WIFI
+	help
+	 Include Wi-Fi CLIs in SDK
+
+if CLI_WIFI
+
+menu "Wi-Fi CLI"
+
+config CLI_WIFI_STA
+	bool "Include Wi-Fi STA CLIs for API testing"
+	default y
+	help
+	 Include Wi-Fi STA CLIs in SDK
+
+config CLI_WIFI_SOFTAP
+	bool "Include Wi-Fi SAP CLIs for API testing"
+	default y
+	select API_SOFTAP
+	help
+	 Include Wi-Fi SAP CLIs in SDK
+
+config CLI_WIFI_WATCHER
+	bool "Include Wi-Fi WATCHER CLIs for API testing"
+	default y
+	depends on API_WATCHER
+	help
+	 Include Wi-Fi WATCHER CLIs in SDK
+
+config CLI_WIFI_SCAN
+	bool "Include Wi-Fi SCAN CLIs for API testing"
+	default y
+	select API_SCAN
+	help
+	 Include Wi-Fi SCAN CLIs in SDK
+
+config CLI_WIFI_DHCP
+	bool "Include WI-FI DHCP CLIs for API Testing"
+	default y
+	help
+	 Include Wi-Fi DHCP CLIs for API Testing
+
+config CLI_WIFI_SCMCHANNEL
+	bool "Include WI-FI SCMCHANNEL CLIs for API Testing"
+	default n
+	depends on API_SCMCHANNEL
+	depends on SUPPORT_WIFI_REPEATER
+	help
+	 Include Wi-Fi SCMCHANNEL CLIs for API Testing
+
+config CLI_WIFI_MONITOR
+	bool "Include WI-FI Monitor CLIs for API Testing"
+	default n
+	depends on API_MONITOR
+	help
+	 Include Wi-Fi MONITOR CLIs for API Testing
+
+config CLI_WIFI_CHANNEL
+	bool "Include Wi-Fi Channel CLIs for API testing"
+	default n
+	help
+	 Include Wi-Fi CHANNEL CLIs in SDK
+
+config CLI_WIFI_POWER
+	bool "Include Wi-Fi Tx power setting or query"
+	default n
+	help
+	 Include Wi-Fi Tx Power CLIs in SDK
+
+endmenu
+endif # CLI_WIFI
+
+config API_PM
+	bool "Include PM APIs"
+	default y
+	depends on PM_SCM2010
+	select API_GPIO
+	help
+	 Include PM APIs in SDK
+
+config CLI_PM
+	bool "Include PM CLIs for API testing"
+	depends on API_PM
+	default y
+	help
+	 Include PM CLIs in SDK
+
+config API_EFUSE
+	bool "Include EFUSE APIs"
+	default n
+	select EFUSE
+	help
+	 Include EFUSE APIs in SDK
+
+config CLI_EFUSE
+	bool "Include EFUSE CLIs for API testing"
+	depends on API_EFUSE
+	default n
+	help
+	 Include EFUSE CLIs in SDK
+
+config API_GPIO
+	bool "Include GPIO APIs"
+	select PINCTRL
+	default y
+	help
+	 Include GPIO APIs in SDK
+
+config CLI_GPIO
+	bool "Include GPIO CLIs for API testing"
+	depends on API_GPIO
+	default n
+	help
+	 Include GPIO CLIs in SDK
+
+config API_CRYPTO
+	bool "Include CRYPTO APIs"
+	default n
+	help
+	 Include CRYPTO APIs in SDK
+
+config CLI_CRYPTO
+	bool "Include CRYPTO CLIs for API testing"
+	depends on API_CRYPTO
+	default n
+	help
+	 Include CRYPTO CLIs in SDK
+
+config API_ADC
+	bool "Include ADC APIs"
+	default n
+	select ADC
+	help
+	 Include ADC APIs in SDK
+
+config CLI_ADC
+	bool "Include ADC CLIs for API testing"
+	depends on API_ADC
+	default n
+	help
+	 Include ADC CLIs in SDK
+
+
+config API_I2C
+	bool "Include I2C APIs"
+	default n
+	select I2C
+	help
+	 Include I2C APIs in SDK
+
+config CLI_I2C
+	bool "Include I2C CLIs for API testing"
+	depends on API_I2C
+	default n
+	help
+	 Include I2C CLIs in SDK
+
+config API_SPI
+	bool "Include SPI APIs"
+	default n
+	select SPI
+	help
+	 Include SPI APIs in SDK
+
+config CLI_SPI
+	bool "Include SPI CLIs for API testing"
+	depends on API_SPI
+	default n
+	help
+	 Include SPI CLIs in SDK
+
+config API_UART
+	bool "Include UART APIs"
+	default n
+	select SERIAL
+	help
+	 Include UART APIs in SDK
+
+config CLI_UART
+	bool "Include UART CLIs for API testing"
+	depends on API_UART
+	default n
+	help
+	 Include UART CLIs in SDK
+
+config CLI_UARTBUF_MAXLEN
+	int "Max UART TX/RX buffer length"
+	depends on CLI_UART
+	default 256
+	help
+	 Maximum UART TX/RX buffer length for API testing.
+
+config API_TIMER
+	bool "Include Timer APIs"
+	select TIMER
+	default n
+	help
+	 Include Timer APIs in SDK
+
+config CLI_TIMER
+	bool "Include Timer CLIs for API testing"
+	depends on API_TIMER
+	default n
+	help
+	 Include Timer CLIs in SDK
+
+config API_PTA
+	bool "Include PTA APIs"
+	depends on PTA
+	default n
+	help
+	 Include PTA APIs in SDK
+
+config CLI_PTA
+	bool "Include PTA CLIs for API testing"
+	depends on API_PTA
+	default n
+	help
+	 Include PTA CLIs in SDK
+
+config API_WDT
+	bool "Include Watchdog APIs"
+	depends on WDT
+	default n
+	help
+	 Include Watchdog APIs in SDK
+
+config CLI_FS
+	bool "Include FS CLIs"
+	select XYZMODEM
+	default n
+	help
+	 Include FS CLIs in SDK
+
+config API_I2S
+	bool "Include I2S APIs"
+	default n
+	select I2S
+	help
+	 Include I2S APIs in SDK
+
+config CLI_I2S
+	bool "Include I2S CLIs for API testing"
+	depends on API_I2S
+	default n
+	help
+	 Include I2S CLIs in SDK
+
+config API_AUDIO
+	bool "Include Audio APIs"
+	default n
+	select I2S
+	select AUDIO
+	help
+	 Include Audio APIs in SDK
+
+config CLI_AUDIO
+	bool "Include Audio CLIs for API testing"
+	depends on API_AUDIO
+	default n
+	help
+	 Include Audio CLIs in SDK
+
+endif # SDK
+
+source "api/wise/Kconfig"

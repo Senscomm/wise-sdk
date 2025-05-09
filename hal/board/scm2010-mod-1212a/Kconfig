@@ -1,0 +1,9 @@
+if BOARD_SCM2010_MODULE_1212A
+
+config SYS_BOARD
+	default "scm2010-mod-1212a"
+
+config SERIAL_CONSOLE_PORT
+	default 0
+
+endif

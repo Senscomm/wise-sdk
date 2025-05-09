@@ -1,0 +1,61 @@
+config MQTT_SUB_UNSUB_MAX_VECTORS
+    int "Max. number of vectors in subscribe and unsubscribe packet"
+	default 4
+
+config MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT
+	int "The number of retries for receiving CONNACK"
+	default 5
+	help
+     The MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT will be used only when the
+     timeoutMs parameter of #MQTT_Connect is passed as 0 . The transport
+     receive for CONNACK will be retried MQTT_MAX_CONNACK_RECEIVE_RETRY_COUNT
+     times before timing out. A value of 0 for this config will cause the
+     transport receive for CONNACK  to be invoked only once.
+
+config MQTT_PINGRESP_TIMEOUT_MS
+	int "Timeout duration for ping response in milliseconds"
+	default 5000
+	help
+     Maximum number of milliseconds to wait for a ping response to a ping
+     request as part of the keep-alive mechanism.
+
+config PACKET_TX_TIMEOUT_MS
+	int "Max. Tx inactivity in milliseconds"
+	default 30000
+	help
+     Maximum number of milliseconds of TX inactivity to wait
+     before initiating a PINGREQ.
+
+config PACKET_RX_TIMEOUT_MS
+	int "Max. Rx inactivity in milliseconds"
+	default 30000
+	help
+     Maximum number of milliseconds of RX inactivity to wait
+     before initiating a PINGREQ
+
+config MQTT_RECV_POLLING_TIMEOUT_MS
+	int "Max. polling duration"
+	default 10
+	help
+    The maximum duration between non-empty network reads while
+    receiving an MQTT packet via the MQTT_ProcessLoop or MQTT_ReceiveLoop
+    API functions.
+
+config MQTT_SEND_TIMEOUT_MS
+	int "Max. duration of sending a MQTT packet"
+	default 20000
+	help
+     The maximum duration allowed to send an MQTT packet over the transport
+     interface.
+
+menuconfig COREMQTT_AGENT
+    bool "coreMQTT Agent - A thread-safe agent for coreMQTT"
+    default y
+    help
+     Enable coreMQTT-Agent library.
+
+if COREMQTT_AGENT
+
+source "lib/net/mqtt/coreMQTT-Agent/Kconfig"
+
+endif

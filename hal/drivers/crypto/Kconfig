@@ -1,0 +1,8 @@
+menu "HW crypto Support"
+
+config HW_CRYPTO
+	bool "Enable hw crypto engine"
+	help
+	  Enable driver model for crypto hw. 
+
+endmenu

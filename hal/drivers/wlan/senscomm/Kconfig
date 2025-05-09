@@ -1,0 +1,140 @@
+#
+# Senscomm WLAN driver
+#
+#
+config WLAN_SENSCOMM
+    bool
+    default y
+    select PTA
+
+config SENSCOMM_WLAN_2020
+	bool
+    default y
+	select SUPPORT_AMPDU_TX
+	select SUPPORT_AMPDU_RX
+
+if SENSCOMM_WLAN_2020
+
+config WLAN_HW_SCM2010
+	bool
+	default y
+
+comment "Configuration"
+
+config RX_BUF_NUM_LOG2
+    int "log2(num of rx buffers)"
+    default 5
+    help
+    1: 2 buffers, 2: 4 buffers, ... 8: 256 buffers
+
+config MAX_AMSDU_NUM
+	int "Maximum number of subframes that can be aggregated into an A-MSDU at one time."
+	default 2
+	range 1 4
+	help
+	Maximum of two subframes can be aggregated into an A-MSDU at one time.
+
+config TX_BUF_RESERVED_NUM
+	int "reserved for tx"
+	default 16
+	help
+	It's depend on RX_BUF_NUM_LOG2 and CONFIG_MEMP_NUM_MBUF_CACHE settings
+
+config BDS_HDR_NUM
+	int
+	default 2
+
+config SUPPORT_BDS_ADJ
+	bool
+	default n
+
+config MONITOR_BEACON_MISS
+	bool "Monitor beacon misses"
+	default y
+	help
+	Enable beacon misses for a STA mode
+
+if MONITOR_BEACON_MISS
+
+config BMISS_THRESHOLD
+    int "Default Beacon miss check window"
+    default 15
+    help
+    Define a window in which Beacon miss will be monitored, in unit of Beacon interval.
+
+config BMISS_DYN_WIN
+    bool "Enable dynamic adjustment of BMISS window"
+    default y
+    help
+    Adjust BMISS window dynamically based on BMISS rate
+
+endif
+
+config AP_PROXIMATE_THR
+	int "AP's RSSI threshold to be determined as being proximate"
+	default -30
+	help
+	If the average RSSI of Beacon frames are higher than this value, it is regarded as being proximate.
+
+config AP_PROXIMATE_TXPWR
+	int "HW controlled Tx power (dBm) when AP's proximate"
+	default 10
+	help
+	If the AP is determined to be proximate, HW generated frames will be sent with this power.
+
+config ENABLE_TX_TO
+	bool "Enable Tx timeout mechanism"
+	default y
+
+config ENABLE_RX_TO
+	bool "Enable Rx timeout mechanism"
+	default y
+
+config ERRATA_TX_TIMING_GAP
+	bool "Enable Errata timing gap"
+	default y
+
+config SUPPORT_HE_RX_MCS_8_9
+	int "support Rx MCS 8, 9"
+	default 0
+	help
+	0: MCS 0-7, 1: 0-9, 2: 0-11
+
+config USE_SYSDMA_FOR_MACFW_DN
+	bool "Use DMA engine for IMEM loading"
+	default y
+
+config SUPPORT_TX_KEEPALIVE
+   bool "Enable TX Null for Keepalive"
+   default n
+
+if SUPPORT_TX_KEEPALIVE
+config TX_KEEPALIVE_INTERVAL
+   int "Null keep-alive interval time(s)"
+   default 20
+   range 1 240
+endif
+
+#comment "Debugging features"
+
+if CMDLINE
+config SCM2020_CLI_MAC
+	bool
+	default y
+	help
+	Say Y to enable 'mac' command
+endif
+
+comment "Power management"
+
+config SCM2020_WLAN_PM
+	bool "Enable WLAN Power Management"
+    depends on PM_SCM2010
+	default y
+endif
+
+if SCM2020_WLAN_PM
+	config NO_BEAMFORMEE_FOR_PS
+	bool "Prevent AP from sending NDPA when in sleep mode"
+	default n
+endif

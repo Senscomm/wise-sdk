@@ -1,0 +1,24 @@
+menu sdio 
+
+config SDIO_NETIF
+	bool "SDIO external host"
+	depends on SDIO
+	select AT
+	select AT_OVER_SCDC
+	select SUPPORT_SCDC
+	select SCDC_SUPPORT_LOCAL_NETIF
+	select SUPPORT_WIFI_REPEATER
+	default n
+	help
+	 Enable a netif with an external host over SDIO.
+
+
+if SDIO_NETIF
+
+config SUPPORT_SDIO_WIFI_FILTER
+	bool "Support sdio wifi filter"
+	select SUPPORT_WIFI_REPEATER
+	default n
+
+endif
+endmenu

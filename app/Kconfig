@@ -1,0 +1,74 @@
+choice
+	prompt "Applications"
+
+config DEMO_CMDLINE
+	bool "Command-line demo"
+
+config DEMO_API_WIFI
+	bool "Wi-Fi API demo"
+	select SDK
+	select API_WIFI
+	select CLI_WIFI
+	select CLI_WIFI_STA
+	select CLI_WIFI_SOFTAP
+	select CLI_WIFI_SCAN
+	select CLI_WIFI_DHCP
+
+config DEMO_BLE
+	bool "BLE demo"
+
+config DEMO_PROTOS
+	bool "Protocols Demo"
+
+config DEMO_PERIPHERALS
+    bool "Peripherals Demo"
+
+config DEMO_POWERSAVE
+    bool "Power Save Demo"
+
+config DEMO_HOW_TO_DEBUG
+	bool "How-to-debug demo"
+	select CMDLINE
+
+config EXT_APP
+	bool "Ext Applications"
+
+config MCUBOOT_BL
+    bool "wise-mcuboot"
+
+config TEST_PERIPHERALS
+ 	bool "peripherals test"
+
+endchoice
+
+if DEMO_API_WIFI
+source "api/examples/wifi/Kconfig"
+endif
+
+if DEMO_BLE
+source "api/examples/ble/Kconfig"
+endif
+
+if DEMO_PROTOS
+source "api/examples/protocols/Kconfig"
+endif
+
+if DEMO_PERIPHERALS
+source "api/examples/peripherals/Kconfig"
+endif
+
+if DEMO_POWERSAVE
+source "api/examples/power_save/Kconfig"
+endif
+
+if TEST_PERIPHERALS
+source api/examples/test/peripherals/Kconfig
+endif
+
+if DEMO_HOW_TO_DEBUG
+source "app/how-to-debug/Kconfig"
+endif
+
+if MCUBOOT_BL
+source "app/mcuboot/Kconfig"
+endif

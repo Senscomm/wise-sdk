@@ -1,0 +1,4 @@
+
+config TINYCRYPT
+	bool "Tinycrypt"
+	default y

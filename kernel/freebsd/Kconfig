@@ -1,0 +1,60 @@
+config FREEBSD
+	bool
+	default y
+
+if FREEBSD
+
+config FREEBSD_MBUF_CHUNK_SIZE
+	int
+	default 1120
+
+config FREEBSD_MBUF_CACHE_SIZE
+	int
+	default 1024
+
+config FREEBSD_MBUF_DYNA_EXT
+	bool
+	default n
+
+config FREEBSD_ASSERT
+	int
+	default 2
+	help
+	0: KASSERT() becomes empty
+	1: KASSERT() causes the kernel crash
+	2: KASSERT() prints file, line, function info and causes the crash.	
+
+config FREEBSD_IF_PRINTF
+	bool
+	default y
+	help
+	Say Y to make if_printf() print out messages
+
+config FREEBSD_IC_PRINTF
+	bool
+	default y
+	help
+	Say Y to make ic_printf() print out messages
+
+config FREEBSD_VAP_PRINTF
+	bool
+	default n
+	help
+	Say Y to make vap_printf() print out messages
+
+config FREEBSD_CALLOUT_OPTIMIZE
+	bool
+	default y
+	help
+	This option reduces overhead of deleting and reallocating os timer
+	associated with a callout in callout_reset() by reusing the timer.
+
+config FREEBSD_ALLOW_MBUF_CHAIN
+	bool
+	default n
+	help
+	This option reduces overhead of allocating a big chunk and
+	copying data from pbuf into it by embedding it's buffer
+	address pointed by an external pointer inside mbuf instance(s).
+
+endif

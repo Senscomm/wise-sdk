@@ -1,0 +1,5 @@
+config LWIP
+	bool "Enable lwIP TCP/IP stack"
+	default y
+	help
+	 Include lwip port based on CMSIS-FreeRTOS

@@ -1,0 +1,63 @@
+menuconfig COAP
+	bool "CoAP (Constrained Application Protocol"
+	depends on LWIP
+	default n
+	help
+	 Enable CoAP client and/or server.
+
+if COAP
+
+config COAP_CLIENT_SUPPORT
+	bool "Support CoAP client"
+	default y
+    select MBEDTLS_TLS_CLIENT
+
+config COAP_SERVER_SUPPORT
+	bool "Support CoAP server"
+	default y
+    select MBEDTLS_TLS_SERVER
+
+config COAP_OSCORE_SUPPORT
+	bool "Support OSCORE as CoAP security"
+	default n
+
+config COAP_WEBSOCKETS
+    bool "WebSockets"
+    default n
+
+config COAP_ASYNC_SUPPORT
+    bool "Support delayed response"
+	depends on COAP_SERVER_SUPPORT
+    default n
+
+config COAP_TCP_SUPPORT
+    bool "Support TCP for transport"
+	depends on LWIP_TCP
+    default n
+
+config COAP_Q_BLOCK
+    bool "Support Q-Block (RFC9177)"
+    default n
+
+config COAP_OBSERVE_PERSIST
+    bool "Manage subscription in persistent storage"
+	depends on COAP_SERVER_SUPPORT
+    default n
+
+config COAP_WITH_MBEDTLS
+    bool "Use mbedtls for CoAP security"
+    default n
+
+config COAP_DEBUGGING
+    bool "Enable debugging"
+    default n
+
+config COAP_LOG_MAX_LEVEL
+	int "Maximum logging level (0-8)"
+	range 0 8
+	default 0
+	depends on COAP_DEBUGGING
+	help
+	 0: Emerg, 1: Alert, 2: Crit, 3: Err, 4: Warn, 5: Notice, 6: Info, 7: Debug, 8: OSCORE 
+
+endif # COAP

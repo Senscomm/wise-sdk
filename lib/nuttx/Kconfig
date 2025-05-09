@@ -1,0 +1,20 @@
+menuconfig NUTTX
+	bool "NuttX host"
+	default n
+	select AT_OVER_IPC
+	help
+	 Enable interaction with NuttX host over IPC.
+
+if NUTTX
+
+config NET_ETH_PKTSIZE
+	int "Host Ethernet packet buffer size"
+	default 1514
+
+config NET_FILTER
+	bool "Support filter NET packet for host"
+	default y
+	help
+	 Enable filter NET packet for host
+
+endif

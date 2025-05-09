@@ -1,0 +1,26 @@
+menu "RF Support"
+
+config RF
+	bool "Enable rf driver framework"
+	help
+	  Enable driver model for rf. 
+
+if RF
+
+config RF_MANGO
+	bool "Mango RF support"
+	depends on SYS_FPGA
+	default y
+
+config RF_XRC564
+	bool "XRC564 RF support"
+	depends on SOC_SCM2010 && !SYS_FPGA
+	default y
+
+config RF_CLI
+	bool "RF CLI support"
+	default n
+
+endif
+
+endmenu

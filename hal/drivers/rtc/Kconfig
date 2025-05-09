@@ -1,0 +1,41 @@
+menu "Real Time Clock Support"
+
+config RTC
+	bool "Enable rtc driver framework"
+	help
+	  Enable driver model for rtc.
+
+if RTC
+
+config RTC_ATCRTC
+	bool "AndesTech AndeShape ATCRTC support" if RTC
+	default y
+
+config ATCRTC_SCM2010
+	bool "ATCRTC modified SCM2010" if RTC_ATCRTC
+	default y
+
+config SUPPORT_RTC_ALARM_INT
+	bool "SCM2010 Alarm interrupt support" if RTC_ATCRTC
+	default y
+
+config SUPPORT_EXT_RTC
+   bool "Use EXT-RTC as RTC source"
+   default n
+
+choice
+    prompt "Select RTC Implementation"
+    depends on SUPPORT_EXT_RTC
+    default SD3068
+
+config SD3068
+    bool "SD3068 RTC"
+
+config PCF8563LX
+    bool "PCF8563LX RTC"
+
+endchoice
+
+endif
+
+endmenu

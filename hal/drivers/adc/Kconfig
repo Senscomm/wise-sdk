@@ -1,0 +1,18 @@
+menu "ADC Support"
+
+config ADC
+	bool "Enable ADC driver framework"
+    default n
+	depends on USE_AUXADC
+	help
+      Enable ADC driver framework.
+
+if ADC
+
+config ADC_XRCADC
+	bool "XRC ADC support"
+	default y if SOC_SCM2010
+
+endif
+
+endmenu

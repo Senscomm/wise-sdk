@@ -1,0 +1,44 @@
+menu "Common"
+
+config DEMO_WIFI_CONF
+	bool "include WI-FI Configuration"
+	default n
+	help
+		Automatically start with Wi-Fi configuration
+
+if DEMO_WIFI_CONF
+
+menu "DEMO WI-FI Configuration"
+
+config DEMO_WIFI_SSID
+	string "DEMO WIFI SSID"
+	default "TestAP"
+	help
+		SSID (network name) for the example to connect to.
+
+config DEMO_WIFI_PASSWORD
+	string "DEMO WiFi Password"
+	default "12345678"
+	help
+		WiFi password (WPA or WPA2) for the example to use.
+
+
+config DEMO_WIFI_AUTH
+	int "DEMO WIFI Auth Type"
+	range 0 3
+	default 0
+	help
+		OPEN(0),WPA-PSK(1), WPA2-PSK(2),SAE(3)
+
+config DEMO_WIFI_PAIRWISE
+	int "DEMO WIFI PAIRWISE Type"
+	range 0 2
+	default 0
+	help
+		None(0),AES(1), TKIP(2)
+
+endmenu
+
+endif # DEMO_WIFI_CONF
+
+endmenu

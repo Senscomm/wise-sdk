@@ -1,0 +1,25 @@
+ccflags-y += -I$(srctree)/include
+ccflags-y += -I$(srctree)/include/freebsd
+ccflags-y += -I$(srctree)/lib/lwip/src/include
+ccflags-y += -I$(srctree)/lib/lwip/ports/freertos/include
+ccflags-y += -I$(srctree)/lib
+
+obj-y += netif.o
+obj-$(CONFIG_WLAN) += wlan.o
+obj-$(CONFIG_CMD_PING) += ping.o
+obj-$(CONFIG_CMD_DHCLIENT) += dhclient.o
+obj-$(CONFIG_CMD_IPERF) += iperf3/
+obj-$(CONFIG_LWIP_DHCPS) += dhcps/
+obj-$(CONFIG_LWIP_MDNS_RESPONDER) += mdns/
+obj-$(CONFIG_LWIP_SNTP) += sntp/
+obj-$(CONFIG_LIB_HTTP_PARSER) += http_parser/
+obj-$(CONFIG_LIB_HTTPD) += http_server/
+obj-$(CONFIG_COREMQTT) += mqtt/coreMQTT/
+obj-$(CONFIG_COREMQTT_AGENT) += mqtt/coreMQTT-Agent/
+obj-$(CONFIG_CMD_WSHARK) += wshark.o
+obj-$(CONFIG_CMD_NETTOOL) += nettool.o
+obj-$(CONFIG_COAP) += coap/
+obj-$(CONFIG_ESP_TLS) += esp-tls/
+obj-$(CONFIG_TCP_TRANSPORT) += tcp-transport/
+obj-$(CONFIG_ESP_HTTP_CLIENT) += esp_http_client/
+CFLAGS_wshark.o += -I$(srctree)/lib -I$(srctree)/lib/hostap/src

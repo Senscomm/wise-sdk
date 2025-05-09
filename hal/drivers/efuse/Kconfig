@@ -1,0 +1,33 @@
+menu "eFuse Support"
+
+config EFUSE
+	bool "Enable eFuse driver"
+	help
+	  Enable driver model for eFuse HW. 
+
+if EFUSE
+
+config EFUSE_SCM2010
+	bool "Senscomm SCM2010 eFuse support"
+	default y
+
+config EFUSE_NUM_ROW
+	int "Number of 32-bit rows"
+	default 32
+
+config EFUSE_BUFFER_MODE
+	bool "Enable eFuse buffer mode(RAM, FLASH)"
+	default n
+
+if EFUSE_BUFFER_MODE
+
+config EFUSE_FLASH_BUFFER_ADDR
+    hex "Buffer address in serial flash"
+    default 0x80013000
+
+endif
+
+endif
+
+
+endmenu

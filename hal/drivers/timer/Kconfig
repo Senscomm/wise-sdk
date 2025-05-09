@@ -1,0 +1,46 @@
+menu "Timer Support"
+
+config TIMER
+	bool "Enable timer driver framework"
+	help
+	  Enable driver model for timer access. It uses the same API as
+	  lib/time.c, but now implemented by the uclass. The first timer
+	  will be used. The timer is usually a 32 bits free-running up
+	  counter. There may be no real tick, and no timer interrupt.
+
+if TIMER
+
+config WALL_TIMER
+	bool "Use timer device for a wall timer"
+	default n
+
+if WALL_TIMER
+
+config WALL_TIMER_ID
+	int "ID of the timer to use as a wall timer"
+	default 0
+
+endif
+
+config TIMER_SCM2020
+	bool "Senscomm SCM2020 timer support" if TIMER
+	default y if SOC_SCM2020
+
+config TIMER_ATCPIT
+	bool "AndesTech AndeShape ATCPIT timer support" if TIMER
+	depends on USE_TIMER0 || USE_TIMER1
+	default y if SOC_TS8266
+	default y if SOC_SCM1010
+	default y if SOC_SCM2010
+
+config TIMER_SP804
+	bool "ARM SP804 timer support" if TIMER
+	default y if SOC_BCM2836
+
+config TIMER_SANDBOX
+	bool "Sandbox timer support"
+	depends on SOC_SANDBOX
+
+endif
+
+endmenu

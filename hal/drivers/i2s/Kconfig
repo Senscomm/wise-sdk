@@ -1,0 +1,31 @@
+menu "I2S Support"
+
+config I2S
+	bool "Enable I2S driver framework"
+    default n
+	depends on USE_I2S
+	help
+      Enable I2S driver framework.
+
+if I2S
+
+config I2S_PYTHON
+	bool "Python I2S support"
+	default y if SOC_SCM2010
+	select DMA
+
+if I2S_PYTHON
+
+config I2S_PYTHON_RX_BLOCK_COUNT
+	int "Size of Rx queue"
+	default 32
+
+config I2S_PYTHON_TX_BLOCK_COUNT
+	int "Size of Tx queue"
+	default 32
+
+endif
+
+endif
+
+endmenu

@@ -1,0 +1,59 @@
+menu "scdc"
+
+config SUPPORT_SCDC
+    bool "Support Senscomm CDC protocol"
+	default n
+	depends on TINYUSB || SDIO
+	select FREEBSD_MBUF_DYNA_EXT
+
+if SUPPORT_SCDC
+
+config SCDC_DEBUG
+    int "SCDC Debug level (1 - 3)"
+    default 1
+
+config SCDC_DUMP_OUT_PKTS
+    bool "Support SCDC dump out packets"
+	default n
+
+config SUPPORT_FWS
+	bool "support firmware signaling"
+	default n
+	
+config SUPPORT_FWS_CREDIT_MGMT
+	bool "fws support credit management"
+	depends on SUPPORT_FWS
+	default n
+
+config SUPPORT_FWS_CREDIT_BYTE
+	bool "fws report credit number by bytes of buffer size"
+	depends on SUPPORT_FWS_CREDIT_MGMT
+	default n
+
+config FWS_COMP_TXSTATUS_CNT
+	int "compress number for resporting txstatus by event"
+	default 20
+
+config PIGGYBACK_COMP_TXSTATUS_CNT
+	int "compress number for resporting txstatus by piggyback"
+	default 5
+
+config SCDC_DATA_REORDER
+    bool "reorder data per seqno"
+    default n
+
+config SCDC_DATA_TEST
+    bool "send test scdc data to the host"
+    default n
+
+config SCDC_SUPPORT_LOCAL_NETIF
+    bool "support local netif"
+    default n
+
+config SCDC_SUPPORT_SCM_CHANNEL
+	bool "support a channel tunnel for host and target"
+	default n
+	depends on TINYUSB || SDIO
+endif
+
+endmenu

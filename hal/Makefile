@@ -1,0 +1,26 @@
+subdir-ccflags-y += -DASSERT_VERBOSITY=$(CONFIG_HAL_ASSERT_VERBOSITY)
+
+libs-y += hal/core/
+libs-y += hal/proc/
+libs-y += hal/drivers/core/
+libs-$(CONFIG_FS) 		+= hal/fs/
+libs-$(CONFIG_FS) 		+= hal/fs/patch/
+libs-$(CONFIG_SERIAL) 	+= hal/drivers/serial/
+libs-$(CONFIG_RTC) 		+= hal/drivers/rtc/
+libs-$(CONFIG_TIMER) 	+= hal/drivers/timer/
+libs-$(CONFIG_CLK) 		+= hal/drivers/clk/
+libs-$(CONFIG_I2C)		+= hal/drivers/i2c/
+libs-$(CONFIG_SPI)		+= hal/drivers/spi/
+libs-$(CONFIG_ADC)		+= hal/drivers/adc/
+libs-$(CONFIG_PINCTRL) 	+= hal/drivers/pinctrl/
+libs-$(CONFIG_BLE)		+= hal/drivers/ble/
+libs-$(CONFIG_BLE)		+= hal/drivers/ble/priv/
+libs-$(CONFIG_HW_CRYPTO)	+= hal/drivers/crypto/
+libs-$(CONFIG_EFUSE)	+= hal/drivers/efuse/
+libs-$(CONFIG_SDIO)	    += hal/drivers/sdio/
+libs-$(CONFIG_DMA)		+= hal/drivers/dma/
+libs-$(CONFIG_SYSTIMER) += hal/drivers/systimer/
+libs-$(CONFIG_PTA)		+= hal/drivers/pta/
+libs-$(CONFIG_I2S)		+= hal/drivers/i2s/
+libs-$(CONFIG_AUDIO)	+= hal/drivers/audio/
+libs-$(CONFIG_WLAN_SENSCOMM) += hal/drivers/wlan/senscomm/prv/

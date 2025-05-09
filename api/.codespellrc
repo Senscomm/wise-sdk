@@ -1,0 +1,4 @@
+[codespell]
+skip = *.pem,*key,*crt
+ignore-words-list = systm,erro,inout,ans,aci,unstall,unstalling,unstalled
+write-changes = true

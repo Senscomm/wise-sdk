@@ -1,0 +1,4 @@
+ccflags-y += -I$(srctree)/include/hal/ndsv5
+
+obj-y += start.o
+obj-y += trap.o

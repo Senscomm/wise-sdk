@@ -1,0 +1,35 @@
+menuconfig SPIFFS
+	bool "Support SPIFFS (SPI Flash File System)"
+	depends on SPI_FLASH
+	default y
+	help
+	 Include SPIFFS
+
+if SPIFFS
+
+config SPIFFS_NUM_OPEN_FILES
+	int "SPIFFS maximum # of open files"
+	default 10
+	help
+	One spiffs open file occupies 64 byte of the heap
+
+
+config SPIFFS_NUM_CACHE_PAGES
+       int "SPIFFS # of cache pages"
+       default 4
+
+config SPIFFS_OBJ_NAME_LEN
+	int "SPIFFS maximum length of object's name"
+	default 64
+	help
+	Maximum length of name that a spiffs object can have
+
+config SPIFFS_SYSTEM_PART_ADDR
+	hex "System partition address"
+	default 0x80380000
+
+config SPIFFS_SYSTEM_PART_SIZE
+	hex "System partition size"
+	default 0x80000
+
+endif

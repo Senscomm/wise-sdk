@@ -1,0 +1,48 @@
+menu "MQTT UART"
+
+config MQTT_MBEDTLS_SUPPORT
+	bool "MQTT include MBEDTLS Function"
+	select TLS_TRANSPORT
+	default n
+	help
+		MQTT need MBEDTLS Transport
+
+config MQTT_DEMO_BROKER_URL
+	string "URL of MQTT broker to use"
+	default "test.mosquitto.org"
+	help
+		URL of the MQTT broker to use.
+
+config MQTT_DEMO_BROKER_PORT
+	string "Port of MQTT broker to connect to"
+	default "1883" if !MQTT_MBEDTLS_SUPPORT
+	default "8883" if MQTT_MBEDTLS_SUPPORT
+	help
+		Port of the MQTT broker to connect to.
+
+config MQTT_DEMO_CLIENT_ID
+	string "Identifier of MQTT client"
+	default "uart-mqttc"
+	help
+		Client identifier to be advertised to the MQTT brokder.
+
+config MQTT_DEMO_KEEP_ALIVE_INTERVAL
+	int "MQTT Keep Alive Interval in seconds"
+	default 60
+	help
+		MQTT keep-alive period.
+
+config MQTT_DEMO_CONNACK_RECV_TIMEOUT_MS
+	int "MQTT CONNACK Timeout in ms"
+	default 1000
+	help
+		Timeout for receiving CONNACK after sending an MQTT CONNECT packet.
+		Defined in milliseconds.
+
+config MQTT_DEMO_NETWORK_BUFFER_SIZE
+	int "MQTT transport buffer size"
+	default 1500
+	help
+		Size of a MQTT packet buffer.
+
+endmenu

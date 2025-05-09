@@ -1,0 +1,68 @@
+menu "Audio CODEC Support"
+
+config AUDIO
+	bool "Enable Audio CODEC driver framework"
+    default n
+	depends on I2S && I2C
+	help
+      Enable Audio CODEC driver framework.
+
+if AUDIO
+
+choice
+    prompt "Select CODEC"
+    default ES8311
+
+config TLV320AIC3110
+	bool "TLV320AIC3110"
+
+config ES8311
+	bool "ES8311"
+
+endchoice
+
+if TLV320AIC3110
+
+choice
+    prompt "Select PLL_CLKIN"
+	default PLLCLKIN_GPIO1
+
+config PLLCLKIN_MCLK
+	bool "Select MCLK as PLL_CLKIN"
+
+config PLLCLKIN_GPIO1
+	bool "Select GPIO1 as PLL_CLKIN"
+
+endchoice
+
+endif
+
+if ES8311
+
+config ES8311_I2C_ADDR_HI
+    bool "High I2C slave address (7-bit, 0x19)"
+    default n
+
+choice
+    prompt "Select output mode"
+	default ES8311_OUT_DRV_LINE
+
+config ES8311_OUT_DRV_LINE
+	bool "Enable line out driver"
+
+config ES8311_OUT_DRV_HP
+	bool "Enable HP driver"
+
+endchoice
+
+endif
+
+
+config AUDIO_CLI
+    bool
+	depends on CMDLINE
+    default n
+
+endif
+
+endmenu

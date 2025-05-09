@@ -1,0 +1,18 @@
+menu "net"
+
+config DEFAULT_WLAN_MACADDR
+	string "Default WLAN MAC address"
+	default "64:f9:47:f0:01:20"
+	help
+	  MAC address to be used when eFuse doesn't provide it.
+
+
+source "lib/net/http_parser/Kconfig"
+source "lib/net/http_server/Kconfig"
+source "lib/net/mqtt/Kconfig"
+source "lib/net/coap/Kconfig"
+source "lib/net/esp-tls/Kconfig"
+source "lib/net/tcp-transport/Kconfig"
+source "lib/net/esp_http_client/Kconfig"
+
+endmenu

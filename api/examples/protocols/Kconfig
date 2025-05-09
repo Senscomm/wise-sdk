@@ -1,0 +1,80 @@
+choice
+	prompt "Protocols Demo"
+    default DEMO_PROTOCOLS_MQTT
+
+config DEMO_PROTOCOLS_MQTT
+    bool "MQTT Demo"
+    select SDK
+    select API_WIFI
+    select MQTT
+    select COREMQTT
+    select COREMQTT_AGENT
+    select TCP_TRANSPORT
+    select CMDLINE
+	select CLI_FS
+    help
+     MQTT Subscriber / Publisher Demo
+
+config DEMO_PROTOCOLS_MQTT_UART
+    bool "MQTT UART Demo"
+    select SDK
+    select API_WIFI
+    select MQTT
+    select COREMQTT
+    select CMDLINE
+    help
+     Include MQTT UART Demo in SDK
+
+config DEMO_PROTOCOLS_HTTP_SERVER
+    bool "HTTP Server Demo"
+    select SDK
+    select API_WIFI
+    select LIB_HTTPD
+    select CMDLINE
+    help
+     HTTP Server Demo
+
+config DEMO_PROTOCOLS_COAP
+    bool "CoAP Demo"
+    select SDK
+    select API_WIFI
+    select COAP
+    select CMDLINE
+    help
+     CoAP Client / Server Demo
+
+config DEMO_PROTOCOLS_HTTP_CLIENT
+    bool "HTTP Client Demo"
+    select SDK
+    select API_WIFI
+    select ESP_HTTP_CLIENT
+    select LWIP_SNTP
+    select CMDLINE
+    select CMD_SNTP
+    select CLI_FS
+    help
+     HTTP Client Demo
+
+endchoice
+
+source "api/examples/protocols/common/Kconfig"
+
+if DEMO_PROTOCOLS_MQTT
+source "api/examples/protocols/mqtt/Kconfig"
+endif
+
+if DEMO_PROTOCOLS_MQTT_UART
+source "api/examples/protocols/mqtt_uart/Kconfig"
+endif
+
+if DEMO_PROTOCOLS_HTTP_SERVER
+source "api/examples/protocols/http_server/Kconfig"
+endif
+
+if DEMO_PROTOCOLS_COAP
+source "api/examples/protocols/coap/Kconfig"
+endif
+
+if DEMO_PROTOCOLS_HTTP_CLIENT
+source "api/examples/protocols/http_client/Kconfig"
+endif

@@ -1,0 +1,8 @@
+config LIBIFCONFIG
+	depends on LWIP
+	bool
+	default y
+	help
+	 Include C APIs to implement functions in ifconfig
+
+

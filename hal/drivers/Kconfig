@@ -1,0 +1,49 @@
+menu "Device drivers"
+
+config HAL_ASSERT_VERBOSITY
+	int "assert() verbosity"
+	default 2
+
+source "hal/drivers/core/Kconfig"
+
+source "hal/drivers/clk/Kconfig"
+
+source "hal/drivers/pinctrl/Kconfig"
+
+source "hal/drivers/serial/Kconfig"
+
+source "hal/drivers/timer/Kconfig"
+
+source "hal/drivers/spi-flash/Kconfig"
+
+source "hal/drivers/wlan/Kconfig"
+
+source "hal/drivers/rf/Kconfig"
+
+source "hal/drivers/rtc/Kconfig"
+
+source "hal/drivers/watchdog/Kconfig"
+
+source "hal/drivers/crypto/Kconfig"
+
+source "hal/drivers/efuse/Kconfig"
+
+source "hal/drivers/sdio/Kconfig"
+
+source "hal/drivers/dma/Kconfig"
+
+source "hal/drivers/systimer/Kconfig"
+
+source "hal/drivers/pta/Kconfig"
+
+source "hal/drivers/i2c/Kconfig"
+
+source "hal/drivers/spi/Kconfig"
+
+source "hal/drivers/adc/Kconfig"
+
+source "hal/drivers/i2s/Kconfig"
+
+source "hal/drivers/audio/Kconfig"
+
+endmenu

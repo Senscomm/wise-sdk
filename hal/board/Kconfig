@@ -1,0 +1,76 @@
+choice
+    prompt "Target board/platform"
+    default BOARD_SCM2010_EVB_QFN40
+
+config BOARD_SCM2010_EVB_QFN40
+    bool "SCM2010 EVB for QFN40 package"
+    select SOC_SCM2010
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+
+config BOARD_SCM2010_MODULE_1212A
+    bool "SCM2010 12*12 Module (type A)"
+    select SOC_SCM2010
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+
+config BOARD_SCM2010_MODULE_1212G
+    bool "SCM2010 12*12 Module (type G)"
+    select SOC_SCM2010
+    select SDIO_OOB_GPIO_INT
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+
+config BOARD_SCM2010_MODULE_1614H
+    bool "SCM2010 16*14 Module (type H)"
+    select SOC_SCM2010
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+    select USE_I2C1
+    select USE_I2S
+    select API_I2C
+    select AUDIO
+    select ES8311
+    select API_AUDIO
+    select CLI_AUDIO
+    select I2S
+    select API_I2S
+    select CLI_I2S
+
+config BOARD_SCM2010_EVB_QFN32
+    bool "SCM2010 EVB for QFN32 package"
+    select SOC_SCM2010
+    select HOSTBOOT
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+
+config BOARD_C1T301A34
+    bool "C1T301A34"
+    select SOC_SCM2010
+    select PINCTRL if !BOOTROM
+    select PINCTRL_SCM2010 if !BOOTROM
+    select USE_I2C1
+    select USE_SPI2
+    select USE_SPI2_FLASH
+    select SPI_FLASH_PUYA
+    select USE_I2S
+    select CMD_UTIL_FILE
+    select CLI_FS
+    select API_I2C
+    select AUDIO
+    select ES8311
+    select ES8311_I2C_ADDR_HI
+    select API_AUDIO
+    select CLI_AUDIO
+    select I2S
+    select API_I2S
+    select CLI_I2S
+
+endchoice
+
+source "hal/board/scm2010-evb-qfn40/Kconfig"
+source "hal/board/scm2010-evb-qfn32/Kconfig"
+source "hal/board/scm2010-mod-1212a/Kconfig"
+source "hal/board/scm2010-mod-1212g/Kconfig"
+source "hal/board/scm2010-mod-1614h/Kconfig"
+source "hal/board/c1t301a34/Kconfig"

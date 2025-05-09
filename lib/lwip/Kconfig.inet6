@@ -1,0 +1,186 @@
+
+menuconfig LWIP_IPV6
+ 	bool "IPv6 support"
+	default n
+
+if LWIP_IPV6
+config IPV6_REASS_MAXAGE
+	int "IPv6: max time (in multiples of IP6_REASS_TMR_INTERVAL)"
+	default 60
+	help
+	 Maximum time (in multiples of IP6_REASS_TMR_INTERVAL - so seconds, normally)
+ 	 a fragmented IP packet waits for all fragments to arrive. If not all fragments arrived
+ 	 in this time, the whole packet is discarded.
+
+config LWIP_IPV6_SCOPES
+ 	bool "IPv6: enable IPv6 address scopes (?)"
+	default (LWIP_IPV6 && !LWIP_SINGLE_NETIF)
+	help
+ 	 Enable support for IPv6 address scopes, ensuring that
+ 	 e.g. link-local addresses are really treated as link-local. Disable this
+ 	 setting only for single-interface configurations.
+
+config LWIP_IPV6_SCOPES_DEBUG
+	bool "IPv6: enable IPv6 scope debugging"
+	default n
+	help
+ 	 Perform run-time checks to verify that addresses
+ 	 are properly zoned (see ip6_zone.h on what that means) where it matters.
+ 	 Enabling this setting is highly recommended when upgrading from an existing
+ 	 installation that is not yet scope-aware; otherwise it may be too expensive.
+
+config LWIP_IPV6_NUM_ADDRESSES
+	int "IPv6: number of IPv6 addresses per netif"
+	default 3
+
+config LWIP_IPV6_FORWARD
+ 	bool "IPv6: IPv6 packet forwarding"
+	default n
+
+config LWIP_IPV6_FRAG
+ 	bool "IPv6: fragmentation"
+	default LWIP_IPV6
+
+config LWIP_IPV6_REASS
+	bool "IPv6: reassembly"
+	default LWIP_IPV6
+
+config LWIP_IPV6_SEND_ROUTER_SOLICIT
+	bool "IPv6: router solicitation during network startup"
+	default y
+
+config LWIP_IPV6_AUTOCONFIG
+ 	bool "IPv6: stateless address autoconfiguration as per RFC 4862"
+	default LWIP_IPV6
+
+config LWIP_IPV6_ADDRESS_LIFETIMES
+	bool "IPv6: keep valid and preferred lifetimes for each IPv6 address"
+	default LWIP_IPV6_AUTOCONFIG
+	help
+	 Required for LWIP_IPV6_AUTOCONFIG. May still be enabled
+ 	 otherwise, in which case the application may assign address lifetimes with
+ 	 the appropriate macros. Addresses with no lifetime are assumed to be static.
+ 	 If this option is disabled, all addresses are assumed to be static.
+
+config LWIP_IPV6_DUP_DETECT_ATTEMPTS
+	int "IPv6: number of duplicate address detection attempts"
+	default 1
+
+config LWIP_ICMP6
+ 	bool "IPv6: ICMPv6 support (mandatory per RFC)"
+	default y
+
+config LWIP_ICMP6_DATASIZE
+	int "IPv6: number of bytes from original packet in ICMPv6 error messages"
+	default 8
+
+config LWIP_ICMP6_HL
+	int "IPv6: hop limit for ICMPv6 messages"
+	default 255
+
+config ICMP6_CHECKSUM_OFFLOADING
+       bool "ICMP6: checksum offloading"
+       default n
+
+config CHECKSUM_GEN_ICMP6
+	bool
+	default !ICMP6_CHECKSUM_OFFLOADING
+
+config CHECKSUM_CHECK_ICMP6
+	bool
+	default !ICMP6_CHECKSUM_OFFLOADING
+
+config LWIP_IPV6_MLD
+ 	bool "IPv6: multicast listener discovery protocol"
+	default n
+	help
+ 	 If LWIP_IPV6 is enabled but this setting is disabled, the MAC layer must
+ 	 indiscriminately pass all inbound IPv6 multicast traffic to lwIP.
+
+config MEMP_NUM_MLD6_GROUP
+	int "IPv6: max number of IPv6 multicast groups that can be joined"
+	default 4
+	help
+ 	 There must be enough groups so that each netif can join the solicited-node
+ 	 multicast group for each of its local addresses, plus one for MDNS if
+ 	 applicable, plus any number of groups to be joined on UDP sockets.
+
+config LWIP_ND6_QUEUEING
+ 	bool "IPv6: queue outgoing packets while MAC address is being resolved"
+	default y
+
+config MEMP_NUM_ND6_QUEUE
+	int "IPv6: max number of IPv6 packets to queue during MAC resolution"
+	default 20
+
+config LWIP_ND6_NUM_NEIGHBORS
+	int "IPv6: number of entries in IPv6 neighbor cache"
+	default 10
+
+config LWIP_ND6_NUM_DESTINATIONS
+	int "IPv6: number of entries in IPv6 destination cache"
+	default 10
+
+config LWIP_ND6_NUM_PREFIXES
+	int "IPv6: number of entries in IPv6 on-link prefixes cache"
+	default 5
+
+config LWIP_ND6_NUM_ROUTERS
+	int "IPv6: number of entries in IPv6 default router cache"
+	default 3
+
+config LWIP_ND6_MAX_MULTICAST_SOLICIT
+	int "IPv6: max number of multicast neighbor/router solicit messages to send"
+	default 3
+
+config LWIP_ND6_MAX_UNICAST_SOLICIT
+	int "IPv6: max number of unicast neighbor solicitation messages to send"
+	default 3
+	help
+	 During neighbor reachability detection.
+
+config LWIP_ND6_REACHABLE_TIME
+	int "IPv6: neighbor reachable time (in milliseconds)"
+	default 3000
+	help
+ 	 May be updated by router advertisement messages.
+
+config LWIP_ND6_RETRANS_TIMER
+	int "IPv6: default retransmission timer for solicitation messages"
+	default 1000
+
+config LWIP_ND6_DELAY_FIRST_PROBE_TIME
+	int "IPv6: delay before first unicast neighbor solicitation"
+	default 5000
+	help
+	 Delay before first unicast neighbor solicitation"
+ 	 message is sent, during neighbor reachability detection.
+
+config LWIP_ND6_ALLOW_RA_UPDATES
+	bool "IPv6: Router Advertisement update"
+	default y
+	help
+ 	 Allow Router Advertisement messages to update
+ 	 Reachable time and retransmission timers, and netif MTU.
+
+config LWIP_ND6_TCP_REACHABILITY_HINTS
+	bool "IPv6: allow TCP to provide Neighbor Discovery"
+	default y
+	help
+ 	 Allow TCP to provide Neighbor Discovery
+ 	 with reachability hints for connected destinations. This helps avoid sending
+ 	 unicast neighbor solicitation messages.
+
+config LWIP_ND6_RDNSS_MAX_DNS_SERVERS
+	bool "IPv6: use IPv6 Router Advertisement Recursive DNS Server option"
+	default n
+	help
+	 Use IPv6 Router Advertisement Recursive
+ 	 DNS Server Option (as per RFC 6106) to copy a defined maximum number of DNS
+ 	 servers to the DNS module.
+
+config LWIP_IPV6_DHCP6
+ 	bool "IPv6: DHCPv6 stateful address autoconfiguration"
+	default LWIP_IPV6
+
+endif # LWIP_IPV6

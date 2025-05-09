@@ -1,0 +1,22 @@
+menuconfig MQTT
+	bool "MQTT"
+	depends on LWIP
+	default n
+	help
+	 Enable MQTT client
+
+if MQTT
+
+menuconfig COREMQTT
+    bool "coreMQTT - MQTT C client library"
+    default n
+    help
+     Enable coreMQTT library.
+
+if COREMQTT
+
+source "lib/net/mqtt/coreMQTT/Kconfig"
+
+endif
+
+endif

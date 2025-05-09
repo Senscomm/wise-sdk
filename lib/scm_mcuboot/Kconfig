@@ -1,0 +1,90 @@
+
+menuconfig SCM_MCUBOOT
+	bool "MCUBoot"
+	select SPI_FLASH if N22_ONLY
+	default y
+
+if SCM_MCUBOOT
+
+config SCM_MCUBOOT_ENABLE_LOGGING
+	bool "Enable MCUboot logging"
+	default n
+
+config SCM_MCUBOOT_BOOTLOADER
+	bool "MCUboot bootloader application"
+	default n
+
+choice
+    prompt "Cryptographic backend"
+    default SCM_MCUBOOT_USE_TINYCRYPT
+
+config SCM_MCUBOOT_USE_TINYCRYPT
+    bool "TinyCrypt"
+    select TINYCRYPT
+
+config SCM_MCUBOOT_USE_HW_CRYPTO
+    bool "Hardware Crypto"
+
+endchoice # Cryptographic backend
+
+menuconfig SCM_MCUBOOT_SIGN_AUTH
+	bool "Signature authentication enable"
+	depends on SCM_MCUBOOT_BOOTLOADER
+	default n
+
+if SCM_MCUBOOT_SIGN_AUTH
+
+choice
+	prompt "Signature authentication type"
+	default SCM_MCUBOOT_SIGN_AUTH_TYPE_ECDSA_P256
+
+config SCM_MCUBOOT_SIGN_AUTH_TYPE_RSA_2048
+	bool "rsa-2048"
+
+config SCM_MCUBOOT_SIGN_AUTH_TYPE_RSA_3072
+	bool "rsa-3072"
+
+config SCM_MCUBOOT_SIGN_AUTH_TYPE_ECDSA_P256
+	bool "ecdsa-p256"
+
+config SCM_MCUBOOT_SIGN_AUTH_TYPE_ED25519
+	bool "ed25519"
+
+endchoice # Signature authentication type
+
+endif #SCM_MCUBOOT_SIGN_AUTH
+
+menu "OTA partition on the flash"
+
+config SCM2010_OTA_PRIMARY_SLOT_OFFSET
+	hex "MCUboot application image primary slot offset"
+	default 0x80080000
+
+config SCM2010_OTA_SECONDARY_SLOT_OFFSET
+	hex "MCUboot application image secondary slot offset"
+	default 0x80200000
+
+config SCM2010_OTA_SLOT_SIZE
+	hex "MCUboot application image slot size (in bytes)"
+	default 0x180000
+
+config SCM2010_OTA_SCRATCH_OFFSET
+	hex "MCUboot scratch partition offset"
+	default 0x80010000
+
+config SCM2010_OTA_SCRATCH_SIZE
+	hex "MCUboot scratch partition size (in bytes)"
+	default 0x3000
+
+endmenu
+
+config SCM_MCUBOOT_UPDATE_AGENT
+	bool "MCUboot update agent application"
+    depends on NET
+	default y
+
+config SCM_MCUBOOT_SWAP_TEST
+	bool "MCUboot swap test application"
+	default y
+
+endif

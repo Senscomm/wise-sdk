@@ -1,0 +1,34 @@
+menu "MQTT demo"
+
+config MQTT_DEMO_CLIENT_ID
+    string "Identifier of MQTT client"
+    default "wise-mqttc"
+    help
+     Client identifier to be advertised to the MQTT brokder.
+
+config MQTT_DEMO_KEEP_ALIVE_INTERVAL
+	int "MQTT Keep Alive Interval in seconds"
+	default 60
+	help
+	  MQTT keep-alive period.
+
+config MQTT_DEMO_CONNACK_RECV_TIMEOUT_MS
+	int "MQTT CONNACK Timeout in ms"
+	default 1000
+	help
+      Timeout for receiving CONNACK after sending an MQTT CONNECT packet.
+      Defined in milliseconds.
+
+config MQTT_DEMO_AGENT_NETWORK_BUFFER_SIZE
+	int "MQTT Agent transport buffer size"
+	default 1500
+	help
+	  Size of a MQTT packet buffer.
+
+config MQTT_DEMO_AGENT_COMMAND_QUEUE_LENGTH
+	int "MQTT AGent command queue length"
+	default 10
+	help
+	  Max. number of commands in a MQTT-Agent command queue
+
+endmenu

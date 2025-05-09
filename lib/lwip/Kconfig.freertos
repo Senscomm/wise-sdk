@@ -1,0 +1,19 @@
+config LWIP_RTOS_SYS_ARCH_PROTECT_USES_MUTEX
+	bool
+	default n
+
+config LWIP_RTOS_SYS_ARCH_PROTECT_SANITY_CHECK
+	bool
+	default n
+
+config LWIP_RTOS_CHECK_QUEUE_EMPTY_ON_FREE
+	bool
+	default n
+
+config LWIP_RTOS_CHECK_CORE_LOCKING
+	bool
+	default y
+
+config LWIP_RTOS_SYS_NOW_FROM_RTOS
+	bool
+	default y

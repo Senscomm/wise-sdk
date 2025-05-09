@@ -1,0 +1,83 @@
+menu "SDIO Support"
+
+config SDIO
+    bool "Enable sdio driver"
+    default n
+    help
+        Enable sdio driver.
+
+if SDIO
+
+config SDIO_USE_IRQD
+	bool "Use irq_dispatcher"
+	default n
+
+if SDIO_USE_IRQD
+
+config USE_SYSDMA_FOR_IRQD_DN
+	bool "Use DMA engine for IRQD loading"
+	default y
+
+endif
+
+config SDIO_VERIFICATION_TEST
+	bool "Enable sdio verification test"
+	select SCDC_DATA_TEST
+	default n
+
+config SDIO_MAX_TRAN_SPEED
+    int "SDIO maximum transfer speed"
+    default 15000000 if SYS_FPGA
+    default 50000000 if !SYS_FPGA
+
+config SDIO_RCV_BUFFER_SIZE
+    int "SDIO recv buffer size"
+    default 20480
+
+config SDIO_FIFO_MIN_LINEAR_SIZE
+    int "SDIO FIFO min linear size"
+    default 1700
+
+config SDIO_RECOVERY
+    bool "Enable SDIO auto recovery from FIFO read/write index mismatch"
+    default y
+
+config SDIO_1BIT_MODE
+    bool "Use 1-bit data transfer mode"
+    default n
+
+config SDIO_TXCHAIN
+    bool "Use TX chain data transfer mode"
+    default y
+
+config SDIO_OOB_GPIO_INT
+    bool "Use OOB gpio to trigger interrupt to Host"
+    default n
+
+if SDIO_OOB_GPIO_INT
+
+config SDIO_OOB_GPIO_INT_PIN
+    int "SDIO OOB interrupt pin"
+    default 21
+
+endif
+
+config SDIO_PM
+    bool "Enable SDIO PM"
+    depends on PM_SCM2010
+    default n
+
+if SDIO_PM
+config SDIO_NOTIFY_REENUM_GPIO
+    int "GPIO notify host to reenum"
+    default 7
+
+config SDIO_WAKEUP_HOLD_TIME_MS
+    int "The duration (in milliseconds) to keep the system awake"
+    default 3
+
+endif
+
+endif
+
+endmenu

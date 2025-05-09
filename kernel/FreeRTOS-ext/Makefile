@@ -1,0 +1,9 @@
+.SECONDARY:
+
+ccflags-y += -I$(srctree)/include/FreeRTOS
+
+ifdef CONFIG_FREERTOS_ASSERT_VERBOSITY
+ccflags-y += -DASSERT_VERBOSITY=$(CONFIG_FREERTOS_ASSERT_VERBOSITY)
+endif
+
+obj-$(CONFIG_USE_MALLOC_DEBUG) += heap_5_ext.o

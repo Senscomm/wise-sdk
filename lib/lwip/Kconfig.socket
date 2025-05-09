@@ -1,0 +1,192 @@
+
+menuconfig BSD_SOCKET
+       bool "BSD socket support"
+       default y
+       select LWIP_NETCONN
+
+if BSD_SOCKET
+
+choice
+	prompt "Select socket implementation"
+
+config WISE_SOCKET
+       bool "WISE"
+       select LWIP_NETCONN
+       select USE_QUEUE_SETS
+       select VFS
+       help
+        WISE socket is yet another BSD socket implementation based on LWIP sequential APIs,
+	but is able to work with non-socket file descriptors for
+        select()/poll(). These module uses posix header files in
+        include/freebsd, not in lib/lwip/include.
+
+config LWIP_SOCKET
+ 	bool "LwIP"
+	select LWIP_NETCONN
+	help
+	 To use original LwIP socket API, enable this option (require to use sockets.c)"
+
+endchoice
+
+comment "Socket domain (family)"
+
+config SOCK_FAMILY_INET
+       bool "AF_INET domain"
+       default y
+       select LWIP_IPv4
+
+config SOCK_FAMILY_INET6
+       bool "AF_INET6 domain"
+       default n
+       select LWIP_IPv6
+
+config SOCK_FAMILY_LINK
+	bool "AF_LINK domain"
+	default y
+	select LWIP_LINK
+	help
+	 Say Y to enable link-layer domain socket.
+
+comment "Socket types"
+config SOCK_TYPE_STREAM
+       bool "SOCK_STREAM type"
+       default y
+       select LWIP_TCP
+
+config SOCK_TYPE_DGRAM
+       bool "SOCK_DGRAM type"
+       default y
+       select LWIP_UDP
+       select LWIP_RAW
+
+config SOCK_TYPE_RAW
+       bool "SOCK_RAW type"
+       default y
+       select LWIP_RAW
+       help
+        Say y to enable raw network protocol access
+
+comment "Socket options"
+
+config LWIP_SO_SNDTIMEO
+	bool "SO_SNDTIMEO"
+	default y
+	help
+	 Enable send timeout for sockets/netconns and SO_SNDTIMEO processing.
+
+config LWIP_SO_RCVTIMEO
+	bool "SO_RCVTIMEO"
+	default y
+	help
+ 	 Enable receive timeout for sockets/netconns and SO_RCVTIMEO processing.
+
+config LWIP_SO_SNDRCVTIMEO_NONSTANDARD
+	depends on LWIP_SOCKET && (LWIP_SO_SNDTIMEO || LWIP_SO_RCVTIMEO)
+	bool "non-standard SO_SNDRCVTIMEO"
+	default n
+	help
+ 	 SO_RCVTIMEO/SO_SNDTIMEO take an int
+ 	 (milliseconds, much like winsock does) instead of a struct timeval (default).
+
+config LWIP_SO_RCVBUF
+	bool "SO_RCVBUF"
+	default y
+
+# opt.h
+#config RECV_BUFSIZE_DEFAULT
+#	int "Default receive buffer size"
+#	default INT_MAX
+
+config LWIP_SO_LINGER
+	bool "SO_LINGER"
+	default n
+
+config SO_REUSE
+	bool "SO_REUSEADDR"
+	default y
+
+config LWIP_TCP_KEEPALIVE
+	bool "TCP keepalive"
+	depends on SOCK_TYPE_STREAM
+	default n
+	help
+ 	 Enable TCP_KEEPIDLE, TCP_KEEPINTVL and TCP_KEEPCNT
+ 	 options processing. Note that TCP_KEEPIDLE and TCP_KEEPINTVL have to be set
+ 	 in seconds. (does not require sockets.c, and will affect tcp.c)
+
+comment "Misc. options"
+
+config LWIP_TCP_CLOSE_TIMEOUT_MS_DEFAULT
+	depends on SOCK_STREAM
+	int "TCP close timeout in miliseconds"
+	default 20000
+	help
+	 By default, TCP socket/netconn close waits 20 seconds max to send the FIN
+
+config SO_REUSE_RXTOALL
+	depends on LWIP_SO_REUSEADDR
+	bool "Clone incoming broadcast/multicast packets to all matching sockets"
+	default n
+	help
+ 	 Pass a copy of incoming broadcast/multicast packets
+ 	 to all local matches if SO_REUSEADDR is turned on.
+ 	 WARNING: Adds a memcpy for every packet if passing to more than one pcb!
+
+config LWIP_FIONREAD_LINUXMODE
+	bool "Linux FIONREAD ioctl"
+	default n
+	help
+	 LWIP_FIONREAD_LINUXMODE==0: ioctl/FIONREAD returns the amount of
+ 	 pending data in the network buffer. This is the way windows does it. It is
+ 	 the default for lwIP since it is smaller.
+ 	 LWIP_FIONREAD_LINUXMODE==1: ioctl/FIONREAD returns the size of the next
+ 	 pending datagram in bytes. This is the way linux does it. This code is only
+ 	 here for compatibility.
+
+if LWIP_SOCKET
+
+comment "LWIP socket options"
+
+config LWIP_COMPAT_SOCKETS
+	int "Enable BSD-style sockets functions names through defines"
+	default 1
+	help
+ 	 LWIP_COMPAT_SOCKETS==2: Same as ==1 but correctly named functions are created.
+ 	 While this helps code completion, it might conflict with existing libraries.
+ 	 (only used if you use sockets.c)
+
+config LWIP_POSIX_SOCKETS_IO_NAMES
+	bool "Enable POSIX-style sockets functions names"
+	default 1
+	help
+ 	 Disable this option if you use a POSIX operating system that uses the same
+ 	 names (read, write & close). (only used if you use sockets.c)
+
+config LWIP_SOCKET_OFFSET
+	int "Socket file number descriptor offset"
+	default 0
+	help
+	 Increases the file descriptor number created by LwIP with n.
+ 	 This can be useful when there are multiple APIs which create file descriptors.
+ 	 When they all start with a different offset and you will not make them overlap you can
+ 	 re implement read/write/close/ioctl/fnctl to send the requested action to the right
+ 	 library (sharing select will need more work though).
+
+config LWIP_SOCKET_SELECT
+	bool "Support select() for sockets"
+	default 1
+	help
+	 Enable select() for sockets (uses a netconn callback to keep track of events).
+ 	 This saves RAM (counters per socket) and code (netconn event callback), which
+ 	 should improve performance a bit).
+
+config LWIP_SOCKET_POLL
+	bool "Support poll() for sockets"
+	default 1
+	help
+	 Enable poll() for sockets (including struct pollfd, nfds_t, and constants)
+
+endif # LWIP_SOCKET
+
+
+endif # BSD_SOCKET

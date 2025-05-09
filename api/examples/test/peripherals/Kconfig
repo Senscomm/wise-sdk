@@ -1,0 +1,33 @@
+choice
+	prompt "Peripherals Test"
+
+config TEST_UART
+	bool "UART sanity test"
+	select WISE_API
+	select USE_UART1
+	select USE_UART2
+	select API_UART
+	select SUPPORT_DMA_DYNAMIC_ALLOC
+	select DMA
+
+config TEST_I2C
+	bool "I2C sanity test"
+	select WISE_API
+	select USE_I2C0
+	select USE_I2C1
+	select API_I2C
+	select SUPPORT_DMA_DYNAMIC_ALLOC
+	select DMA
+	select I2C
+
+config TEST_SPI
+	bool "SPI sanity test"
+	select WISE_API
+	select USE_SPI1
+	select USE_SPI2
+	select API_SPI
+	select SUPPORT_DMA_DYNAMIC_ALLOC
+	select DMA
+	select SPI
+
+endchoice

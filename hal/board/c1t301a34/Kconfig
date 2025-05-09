@@ -1,0 +1,9 @@
+if BOARD_C1T301A34
+
+config SYS_BOARD
+	default "c1t301a34"
+
+config SERIAL_CONSOLE_PORT
+	default 1
+
+endif

@@ -1,0 +1,603 @@
+config NET80211
+	bool
+	depends on CMSIS_FREERTOS
+	select LIB_CRYPTO
+	default y
+	help
+	 Include net80211 port based on CMSIS-FreeRTOS
+
+if NET80211
+
+if !WPA_SUPPLICANT
+
+config SAE
+       bool
+       default y
+
+config SME
+       bool
+       default y
+
+endif
+
+config IEEE80211_HOSTED
+	bool
+	default n
+
+comment "MAC"
+
+config IEEE80211_SOFT_WEP
+       bool
+       default n
+
+config IEEE80211_SOFT_TKIP
+       #bool "Software TKIP encryption/decryption"
+       bool
+       default y
+
+config IEEE80211_SOFT_CCMP
+       bool
+       default y
+
+config SUPPORT_DFS
+	bool
+	default n
+	help
+	 Include functions for 802.11h DFS
+
+config SUPPORT_VHT
+	bool
+	select IEEE80211AC
+	default n
+
+config SUPPORT_HE
+	bool
+	select IEEE80211AX if WPA_SUPPLICANT
+	default y
+
+config SUPPORT_TWT
+    bool
+    select SUPPORT_HE
+    default y
+    help
+
+config TWT_SETUP_TRIGGER_SOURCE
+	int
+	default 0
+	help
+	0: by supplicant, 1: auto
+
+config SUPPORT_MERGE_RATE_TABLE
+	bool
+	default y
+	help
+	 Include merge rate table support for
+	 Adaptive Multi Rate Retry algorithm
+
+config SUPPORT_AMRR_HIGHEST_INIT_RATE
+	bool
+	default y
+
+config NET80211_MESH
+	bool
+	default n
+	help
+	Say Y to enable mesh support
+
+config SUPPORT_AMSDU_TX
+	bool
+	default y
+	help
+	 Include AMSDU Tx support
+
+config SUPPORT_AMPDU_TX
+	bool
+	default y
+	help
+	 Include AMPDU Tx support and initiate BA session when needed
+
+config SUPPORT_AMPDU_RX
+	bool
+	default y
+	help
+	 Say n to reject ADDBA request from peer
+
+config MAX_BEACON_MISS
+	int "Maximum consecutive bmiss allowed."
+	default 2
+	range 2 5
+	help
+	 Maximum consecutive bmiss allowed.
+
+config ACTIVE_SCAN_DWELL_TIME
+	int
+	default 60
+	help
+	 Set as channel stay time during active scan
+
+config PASSIVE_SCAN_DWELL_TIME
+	int
+	default 120
+	help
+	 Set as channel stay time during passive scan
+
+config ONE_CH_SCAN_DWELL_TIME
+	int
+	default 120
+	help
+	 Set as channel stay time during one channel scan
+
+if SUPPORT_AMPDU_TX || SUPPORT_AMPDU_RX
+
+config AMPDU_BUFSIZE
+	int
+	default 64
+	help
+	 Set as appropriate based on the number of MBUF_CACHE buffers
+endif
+
+if SUPPORT_AMPDU_RX
+
+config IEEE80211_AMPDU_AGE_LOOKUP
+	bool
+	default y
+	help
+	 Say y to monitor and flush received AMPUDs to upper layer
+
+endif
+
+if SUPPORT_AMPDU_RX
+
+config IEEE80211_AMPDU_AGE_TIMEOUT
+	int
+	default 500
+	help
+	 Set AMPDU age timeout value
+
+endif
+
+config BACKGROUND_SCAN
+	bool
+	default n
+	help
+	Say y to enable background scan
+
+config SUPPORT_DUAL_INSTANCE
+	bool
+	default n
+	help
+	Say y to enable simultaneous dual band/channel
+
+config SUPPORT_MCC
+	depends on SUPPORT_DUAL_VIF
+	bool
+	default y
+	help
+	 Support multi-channel TDM on one vif
+
+config SUPPORT_DUAL_VIF
+	bool
+	default y
+	help
+	Say y to enable simultaneous dual band/channel with one instance in dual vif
+
+config ACK_ENABLED_MULTI_TID
+	bool
+	default y
+	help
+	 This enables CLI command interface only.
+	 You need to configure it using CLI command.
+	 'mac tweak tx <vif (0 | 1)> <option> <num> <len: optional>' 
+	 option: Configure tweak
+	   Set 0 to disable tweak
+	   Set 1 to enable quick-BA session agreements
+	   Set 2 to build wait single-tid a-mpdu(s)
+	   Set 3 to build single-tid a-mpdu(s) with test qos frame(s)
+	   Set 4 to build multi-tid a-mpdu(s) with test qos frame(s)
+	   Set 5 to build ack-enabled multi-tid a-mpdu(s) with test mgmt/qos frame(s)
+	   Set 6 to build wait multi-tid a-mpdu(s)
+	 num: Number of wait MPDU to be TX (in option 2) or
+	      Number of test QoS frame(s) to be injected (in other options, skippable)
+	 len(optional): Length of test QoS frame(s) to be injected
+	      In case of mode 6, len is replaced to TID
+
+config MAC_TX_TIMEOUT
+	bool
+	default y
+	help
+	 Say y to monitor MAC TX
+
+if MAC_TX_TIMEOUT
+
+config MAC_TX_TIMEOUT_VAL
+	int
+	default 200
+	help
+	 Set MAC TX timeout value
+
+endif
+
+config SUPPORT_WMM_AGGR_MODE
+	bool
+	default n
+	help
+	 Say y to support WMM aggressive mode
+
+config IEEE80211_FAST_TX
+	bool
+	default y
+	help
+	 Say y to support Fast TX mode
+
+comment "PHY"
+
+config SUPPORT_CHWIDTH40
+	bool
+	default y
+	help
+	Say y to enable HT 40MHz bandwidth operation
+
+config SUPPORT_CHWIDTH80
+	bool
+	default n
+	help
+	Say y to enable VHT/HE 80MHz bandwidth operation
+
+config SUPPORT_LDPC
+	bool
+	default n
+
+config SUPPORT_STBC
+	bool
+	default n
+
+config MIMO_CHAINS
+	int
+	default 1
+
+
+config IEEE80211_MODE_5GHZ
+	bool
+	default n
+
+config IEEE80211_MODE_FH
+	bool
+	default n
+
+config IEEE80211_MODE_11A
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+
+config IEEE80211_MODE_11NA
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+
+config IEEE80211_MODE_VHT_2GHZ
+	bool
+	default n
+	select SUPPORT_VHT
+
+config IEEE80211_MODE_VHT_5GHZ
+	bool
+	default n
+	select IEEE80211_MODE_VHT_2GHZ
+	select IEEE80211_MODE_5GHZ
+	select IEEE80211_MODE_11A
+	select IEEE80211_MODE_11NA
+	select SUPPORT_VHT
+	select SUPPORT_AMPDU_TX
+
+config IEEE80211_MODE_HE_2GHZ
+	bool
+	default y
+	select SUPPORT_HE
+
+config IEEE80211_MODE_HE_5GHZ
+	bool
+	default n
+	select IEEE80211_MODE_VHT_5GHZ
+	select IEEE80211_MODE_HE_2GHZ
+	select SUPPORT_HE
+
+if SUPPORT_HE
+config APMODE_BSS_COLOR
+	hex
+	default 0x15
+	help
+	BSS Color Information field value (SoftAP mode)
+endif
+
+if SUPPORT_HE
+config SUPPORT_MBSSID
+	bool
+	default y
+endif
+
+if SUPPORT_HE
+config SUPPORT_MU_EDCA
+	bool
+	default y
+endif
+
+if SUPPORT_MU_EDCA
+config SUPPORT_SOFTAP_MU_EDCA
+	bool
+	default n
+endif
+
+if SUPPORT_HE
+config SUPPORT_UORA
+	bool
+	default y
+endif
+	
+if SUPPORT_UORA
+config LTF_MODE_EN
+	int
+	default 1
+	help
+	Set uora supported HE LTF MODE.
+	 1: bit0 is 1'b1, supports single pilot HE-LTF mode
+	 2: bit1 is 1'b1, supports masked HE-LTF sequence mode
+	 3: bit0/1 is 1'b1, single pilot HE-LTF mode, supports masked HE-LTF sequence mode
+endif
+
+if SUPPORT_HE
+config SUPPORT_SR
+	bool
+	default y
+
+config SUPPORT_BSS_COLOR_CA
+	bool
+	default n
+endif
+
+if SUPPORT_SR
+config SR_CCA_IDLE_SLOT_CNT
+	int
+	default 0
+	help
+	CCA IDLE slot count for TX PWR limit txop clear	Set uora supported HE LTF MODE.
+
+config OBSS_PD_NOBSSID_EN
+	bool
+	default y
+	help
+	support when obss sr enabled for ppdu doesn't contain bssid for non_SRG case.
+	
+config SR_PLCP_HEADER_EN
+	bool
+	default y
+	help
+	if get fcs passed mpdu and SR conditiokn match, enable SR function
+
+config SR_MPDU_EN
+	bool
+	default y
+	help 
+	if get rx vector and SR condition match, enable SR function
+
+config SR_OBSS_PD_RSSI
+	bool
+	default n
+	help 
+	0: use received RSSI
+	1: use NI ni_avgrssi
+
+endif
+
+config IEEE80211_NON_STANDARD_PHY
+	bool
+	default n
+
+if IEEE80211_NON_STANDARD_PHY
+config IEEE80211_MODE_TURBO_A
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+	select SUPPORT_TURBO
+
+config IEEE80211_MODE_TURBO_G
+	bool
+	default n
+	select SUPPORT_TURBO
+
+config IEEE80211_MODE_STURBO_A
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+	select SUPPORT_TURBO
+
+config IEEE80211_MODE_HALF
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+
+config IEEE80211_MODE_QUARTER
+	bool
+	default n
+	select IEEE80211_MODE_5GHZ
+
+config SUPPORT_TURBO
+	bool
+	default n
+	help
+	 Say Y to enable both dynamic and static Turbo mode
+endif
+
+comment "Debugging"
+
+config IEEE80211_DEBUG
+	bool
+	default n
+	help
+	 Say Y to enable net80211 debugging logs
+
+if IEEE80211_DEBUG
+
+endif
+
+config IEEE80211_ASSERT
+	int
+	default 2
+	help
+	Set the verbosity level of KASSERT() and assert() function.
+	 0: the assert() macro generates no code, and hence does nothing at all.
+	    Set this level only if you are sure that your module is mature enough.
+	 1: the assert() macro causes the system to generate a trap if the condition
+	    is evaluated to be false, but does not print the file, line, function
+	    information.
+	 2: the assert() macro, on false conditions, prints out detailed information
+	    and then causes the trap. This is the default.
+
+config SUPPORT_NODE_STATS
+	bool
+	default n
+	help
+	 Say y to enable getting statistics per node via ioctl
+
+config SUPPORT_IF_STATS
+	bool
+	default y
+	help
+	 Say y to enable getting statistics per ifnet via ioctl
+
+config SUPPORT_VAP_STATS
+	bool
+	default n
+	help
+	Say Y to enable per-vap statistics
+
+comment "ioctls"
+
+config NET80211_IOC_TXPARAMS
+       bool
+       default n
+
+config NET80211_IOC_CHANLIST
+       bool
+       default n
+
+config NET80211_IOC_CHANSWITCH
+       bool
+       default n
+
+config NET80211_IOC_STA_VLAN
+       bool
+       default n
+
+config NET80211_IOC_STA_TXPOW
+       bool
+       default y
+
+config NET80211_IOC_REGDOMAIN
+       bool
+       default n
+
+config NET80211_IOC_STA_INFO
+       bool
+       default y
+
+config NET80211_IOC_CURCHAN
+       bool
+       default y
+
+config NET80211_IOC_COUNTRY
+       bool
+       default y
+
+config NET80211_IOC_CHANINFO
+       bool
+       default y
+
+config NET80211_IOC_ROAM
+       bool
+       default n
+
+config NET80211_IOC_MAC
+       bool
+       default n
+
+comment "Other features"
+
+config NET80211_VAP_MODE_SWITCH
+       bool
+       default y
+
+config IGNORE_RSSI_FOR_SEL_BSS
+	bool
+	default y
+	help
+	 Say n to select best quality BSS by RSSI
+
+config IC_TQ_NAME_FMT
+       #string "Interface controller work thread name format"
+       string
+       default "knet80211d/%s"
+
+config NET80211_IW
+	bool
+	default n
+	help
+	 Say Y if you want to inspect/set net80211 internal data structure using iw command.
+
+config NET80211_PS_POLL
+	bool
+	default n
+
+config SKIP_SOFTAP_SCAN
+	bool
+	default y
+
+config OPTIMIZE_IEEE80211_SCAN_ENTRY
+	bool
+	default y
+
+config ELIMINATE_WEAK_RSSI_SCAN_ENTRY
+	bool
+	default y
+
+config SUPPORT_WFA_CERTIFICATION
+	bool
+	default n
+
+config SUPPORT_RX_AMSDU_IN_AMPDU
+	bool
+	default n
+
+config AMPDU_RX_MAX_AGG_NUMBER
+	int
+	default 5
+
+config SUPPORT_NODE_POOL
+	bool
+	default y
+
+if SUPPORT_NODE_POOL
+
+config SUPPORT_STATIC_NODE
+	bool
+	default y
+
+config SUPPORT_DEFAULT_NODE
+	int
+	default 2
+
+endif
+
+config SUPPORT_SCAN_ENTRY_NOTIFY
+	bool
+	default y
+	
+config SUPPORT_MINIMUM_SCAN_TABLE
+	bool
+	depends on SUPPORT_SCAN_ENTRY_NOTIFY
+	default y
+
+config WPA_SUPPLICANT_NO_SCAN_RES
+	bool
+	default y
+
+endif

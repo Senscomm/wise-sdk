@@ -1,0 +1,20 @@
+ccflags-y += -I$(src)
+ccflags-y += -I$(srctree)/include/hal/ndsv5
+ccflags-y += -I$(srctree)/lib/lwip/src/include
+ccflags-y += -I$(srctree)/lib/lwip/ports/freertos/include
+
+obj-y = reset.o soc.o plic.o plic-sw.o
+obj-y += head.o version.o
+obj-y += pm.o pm_cpu.o pmu.o
+obj-$(CONFIG_PM_TEST) += pm_test.o
+obj-$(CONFIG_BOOTLOADER) += boot.o
+obj-y += freertos/$(osver)/
+obj-$(CONFIG_LINK_TO_ROM) += rom/
+obj-$(CONFIG_SYNC_FLASH_ACCESS) += sync.o
+obj-$(CONFIG_PM_MULTI_CORE) += pm_sig.o
+
+hostprogs-y 	:= mkimage
+mkimage-objs	:= mkimage.o crc32.o
+always 		    := $(hostprogs-y)
+
+HOST_EXTRACFLAGS += -g

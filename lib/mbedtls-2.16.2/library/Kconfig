@@ -1,0 +1,177 @@
+menuconfig MBEDTLS
+	bool "mbedtls-2.16.2"
+	default y
+	depends on NET
+	help
+	 Enable MBEDTLS
+
+if MBEDTLS
+
+config MBEDTLS_AES_C
+	bool "MBEDTLS_AES_C"
+	default y
+	help
+     Enable the AES block cipher.
+
+config MBEDTLS_SHA512_C
+	bool "MBEDTLS_SHA512_C"
+	default y
+	help
+     Enable the SHA-384 and SHA-512 cryptographic hash algorithms.
+
+config MBEDTLS_ECP_C
+	bool "MBEDTLS_ECP_C"
+	default y
+	help
+     Enable the elliptic curve over GF(p) library.
+
+config MBEDTLS_ECP_DP_SECP256R1_ENABLED
+	bool "MBEDTLS_ECP_DP_SECP256R1_ENABLED"
+	default y
+	help
+     Enables secp256r1 curve within the Elliptic Curve module.
+
+config MBEDTLS_ECP_NIST_OPTIM
+	bool "MBEDTLS_ECP_NIST_OPTIM"
+	default y
+	help
+     Enable specific 'modulo p' routines for each NIST prime.
+
+config MBEDTLS_DHM_C
+	bool "MBEDTLS_DHM_C"
+	default n
+	help
+	 Enable the elliptic curve Diffie-Hellman-Merkle module.
+
+config MBEDTLS_ECDH_C
+	bool "MBEDTLS_ECDH_C"
+	default n
+	help
+	 Enable the elliptic curve Diffie-Hellman library.
+
+config MBEDTLS_ECDSA_C
+	bool "MBEDTLS_ECDSA_C"
+	default n
+	help
+     Enable the elliptic curve DSA library.
+
+config MBEDTLS_PEM_PARSE_C
+	bool "MBEDTLS_PEM_PARSE_C"
+	default y
+	help
+     Enable PEM decoding / parsing.
+
+config MBEDTLS_SSL_PROTO_TLS1_2
+	bool "MBEDTLS_SSL_PROTO_TLS1_2"
+	default y
+	help
+     Enable support for TLS 1.2 (and DTLS 1.2 if DTLS is enabled).
+
+config MBEDTLS_SSL_PROTO_TLS1_2
+	bool "MBEDTLS_SSL_PROTO_TLS1_2"
+	default y
+	help
+     Enable support for TLS 1.2 (and DTLS 1.2 if DTLS is enabled).
+
+config MBEDTLS_SSL_PROTO_DTLS
+	bool "MBEDTLS_SSL_PROTO_DTLS"
+	default n
+	help
+     Enable support for DTLS (all available versions).
+
+config MBEDTLS_SSL_ENCRYPT_THEN_MAC
+	bool "MBEDTLS_SSL_ENCRYPT_THEN_MAC"
+	default y
+	help
+     Enable support for Encrypt-then-MAC, RFC 7366.
+
+config MBEDTLS_SSL_EXTENDED_MASTER_SECRET
+	bool "MBEDTLS_SSL_EXTENDED_MASTER_SECRET"
+	default y
+	help
+     Enable support for Extended Master Secret, aka Session Hash.
+
+config MBEDTLS_SSL_TLS_C
+	bool "MBEDTLS_SSL_TLS_C"
+	default y
+	help
+     Enable the generic SSL/TLS code.
+
+config MBEDTLS_TLS_CLIENT
+	bool "MBEDTLS_TLS_CLIENT"
+	default y
+	help
+     Enable the SSL/TLS client code.
+
+config MBEDTLS_TLS_SERVER
+	bool "MBEDTLS_TLS_SERVER"
+	default y
+	help
+     Enable the SSL/TLS server code.
+
+config MBEDTLS_KEY_EXCHANGE_RSA
+	bool "MBEDTLS_KEY_EXCHANGE_RSA"
+	default y
+	help
+     Enable the RSA-only based ciphersuite modes in SSL / TLS.
+
+config MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA
+	bool "MBEDTLS_KEY_EXCHANGE_ECDH_ECDSA"
+	default n
+	help
+     Enable the RSA-only based ciphersuite modes in SSL / TLS.
+
+config MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA
+	bool "MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA"
+	default n
+	help
+     Enable the ECDH-ECDSA based ciphersuite modes in SSL / TLS.
+
+config MBEDTLS_KEY_EXCHANGE_PSK
+	bool "MBEDTLS_KEY_EXCHANGE_PSK"
+	default n
+	help
+     Enable the PSK based ciphersuite modes in SSL / TLS.
+
+config MBEDTLS_HAVE_TIME
+	bool "MBEDTLS_HAVE_TIME"
+	default y
+	help
+     System has time.h and time().
+
+config MBEDTLS_HAVE_TIME_DATE
+	bool "MBEDTLS_HAVE_TIME_DATE"
+	default y
+	help
+     System has time.h, time(), and an implementation for mbedtls_platform_gmtime_r().
+
+config MBEDTLS_CCM_C
+	bool "MBEDTLS_CCM_C"
+	default y
+	help
+     Enable the Counter with CBC-MAC (CCM) mode for 128-bit block cipher.
+
+config MBEDTLS_TIMING_C
+	bool "MBEDTLS_TIMING_C"
+	default y
+	help
+     Enable the semi-portable timing interface.
+
+config MBEDTLS_DEBUG
+	bool "Enable debug"
+	default n
+	help
+	 Enable the debug functions.
+
+config MBEDTLS_CONFIG_FILE
+	string "mbedTLS configuration file"
+	default "mbedtls/config.h"
+
+config MBEDTLS_NET_C_PORT
+	bool "MBEDTLS_NET_C_PORT"
+	default y
+	select LWIP_DNS
+	help
+     Enable the TCP/IP wrapper.
+
+endif

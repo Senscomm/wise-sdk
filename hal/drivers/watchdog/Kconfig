@@ -1,0 +1,20 @@
+menu "Watchdog Timer Support"
+
+config WDT
+	bool "Enable watchdog timer driver framework"
+	help
+	  Enable driver model for wdt. 
+
+config WDT_ATCWDT
+	bool "AndesTech AndeShape ATCWDT support" if WDT
+	default y
+
+if WDT_ATCWDT
+
+config ATCWDT200_32BIT_TIMER
+	bool "32-bit watchdog interrupt timer"
+	default n
+
+endif
+
+endmenu

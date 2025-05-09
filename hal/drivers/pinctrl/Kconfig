@@ -1,0 +1,59 @@
+#
+# PINCTRL infrastructure and drivers
+#
+
+menu "Pin controllers"
+
+config PINCTRL
+	bool "Support pin controllers"
+	help
+	  This enables the basic support for pinctrl framework.  You may want
+	  to enable some more options depending on what you want to do.
+
+if PINCTRL
+
+choice
+	prompt "Pinctrl select"
+	default y
+
+config PINCTRL_TS8266
+	bool "TS8266 pin control driver"
+
+config PINCTRL_SCM1010
+	bool "SCM1010 pin control driver"
+
+config PINCTRL_BCM2836
+	bool "BCM2836 pin control driver"
+
+config PINCTRL_SCM2010
+	bool "SCM2010 pin control driver"
+
+endchoice
+
+if PINCTRL_SCM2010
+
+config SCM2010_PINCTRL_INT_WORKAROUND
+	bool "SCM2010 pin interrupt work-around"
+	default y
+
+if SCM2010_PINCTRL_INT_WORKAROUND
+
+config SCM2010_PINCTRL_INT_WA_PERIOD
+	int  "SCM2010 pin interrupt work-around period in ms"
+	default 1000
+
+config SCM2010_PINCTRL_INT_WA_DURATION
+	int  "SCM2010 pin interrupt work-around duration in ms"
+	default 10000
+
+endif
+
+config SCM2010_PINIO_PM_CTRL
+	bool "SCM2010 pin io power management control"
+	default n
+
+endif
+
+endif
+
+endmenu

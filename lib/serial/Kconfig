@@ -1,0 +1,7 @@
+menu "serial"
+
+config XYZMODEM
+	bool "Support X/Y/Z Modem"
+	default n
+
+endmenu

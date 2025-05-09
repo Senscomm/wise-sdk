@@ -1,0 +1,10 @@
+menu "VFS support"
+
+config VFS_MAX_FDS
+       int "Maximum number of open files"
+       range 16 32
+       default 32
+
+source "lib/fs/spiffs/Kconfig"
+
+endmenu

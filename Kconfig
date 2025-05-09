@@ -1,0 +1,49 @@
+#
+# For a description of the syntax of this configuration file,
+# see the file Documentation/kbuild/kconfig-language.txt in the
+# Linux kernel source tree.
+#
+
+# WISE: WIRELESS IOT SMART EDGE
+#
+mainmenu "WISE Configuration"
+
+menu "Target platform"
+source "hal/arch/Kconfig"
+source "hal/soc/Kconfig"
+source "hal/board/Kconfig"
+endmenu
+
+menu "Kernel"
+source "kernel/Kconfig"
+endmenu
+
+#source "hal/drivers/Kconfig"
+
+menu "Libraries/middleware"
+source "lib/serial/Kconfig"
+source "lib/crypto/Kconfig"
+source "lib/stdlib/Kconfig"
+source "lib/scdc/Kconfig"
+source "lib/hostap/wpa_supplicant/Kconfig"
+source "lib/mbedtls-2.16.2/library/Kconfig"
+source "lib/net/mqtt/Kconfig"
+source "lib/libifconfig/Kconfig"
+source "lib/nuttx/Kconfig"
+source "lib/sdio/Kconfig"
+source "lib/repeater/Kconfig"
+source "lib/net/Kconfig"
+endmenu
+
+source "lib/cli/Kconfig"
+source "lib/at/Kconfig"
+source "lib/tinycrypt/Kconfig"
+source "lib/ble/Kconfig"
+source "lib/tinyusb/Kconfig"
+source "lib/scm_mcuboot/Kconfig"
+
+source "api/Kconfig"
+
+menu "Applications"
+source "app/Kconfig"
+endmenu

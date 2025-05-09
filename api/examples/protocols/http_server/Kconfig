@@ -1,0 +1,12 @@
+choice
+	prompt "HTTP Server Demo"
+    default DEMO_HTTP_SERVER_SIMPLE
+
+config DEMO_HTTP_SERVER_SIMPLE
+    bool "Simple HTTP Server"
+
+endchoice
+
+if DEMO_HTTP_SERVER_SIMPLE
+source "api/examples/protocols/http_server/simple/Kconfig"
+endif

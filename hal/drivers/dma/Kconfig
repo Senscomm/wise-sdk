@@ -1,0 +1,37 @@
+menu "DMA Support"
+
+config DMA
+	bool "Enable DMA driver framework"
+    default n
+    help
+      Enable DMA driver framework.
+
+if DMA
+
+config DMA_SCM2010
+	bool "Senscomm SCM2010 DMA support"
+	default y
+
+config IPC_DMA
+	bool "Enable DMA Channel of IPC"
+	depends on IPC
+	default y
+
+if DMA_SCM2010
+
+config SCM2010_DMAC_NUM
+	int "support 2 scm2010 DMAC"
+	default 2
+
+config SCM2010_DMA0_CH_NUM
+	int "Number of channels in DMA0"
+	default 4
+
+config SCM2010_DMA_DESC_NUM
+	int "default support 4 dma descriptors per channel"
+	default 4
+endif
+
+endif
+
+endmenu

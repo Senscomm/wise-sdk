@@ -1,0 +1,39 @@
+menu "SPI Support"
+
+config SPI
+	bool "Enable SPI driver framework"
+    default n
+	depends on USE_SPI0 || USE_SPI1 || USE_SPI2
+    select DMA
+	help
+      Enable SPI driver framework.
+
+if SPI
+
+config SPI_ATCSPI
+	bool "AndesTech AndeShape SPI support"
+	default y if SOC_SCM2010
+
+if SPI_ATCSPI
+config SPI_SUPPORT_MULTI_SLAVES_AS_A_MASTER
+	bool "Support multi slaves operation as a master(EXPERIMENTAL)"
+	default n
+	help
+	  Enable configuration of multiple GPIO pins to be used as chip-selects for multiple slaves.
+
+config SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE
+	bool "Support multi slaves operation as a slave(EXPERIMENTAL)"
+	default n
+	help
+	  Release MISO pin to allow other slaves to work alongside. Make sure the master will insert enough DUMMY cycles after sending a slave command.
+endif
+
+config SPI_CONTROL_MISO_FROM_ILM
+    bool "Run MISO control routines from ILM"
+    default n
+    depends on SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE
+    depends on SOC_SCM2010
+
+endif
+
+endmenu

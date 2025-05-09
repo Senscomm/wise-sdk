@@ -1,0 +1,9 @@
+menu "crypto"
+
+config LIB_CRYPTO
+	bool
+	default y
+	help
+	Say y to add cryptographic libraries such as rijndael (AES)
+
+endmenu

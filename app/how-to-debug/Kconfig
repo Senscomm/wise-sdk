@@ -1,0 +1,20 @@
+menu "How-to-debug demo configuration"
+
+choice
+	prompt "Type of debugging"
+
+config DEBUG_TYPE_EXCEPTION 
+    bool "Debugging core exceptions"
+
+config DEBUG_TYPE_ASSERTION 
+    bool "Debugging assertion failures"
+
+config DEBUG_TYPE_STACK_OVF
+    bool "Debugging stack overruns"
+
+config DEBUG_TYPE_HEAP_LEAK
+    bool "Debugging memory (heap) leaks"
+
+endchoice
+
+endmenu
