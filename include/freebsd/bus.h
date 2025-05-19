@@ -11,6 +11,10 @@
 */
 #include <sys/queue.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Note that we reversed the original order, so whenever actual (negative)
    numbers are used in a driver, we have to change it. */
 #define BUS_PROBE_SPECIFIC		0
@@ -41,5 +45,9 @@ int device_attach(device_t dev);
 int device_detach(device_t dev);
 int device_set_driver(device_t dev, driver_t *driver);
 int device_is_alive(device_t dev);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _FBSD_COMPAT_SYS_BUS_H_ */

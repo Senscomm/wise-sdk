@@ -69,7 +69,7 @@ static void dbg(const char *fmt, ...)
 #define MemCtrl		0x50
 #define Config		0x7c
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 struct atcspi200_ctx {
 	u32 trans_fmt;
 	u32 timing;

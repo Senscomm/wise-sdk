@@ -918,6 +918,27 @@ int scm_wifi_sta_get_ap_country(char *country)
 	return WISE_OK;
 }
 
+#ifdef CONFIG_IEEE80211_MODE_5GHZ
+uint8_t scm_wise_freq5g_to_channel(int freq_mhz)
+{
+	if (freq_mhz >= 5180 && freq_mhz <= 5240) {
+		/* UNII-1 */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5260 && freq_mhz <= 5320) {
+		/* UNII-2 */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5500 && freq_mhz <= 5700) {
+		/* UNII-2e */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5745 && freq_mhz <= 5825) {
+		/* UNII-3 */
+		return (freq_mhz - 5000) / 5;
+	} else {
+		return 0;
+	}
+}
+#endif
+
 int scm_wifi_sta_get_connect_info(scm_wifi_status *connect_status)
 {
 	const char *ifc = "wlan0";
@@ -953,6 +974,11 @@ int scm_wifi_sta_get_connect_info(scm_wifi_status *connect_status)
 		memcpy(connect_status->ssid, bss->ssid, bss->ssid_len);
 		connect_status->ssid[bss->ssid_len] = '\0';
 		connect_status->channel = (bss->freq - 2407) / 5;
+#ifdef CONFIG_IEEE80211_MODE_5GHZ
+		if (bss->freq > 5000) {
+			connect_status->channel = scm_wise_freq5g_to_channel(bss->freq);
+		}
+#endif
 		connect_status->status = (wpa_s->wpa_state == WPA_COMPLETED) ? SCM_WIFI_CONNECTED : SCM_WIFI_DISCONNECTED;
 	}
 

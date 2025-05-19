@@ -17,8 +17,16 @@
 #include <u-boot/list.h>
 #include <changeset.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct action {
 	int (*m_do)(struct action *this, struct changeset *cs);
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ACTION_H */

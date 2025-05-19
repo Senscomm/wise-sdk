@@ -15,6 +15,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -303,5 +307,9 @@ static __inline__ int spi_reset(struct device *dev)
 
     return spi_ops(dev)->reset(dev);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __SPI_H__

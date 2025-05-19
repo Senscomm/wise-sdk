@@ -18,6 +18,10 @@
 #include "wise_err.h"
 #include "scm_i2s.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * Audio interface type
  */
@@ -93,5 +97,8 @@ int scm_audio_mute(enum scm_audio_if intf);
  */
 int scm_audio_unmute(enum scm_audio_if intf);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_AUDIO_H__

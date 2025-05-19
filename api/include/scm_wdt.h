@@ -15,6 +15,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief watchdog timer start and expire after ms
  *
@@ -31,5 +35,9 @@ int scm_wdt_stop(void);
  * @brief watchdog timer feed
  */
 int scm_wdt_feed(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_SCM_WDT_H_

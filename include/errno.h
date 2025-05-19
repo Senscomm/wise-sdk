@@ -14,6 +14,10 @@
 
 #include_next <errno.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if defined(__USE_NATIVE_HEADER__)
 
 #else
@@ -158,4 +162,9 @@ extern int FreeRTOS_errno;
 
 #endif
 #endif /*  __USE_NATIVE_HEADER__ */
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

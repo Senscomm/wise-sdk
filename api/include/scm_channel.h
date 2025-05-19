@@ -16,6 +16,10 @@
 #include "wise_channel.h"
 #include "wise_wifi_types.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int scm_channel_register_rx_cb(wise_channel_cb_fn fn);
 int scm_channel_send_to_host(char *buf, int len);
 int scm_channel_construct_ip_msg(char *net_if, char *msg, int *msg_len);
@@ -26,5 +30,8 @@ int scm_channel_set_default_filter(wifi_packet_filter direction);
 int scm_channel_reset_filter(wifi_filter_type type);
 uint32_t scm_channel_host_ready(void);
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WIFI_CHANNEL_API_H__ */

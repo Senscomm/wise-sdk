@@ -54,6 +54,8 @@ extern "C" {
 /* Maximum PPDU duration for HT/VHT/HE PPDU. */
 #define IEEE80211_PPDU_MAX_TXTIME	5484
 
+#define	IEEE80211_ADDR_LEN  6
+
 /*
  * Common state locking definitions.
  */
@@ -578,6 +580,36 @@ void
 ieee80211_notify_scan_entry(struct ieee80211vap *vap,
                        struct ieee80211req_scan_result *sr, int len, void *f);
 void ieee80211_del_rxs(struct mbuf *m);
+#ifdef CONFIG_SOC_TL7118
+void _ieee80211_notify_unprot_disassoc(struct ieee80211vap *vap,
+							uint8_t is_disassoc,
+							const uint8_t src[IEEE80211_ADDR_LEN],
+							const uint8_t dst[IEEE80211_ADDR_LEN],
+							uint16_t reason_code);
+extern void (*ieee80211_notify_unprot_disassoc)(struct ieee80211vap *vap,
+							uint8_t is_disassoc,
+							const uint8_t src[IEEE80211_ADDR_LEN],
+							const uint8_t dst[IEEE80211_ADDR_LEN],
+							uint16_t reason_code);
+#else
+
+#ifdef CONFIG_LINK_TO_ROM
+
+void ieee80211_notify_unprot_disassoc(struct ieee80211vap *vap,
+							uint8_t is_disassoc,
+							const uint8_t src[IEEE80211_ADDR_LEN],
+							const uint8_t dst[IEEE80211_ADDR_LEN],
+							uint16_t reason_code);
+
+#else
+extern void (*ieee80211_notify_unprot_disassoc)(struct ieee80211vap *vap,
+							uint8_t is_disassoc,
+							const uint8_t src[IEEE80211_ADDR_LEN],
+							const uint8_t dst[IEEE80211_ADDR_LEN],
+							uint16_t reason_code);
+
+#endif
+#endif
 
 #ifdef __WISE__
 #define	atomic_set_32(p, v)			atomic_set_int((volatile int *)p, v)

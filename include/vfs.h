@@ -30,6 +30,10 @@
 #include <hal/kernel.h>
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define FTYPE_GENERIC_FILE	0
 #define FTYPE_DEVICE_FILE	1
 #define FTYPE_SOCKET		2
@@ -179,5 +183,9 @@ extern void (*vfs_install_fd) (int fd, struct file * file);
 extern void (*vfs_install_fd) (int fd, struct file * file);
 extern void (*vfs_free_fd) (int fd);
 extern struct file *(*vfs_fd_to_file) (int fd);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

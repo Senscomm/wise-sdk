@@ -15,6 +15,10 @@
 
 #include <u-boot/linker-lists.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CMD_MAX_ARGV 		32
 #define CMD_MAX_CMDLINE_SIZE 	CONFIG_CMDLINE_MAX_LEN
 
@@ -62,4 +66,9 @@ void cli_start(void);
 int cli_parse_line(char **s, char *argv[]);
 void cli_lock_cmd(const struct cli_cmd *cmd);
 int cli_readline(const char *prompt, char *buffer, int blen);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif // __CLI_H__

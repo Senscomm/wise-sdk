@@ -16,6 +16,10 @@
 #include <u-boot/list.h>
 #include <hal/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * sample code to record mbuf timestamp,
  * it links array by set m_ext.ext_arg2,
@@ -114,6 +118,10 @@ do { \
 #define tsmp_time_in(m, what)
 #define tsmp_set_in(m, what, value)
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* __WISE_MTSMP_H__ */

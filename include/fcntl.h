@@ -15,6 +15,10 @@
 
 #include_next <fcntl.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __USE_NATIVE_HEADER__
 
 extern int (*os_fcntl) (int fd, int cmd, ...);
@@ -22,5 +26,9 @@ extern int (*os_fcntl) (int fd, int cmd, ...);
 #define fcntl(fd, cmd, ...) os_fcntl(fd, cmd, ##__VA_ARGS__)
 
 #endif /* __USE_NATIVE_HEADER__ */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_FCNTL_H__ */

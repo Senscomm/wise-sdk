@@ -18,6 +18,10 @@
 #include <hal/device.h>
 #include <hal/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SDIO_BLOCK_SIZE 512
 
 struct sdio_req {
@@ -249,5 +253,9 @@ static __inline__ int sdio_reenum_host(struct device *dev)
 #define sdio_dbg_log(args...)
 #endif
 #define sdio_err_log printk
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_SDIO_H_

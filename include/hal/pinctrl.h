@@ -12,6 +12,13 @@
 #ifndef __PINCTRL_H__
 #define __PINCTRL_H__
 
+#include <hal/kernel.h>
+#include <hal/device.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -68,9 +75,6 @@ struct gpio_interrupt_disable {
 /*
  * Inspired by Linux pinctrl subsystem
  */
-
-#include <hal/kernel.h>
-#include <hal/device.h>
 
 struct pinctrl_pin_desc {
 	unsigned pin;
@@ -223,5 +227,9 @@ int pinctrl_powerup(struct device *device);
 
 int gpio_interrupt_enable(unsigned pin, int edge, void (*intr_cb)(u32 pin, void *ctx), void *ctx);
 int gpio_interrupt_disable(unsigned pin);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

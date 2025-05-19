@@ -16,6 +16,10 @@
 #include <hal/kernel.h>
 #include <sys/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SPI_FLASH_MAX_ID_LEN	6
 
 #ifndef CONFIG_NUM_FLASH_PARTITION
@@ -190,6 +194,8 @@ int flash_write(off_t addr, void *buf, size_t size);
 int flash_read(off_t addr, void *buf, size_t size);
 int flash_unlock_all(void);
 
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif

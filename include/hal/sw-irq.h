@@ -13,6 +13,10 @@
 #ifndef __SW_IRQ_H__
 #define __SW_IRQ_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int request_sw_irq(int irq,
 		       int (*handler)(int, void *),
 		       const char *name,
@@ -21,5 +25,9 @@ extern int request_sw_irq(int irq,
 
 extern void free_sw_irq(int irq, const char *name);
 extern int get_sw_irq_stat(char *buf, size_t size);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

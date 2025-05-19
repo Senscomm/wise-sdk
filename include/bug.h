@@ -13,6 +13,10 @@
 #ifndef __WISE_BUG_H__
 #define __WISE_BUG_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void (*panic)(const char *msg);
 
 int kernel_enter_panic(void);
@@ -35,5 +39,9 @@ void log_printf(const char *format, ...);
 }
 
 void *get_pc(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

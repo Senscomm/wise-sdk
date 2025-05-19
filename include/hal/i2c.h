@@ -17,6 +17,10 @@
 #include <hal/clk.h>
 #include <freebsd/errors.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -232,5 +236,9 @@ static __inline__ u32 i2c_slave_rx(struct device *dev, uint8_t *rx_buf, uint32_t
 
 	return i2c_ops(dev)->slave_rx(dev, rx_buf, rx_len);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -40,15 +40,12 @@ ENTRY(_start)
 
 SECTIONS
 {
-#define _STR(x) #x
-#define STR(x) _STR(x)
-#define L(x,y) *x:y(.text* .iram.text .rodata* .srodata*)
-#define MT(x)   STR(*x/##*.a:*.o)(.text* .rodata* .srodata*)
-#define MD(x)   STR(*x/##*.a:*.o)(.data* .sdata*)
-#define MB(x)   STR(*x/##*.a:*.o)(.bss* .sbss*)
-#define KT(x)   KEEP(STR(*x/##*.a:*.o)(.text* .rodata* .srodata*));
-#define KD(x)   KEEP(STR(*x/##*.a:*.o)(.data* .sdata*));
-#define KB(x)   KEEP(STR(*x/##*.a:*.o)(.bss* .sbss*));
+#define MT(x)   *x/built-in.o(.text* .rodata* .srodata*)
+#define MD(x)   *x/built-in.o(.data* .sdata*)
+#define MB(x)   *x/built-in.o(.bss* .sbss*)
+#define KT(x)   KEEP(*x/built-in.o(.text* .rodata* .srodata*));
+#define KD(x)   KEEP(*x/built-in.o(.data* .sdata*));
+#define KB(x)   KEEP(*x/built-in.o(.bss* .sbss*));
 #define LT(x,y) *x:y(.text* .rodata* .srodata* .eh_frame*)
 #define LD(x,y) *x:y(.data* .sdata*)
 #define LB(x,y) *x:y(.bss*  .sbss*)

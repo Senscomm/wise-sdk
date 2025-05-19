@@ -212,15 +212,15 @@ static struct ieee80211_ic_he_cap scm2020_he_cap[] = {
 #endif
 			(IEEE80211_HEPHYCAP_HE_ER_SU_1XLTF_AND_08_US_GI) |
 			(IEEE80211_HEPHYCAP_MIDAMBLE_RX_TX_2X_AND_1XLTF) |
-#ifdef CONFIG_WLAN_HW_SCM2010
+#if defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118)
 			(IEEE80211_HEPHYCAP_DCM_MAX_RU_20MHZ) |
 #else
 			(IEEE80211_HEPHYCAP_DCM_MAX_RU_80MHZ) |
 #endif
-#ifndef CONFIG_WLAN_HW_SCM2010
+#ifdef CONFIG_WLAN_HW_SCM2020
 			(IEEE80211_HEPHYCAP_LONGER_THAN_16_SIGB_OFDM_SYM) |
 #endif
-#ifndef CONFIG_WLAN_HW_SCM2010
+#ifdef CONFIG_WLAN_HW_SCM2020
 			(IEEE80211_HEPHYCAP_TX_1024_QAM_LESS_THAN_242_TONE_RU) |
 			(IEEE80211_HEPHYCAP_RX_1024_QAM_LESS_THAN_242_TONE_RU) |
 #endif
@@ -783,7 +783,8 @@ __dram__ __dconst__ static struct reg_set phy_init[] = {
 
 __dram__ __dconst__
 static u32 tx_lut[64] = {
-#if defined(CONFIG_WLAN_HW_SCM2010) && defined(CONFIG_RF_XRC564)
+#if (defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118))\
+    && defined(CONFIG_RF_XRC564)
 #if 0
 	0x0000001C,    //MAX-41 , degital gain typo fix.
 	0x0000001E,    //MAX-40
@@ -988,7 +989,8 @@ __dram__ __dconst__
 static u32 rx_lut_r2[2][95] = {
 	/* 2.4 GHz band */
 	{
-#if defined(CONFIG_WLAN_HW_SCM2010) && defined(CONFIG_RF_XRC564)
+#if (defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118))\
+    && defined(CONFIG_RF_XRC564)
 #ifdef __fib_v1__
 		0x0028, 0x002A, 0x0128, 0x012A, 0x0228, 0x022A, 0x0328, 0x032A, 0x0428, 0x042A,
 		0x0528, 0x052A, 0x0628, 0x062A, 0x0728, 0x072A, 0x0828, 0x082A, 0x0928, 0x092A,
@@ -1105,7 +1107,8 @@ typedef struct {
  * */
 static const ppe_data_t ppe_thres[] = {
 
-#if defined(CONFIG_WLAN_HW_SCM2010) || !defined(CONFIG_SUPPORT_CHWIDTH40)
+#if defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118)\
+    || !defined(CONFIG_SUPPORT_CHWIDTH40)
 
 	/*  ----------   1-NSS   ---------------
 	 * BIT(n)         <--------          BIT(0)
@@ -2181,7 +2184,7 @@ scm2020_attach(struct device *dev)
 
 	ic->ic_he_cap = scm2020_he_cap;
 
-#ifdef CONFIG_WLAN_HW_SCM2010
+#if defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118)
 	ic->ic_he_mcsinfo.rx_mcs_map = 0xFFFC | CONFIG_SUPPORT_HE_RX_MCS_8_9;
 	ic->ic_he_mcsinfo.tx_mcs_map = 0xFFFD;
 #else

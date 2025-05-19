@@ -530,7 +530,7 @@ static declare_driver(adc) = {
 	.ops 		= &adc_ops,
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #if !defined(CONFIG_USE_AUXADC)
 #error ADC driver requires ADC devices. Select ADC devices or remove the driver
 #endif

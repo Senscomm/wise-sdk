@@ -31,6 +31,10 @@
 
 #include <wise_log.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ESP_LOG_NONE		WISE_LOG_NONE
 #define ESP_LOG_ERROR		WISE_LOG_ERROR
 #define ESP_LOG_WARN		WISE_LOG_WARN
@@ -51,5 +55,9 @@
 #define ESP_LOG_LEVEL	WISE_LOG_LEVEL
 
 #define ESP_LOG_LEVEL_LOCAL	WISE_LOG_LEVEL_LOCAL
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __ESP_LOG_H__ */

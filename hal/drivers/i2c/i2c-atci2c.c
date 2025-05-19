@@ -90,7 +90,7 @@
 #define I2C_ATCI2C_SETUP_ADDR_LEN_7BIT      (0 << 1)
 #define I2C_ATCI2C_SETUP_IICEN              (1 << 0)
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #define ATCI2C_FIFO_SIZE                    (4)
 #endif
 
@@ -1139,7 +1139,7 @@ static declare_driver(i2c) = {
 	.ops        = &atci2c_i2c_ops,
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #if !defined(CONFIG_USE_I2C0) && !defined(CONFIG_USE_I2C1)
 #error I2C driver requires I2C devices. Select I2C devices or remove the driver
 #endif

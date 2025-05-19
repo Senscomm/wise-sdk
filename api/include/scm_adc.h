@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum scm_adc_channel {
 	SCM_ADC_SINGLE_CH_0		= 0,
 	SCM_ADC_SINGLE_CH_1		= 1,
@@ -57,5 +61,9 @@ int scm_adc_read_async(enum scm_adc_channel ch, uint16_t *buf, uint32_t len, scm
  *
  */
 int scm_adc_reset(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_ADC_H__

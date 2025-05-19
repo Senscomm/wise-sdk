@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * I2S data format
  */
@@ -107,5 +111,9 @@ int scm_i2s_stop(enum scm_i2s_direction dir);
  * @brief Get a configured block buffer size
  */
 int scm_i2s_get_block_buffer_size(struct scm_i2s_cfg *cfg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_I2S_H__

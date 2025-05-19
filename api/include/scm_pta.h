@@ -13,6 +13,10 @@
 #ifndef __SCM_PTA_H__
 #define __SCM_PTA_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * PTA force mode
  */
@@ -35,5 +39,9 @@ int scm_pta_get_force_mode(enum scm_pta_force_mode *force_mode);
  * @param[in] force_mode PTA force mode
  */
 int scm_pta_set_force_mode(enum scm_pta_force_mode force_mode);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_PTA_H__

@@ -9,6 +9,9 @@
 /* Haiku's list management */
 #include "compat_list.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef void (*task_handler_t)(void *context, int pending);
 
@@ -21,5 +24,9 @@ struct task {
 
 	struct list_link ta_link;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

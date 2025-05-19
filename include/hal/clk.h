@@ -15,6 +15,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct clk;
 
 struct clk_ops {
@@ -131,5 +135,9 @@ struct clk* clk_get_source(struct clk *clk, int i);
 void clk_print(struct clk *clk, int verbose);
 void clock_init(void);
 void clock_postinit(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

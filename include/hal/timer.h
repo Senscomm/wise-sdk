@@ -15,6 +15,11 @@
 #include <hal/device.h>
 #include <hal/clk.h>
 #include <freebsd/errors.h>
+#include <FreeRTOS/FreeRTOS.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * High-level device driver
@@ -155,8 +160,6 @@ static __inline__ u32 timer_adjust(struct device *timer, u8 ch, int adj)
 	return timer_ops(timer)->adjust(timer, ch, adj);
 }
 
-#include <FreeRTOS/FreeRTOS.h>
-
 /* FIXME: what if CONFIG_TIMER_HZ > 1000000 */
 /* FIXME: what if 1000000 % CONFIG_TIMER_HZ != 0 */
 extern int time_hz;
@@ -203,5 +206,8 @@ static void __inline udelay(u32 udelay)
 		asm("nop");
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

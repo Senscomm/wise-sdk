@@ -17,6 +17,10 @@
 #include <u-boot/list.h>
 #include <changeitem.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct changeset {
 	struct list_head list;
 
@@ -37,5 +41,9 @@ struct changeset {
 
 struct changeset *create_changeset(void);
 void destroy_changeset(struct changeset *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _CHANGESET_H */

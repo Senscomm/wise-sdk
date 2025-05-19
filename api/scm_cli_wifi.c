@@ -78,6 +78,7 @@ static int g_host_app_ready = 0;
 }
 #endif
 
+static bool auto_dhcp = true;
 static int g_event_reged = 0;
 #define SCM_IS_EVENT_REGED() g_event_reged
 #define SCM_SET_EVENT_REGED(s) { \
@@ -131,7 +132,7 @@ wise_err_t cli_event_handler(void *ctx, system_event_t *event)
 	case SYSTEM_EVENT_STA_CONNECTED:
 		SCM_INFO_LOG(SCM_CLI_TAG,"STA_CONNECTED\n");
 
-		if (SCM_NEED_DHCP_START(event)) {
+		if (SCM_NEED_DHCP_START(event) && auto_dhcp) {
 			scm_wifi_status connect_status;
 			netifapi_dhcp_start(scm_wifi_get_netif(WISE_IF_WIFI_STA));
 			scm_wifi_sta_get_connect_info(&connect_status);
@@ -1931,6 +1932,7 @@ static int scm_cli_dhcps_stop(int argc, char *argv[])
 		/* re-direct return value */
 		ret = SCM_CLI_FAIL;
 	}
+	auto_dhcp = false;
 #endif
 
 done:

@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * TIMER device index
  */
@@ -162,5 +166,9 @@ int scm_timer_stop_multi(enum scm_timer_idx idx, uint8_t chs);
  * The hardware is down counter start from the reload value.
  */
 int scm_timer_value(enum scm_timer_idx idx, enum scm_timer_ch ch, uint32_t *value);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_TIMER_H__

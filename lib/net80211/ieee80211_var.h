@@ -1410,6 +1410,10 @@ ieee80211_vhtchanflags(const struct ieee80211_channel *c)
  * This includes the node and ic/vap TX power limit as needed,
  * but it doesn't take into account any per-rate limit.
  */
+#ifndef MIN
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+#endif
+
 static __inline uint16_t
 ieee80211_get_node_txpower(struct ieee80211_node *ni)
 {

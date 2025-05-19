@@ -14,6 +14,13 @@
 #define _CRYPTO_H_
 
 #include <stdint.h>
+#include <hal/types.h>
+#include <hal/device.h>
+#include <errno.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /*
  * High-level device driver
@@ -30,10 +37,6 @@ struct trng_read_value
 /*
  * Low-level device driver
  */
-
-#include <hal/types.h>
-#include <hal/device.h>
-#include <errno.h>
 
 struct pke_ops {
     int (*pke_eccp_point_mul)(struct device *dev, uint32_t *k, uint32_t *px, uint32_t *py,
@@ -91,5 +94,9 @@ static __inline__ int crypto_trng_get_rand(struct device *dev, uint8_t *rand, ui
 
 	return crypto_trng_get_ops(dev)->get_rand_fast(dev, rand, bytes);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_CRYPTO_H_

@@ -22,6 +22,10 @@
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/xqueue.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct serial_port;
 
 struct serial_port_ops {
@@ -48,5 +52,9 @@ struct serial_port {
 
 extern int register_serial_port(struct serial_port *);
 int uart_get_baudrate(struct termios *);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

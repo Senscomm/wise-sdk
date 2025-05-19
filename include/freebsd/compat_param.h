@@ -31,6 +31,13 @@
 /* MAJOR FIXME */
 #define Maxmem			(32768)
 
+#ifndef CONFIG_FREEBSD_MBUF_CACHE_SIZE
+#define CONFIG_FREEBSD_MBUF_CACHE_SIZE 1024
+#endif
+#ifndef CONFIG_FREEBSD_MBUF_CHUNK_SIZE
+#define CONFIG_FREEBSD_MBUF_CHUNK_SIZE 1024
+#endif
+
 #ifndef __MSIZE__
 #ifndef __WISE__
 #define __MSIZE__ 256

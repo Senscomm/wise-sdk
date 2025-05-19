@@ -422,10 +422,12 @@ static int scm2010_systimer_probe(struct device *dev)
 
 	systimer_trim(dev);
 
+#ifdef CONFIG_PM_SCM2010
 #ifdef CONFIG_PM_AON_VOLTAGE_CTRL
 	pmu_ctlr_aon(PMU_AON_VOLTAGE_qLR_0V7);
 #else
 	pmu_ctlr_aon(PMU_AON_VOLTAGE_qLR_0V8);
+#endif
 #endif
 
 	rram->act_ratio = 0;
@@ -433,7 +435,9 @@ static int scm2010_systimer_probe(struct device *dev)
 
 	rram->ratio_last_measure_time = prvReadMtime();
 
+#ifdef CONFIG_PM_SCM2010
 	pmu_ctlr_aon(PMU_AON_VOLTAGE_iLR_0V8);
+#endif
 
 	return 0;
 }

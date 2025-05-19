@@ -35,6 +35,20 @@
 
 #include <sys/cdefs.h>
 
+#ifndef _KERNEL
+#ifndef __WISE__
+#if __BSD_VISIBLE
+#include <sys/_types.h>
+#include <sys/_sigset.h>
+#include <sys/timespec.h>
+#endif
+#endif
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * This file is intended to be compatible with the traditional poll.h.
  */
@@ -96,14 +110,8 @@ struct pollfd {
 #endif
 
 #ifndef _KERNEL
-
 #ifndef __WISE__
 #if __BSD_VISIBLE
-#include <sys/_types.h>
-
-#include <sys/_sigset.h>
-#include <sys/timespec.h>
-
 #ifndef _SIGSET_T_DECLARED
 #define	_SIGSET_T_DECLARED
 typedef	__sigset_t	sigset_t;
@@ -121,5 +129,9 @@ __END_DECLS
 #define poll(pfd, nfds, timeout)	os_poll(pfd, nfds, timeout)
 
 #endif /* !_KERNEL */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_SYS_POLL_H_ */

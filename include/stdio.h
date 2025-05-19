@@ -16,6 +16,10 @@
 #include <stddef.h>
 #include <stdarg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef __USE_NATIVE_HEADER__
 
 #include_next <stdio.h>
@@ -159,5 +163,9 @@ extern int (*getchar_timeout)(unsigned timeout);
 
 int kvprintf(char const *fmt, void (*func)(int, void *), void *arg,
          int radix, va_list ap);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

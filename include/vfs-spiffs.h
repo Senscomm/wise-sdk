@@ -13,6 +13,10 @@
 #ifndef __VFS_SPIFFS_H__
 #define __VFS_SPIFFS_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int vfs_spiffs_mount(struct filesystem *fs, const char *src, const char *dest,
 		     unsigned long mountflags, const void *private);
 extern int vfs_spiffs_open(struct file **filep, const char *pathname,
@@ -25,4 +29,9 @@ extern int vfs_spiffs_closedir(DIR *dirp);
 extern struct dirent *vfs_spiffs_readdir(DIR *dirp);
 extern void vfs_spiffs_unmount(void);
 extern int vfs_spiffs_format(void);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif

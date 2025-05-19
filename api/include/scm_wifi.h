@@ -13,6 +13,10 @@
 #ifndef __WIFI_API_H__
 #define __WIFI_API_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define WPA_FLAG_ON     1
 #define WPA_FLAG_OFF    0
 
@@ -560,6 +564,10 @@ int scm_wifi_enable_anti_microwave_intrf(unsigned char enable);
 
 #ifdef CONFIG_SUPPORT_WC_MQTT_KEEPALIVE
 int scm_wifi_set_shared_mem_addr(uint32_t *addr);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif /* __WIFI_API_H__ */

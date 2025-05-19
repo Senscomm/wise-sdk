@@ -15,6 +15,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define stimer_inline inline __attribute__((always_inline))
 
 /*
@@ -186,5 +190,9 @@ static stimer_inline int systimer_restart(struct device *dev, int is_exec)
 {
 	return systimer_get_ops(dev)->restart(dev, is_exec);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_SYSTIMER_H_

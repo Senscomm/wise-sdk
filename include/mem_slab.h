@@ -28,6 +28,10 @@
 #include <hal/kernel.h>
 #include <hal/compiler.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * struct mem_slab_info
  *
@@ -113,5 +117,9 @@ int mem_slab_init(struct mem_slab *slab, void *buffer, size_t block_size,
 int mem_slab_deinit(struct mem_slab *slab);
 int mem_slab_alloc(struct mem_slab *slab, void **mem, uint32_t timeout);
 void mem_slab_free(struct mem_slab *slab, void *mem);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

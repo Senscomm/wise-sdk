@@ -12,6 +12,8 @@ LDFLAGS_wise += -T $(CONFIG_ROM_LDSCRIPT:"%"=%)
 
 endif
 
+################## CONFIG_BUILD_ROM ###############################################
+
 ifdef CONFIG_BUILD_ROM
 
 # Generate relocation table
@@ -32,6 +34,8 @@ quiet_cmd_wise__ ?= LD      $@
 
 endif
 
+################## CONFIG_WATCHER #################################################
+
 ifdef CONFIG_WATCHER
 
 #
@@ -43,6 +47,9 @@ quiet_cmd_wise_bin = OBJCOPY $@
       cmd_wise_bin = $(OBJCOPY) -O binary -S wise wise.bin; \
 					 $(WISE_WATCHER_CMD)
 endif
+
+
+################## CONFIG_BOOTLOADER ##############################################
 
 ifdef CONFIG_BOOTLOADER
 
@@ -77,6 +84,8 @@ quiet_cmd_wise_bin = MKIMAGE $(WISE_BOOT_BIN)
 			 $(WISE_ENC_CMD)
 endif
 
+################## CONFIG_MCUBOOT_BL ##############################################
+
 ifdef CONFIG_MCUBOOT_BL
 
 # wise-boot
@@ -109,6 +118,8 @@ quiet_cmd_wise_bin = MKIMAGE $(WISE_BOOT_BIN)
 			 $(WISE_ENC_CMD)
 endif
 
+################## CONFIG_UART_BOOT ###############################################
+
 ifdef CONFIG_UART_BOOT
 
 # wise.bin
@@ -124,6 +135,8 @@ quiet_cmd_wise_bin = MKIMAGE $@
 			 -l $(lma) -v $(vma_start) -r $(ver)
 
 endif
+
+################## CONFIG_MCUBOOT_OTA #############################################
 
 ifdef CONFIG_MCUBOOT_OTA
 
@@ -170,6 +183,7 @@ quiet_cmd_wise_bin = MKIMAGE $(WISE_OTA_BIN)
 				$(WISE_MFG_CMD)
 endif
 
+################## CONFIG_MFG #####################################################
 
 ifdef CONFIG_MFG
 
@@ -203,6 +217,7 @@ endif
 
 endif
 
+################## CONFIG_XIP #####################################################
 
 ifdef CONFIG_XIP
 
@@ -222,6 +237,8 @@ quiet_cmd_wise_bin ?= MKIMAGE $@
       cmd_wise_bin ?= $(cmd_objcopy); \
 				$(WISE_ENC_CMD)
 endif
+
+################## CONFIG_HOSTBOOT ################################################
 
 ifdef CONFIG_HOSTBOOT
 
@@ -290,6 +307,8 @@ endif
 
 endif
 
+################## CONFIG_BOOTROM #################################################
+
 ifdef CONFIG_BOOTROM
 
 #
@@ -302,6 +321,8 @@ quiet_cmd_wise_rom = GEN     $@
 					 ./scripts/genrom.py $@
 
 endif
+
+################## CONFIG_ATE #####################################################
 
 ifdef CONFIG_ATE
 
@@ -320,6 +341,8 @@ quiet_cmd_wise_bin ?= MKIMAGE $(CONFIG_ATE_BIN:"%"=%)
 			 $(srctree)/app/ate/jpat $(CONFIG_ATE_BIN:"%"=%)
 
 endif
+
+################## CONFIG_IRQ_DISPATCHER ##########################################
 
 ifdef CONFIG_IRQ_DISPATCHER
 

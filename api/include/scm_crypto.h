@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Read TRNG value
  *
@@ -24,5 +28,9 @@
  * @param[in] len len of trng buffer
  */
 int scm_crypto_trng_read(uint8_t *val, int len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_CRYPTO_H__

@@ -20,6 +20,9 @@
 
 #include "libkern.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ovbcopy(f, t, l) bcopy((f), (t), (l))
 
@@ -76,5 +79,9 @@ copyout(const void * __restrict kaddr, void * __restrict udaddr,
 	memcpy(udaddr, kaddr, len);
 	return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _FBSD_COMPAT_SYS_SYSTM_H_ */

@@ -9,7 +9,6 @@
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
-#ifdef CONFIG_LINK_TO_ROM
 
 #include <stdio.h>
 #include <poll.h>
@@ -24,6 +23,10 @@
 
 extern void (*vfs_lock)(void);
 extern void (*vfs_unlock)(void);
+extern struct filesystem *(*vfs_find_filesystem)(const char *pathname);
+
+#ifdef CONFIG_LINK_TO_ROM
+#ifdef CONFIG_SOC_SCM2010
 
 /* The array of open files */
 static struct file *vfs_fds_x[CONFIG_VFS_MAX_FDS];
@@ -46,14 +49,14 @@ __ilm__ int patch_vfs_get_free_fd(void)
     vfs_lock();
     for (fd = 0; fd < ARRAY_SIZE(vfs_fds_x); fd++) {
         if (vfs_fds_x[fd] == NULL) {
-			/* https://github.com/Senscomm/wise/issues/2036 */
-			/* XXX: we need to make sure different clients won't
-			 * get the same fd between get_free_fd and install_fd
-			 * by marking it to be 'reserved'.
-			 */
-			vfs_fds_x[fd] = &vfs_res;
+            /* https://github.com/Senscomm/wise/issues/2036 */
+            /* XXX: we need to make sure different clients won't
+             * get the same fd between get_free_fd and install_fd
+             * by marking it to be 'reserved'.
+             */
+            vfs_fds_x[fd] = &vfs_res;
             goto out;
-		}
+        }
     }
   out:
     vfs_unlock();
@@ -113,9 +116,6 @@ __ilm__ struct file *patch_vfs_fd_to_file(int fd)
 extern struct file *(*vfs_fd_to_file) (int fd);
 
 PATCH(vfs_fd_to_file, &vfs_fd_to_file, &patch_vfs_fd_to_file);
-
-
-extern struct filesystem *(*vfs_find_filesystem)(const char *pathname);
 
 int patch_os_open(const char *pathname, int flags, ...)
 {
@@ -300,6 +300,9 @@ extern int
  (*os_poll)(struct pollfd * fds, nfds_t nfds, int timeout);
 PATCH(os_poll, &os_poll, &patch_os_poll);
 
+#endif /* CONFIG_SOC_SCM2010 */
+#endif /* CONFIG_LINK_TO_ROM */
+
 /* New: unmount, format */
 /* XXX: to be included in the ROM library, i.e., vfs.c */
 
@@ -331,5 +334,3 @@ int os_format(const char * pathname)
 
     return ret;
 }
-
-#endif

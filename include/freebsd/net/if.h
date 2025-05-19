@@ -10,8 +10,13 @@
 #include_next <net/if.h>
 
 #else
+
 #include <netinet/in.h>
 #include <sys/socket.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifndef IFNAMSIZ
 #define IFNAMSIZ 	16
@@ -246,6 +251,10 @@ unsigned char os_if_nametoflags(char *);
 #define if_nameindex()   os_if_nameindex()
 #define if_freenameindex os_if_freenameindex
 #define if_nametoflags   os_if_nametoflags
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __USE_NATIVE_HEADER__ */
 

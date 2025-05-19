@@ -16,6 +16,10 @@
 #include <FreeRTOS/FreeRTOS.h>
 #include <FreeRTOS/task.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef TaskHandle_t thread_t;
 typedef TaskStatus_t threadinfo_t;
 
@@ -44,5 +48,9 @@ static inline const char *task_name(thread_t th)
 int task_is_freezable(thread_t task);
 int task_suspend(int pid);
 int task_resume(int pid);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_PROC_H__ */

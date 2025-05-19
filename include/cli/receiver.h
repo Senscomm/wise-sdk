@@ -18,6 +18,10 @@
 #include <changeset.h>
 #include <assessor.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct receiver {
 	int (*m_add_changeitem)(struct receiver *this, const char *name, int start, int end, int step);
 	int (*m_configure)(struct receiver *this, const char *cat, const char *item, void *val);
@@ -51,5 +55,9 @@ struct receiver {
 
 struct receiver *create_receiver(struct receiver *base);
 void destroy_receiver(struct receiver *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _RECEIVER_H */

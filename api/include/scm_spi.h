@@ -19,6 +19,10 @@
 
 #define SCM_SPI_TRANSFER_MAX_LEN	512
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * SPI device index
  */
@@ -426,5 +430,9 @@ int scm_spi_slave_set_user_state(enum scm_spi_idx idx, uint16_t user_state);
  * @param[in] idx index of the SPI
  */
 int scm_spi_slave_cancel(enum scm_spi_idx idx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_SPI_H__

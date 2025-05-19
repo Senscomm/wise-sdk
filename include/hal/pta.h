@@ -14,6 +14,10 @@
 #ifndef _PTA_H_
 #define _PTA_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -30,5 +34,9 @@ enum pta_force_mode {
 struct pta_force_mode_val {
 	uint32_t val;
 };
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_PTA_H_

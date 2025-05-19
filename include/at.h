@@ -16,6 +16,10 @@
 #include <u-boot/linker-lists.h>
 #include <hal/ipc.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifdef CONFIG_AT_OVER_IPC
 extern ipc_listener_t g_wlan_ctrl_listener;
 
@@ -93,5 +97,9 @@ char *at_strip_args(char *args);
 int at_printf(const char* format, ...);
 int at_process_cmd(int argc, char *argv[], AT_CAT type);
 int at_parse_line(char **s, char *argv[], AT_CAT *type);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // __AT_H__

@@ -13,6 +13,10 @@
 #ifndef __WISE_DIRENT_H__
 #define __WISE_DIRENT_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct __dirstream {
 	void *dir;
 } DIR;
@@ -24,7 +28,6 @@ struct dirent {
 	unsigned char d_type;
 	char d_name[128];
 };
-
 
 extern DIR *(*os_opendir) (const char *name);
 extern int (*os_closedir) (DIR * dirp);
@@ -45,5 +48,8 @@ extern int (*os_format) (const char *pathname);
 #define unmount os_unmount
 #define fformat os_format
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_DIRENT_H__ */

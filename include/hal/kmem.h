@@ -14,6 +14,10 @@
 
 #include <hal/kernel.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern void *(*kmalloc)(size_t size);
 void *kzalloc(size_t size);
 void _kfree(void *ptr);
@@ -22,6 +26,10 @@ extern void (*kfree)(void *ptr);
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
 void *dma_kmalloc(size_t size);
 void dma_kfree(void *ptr);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

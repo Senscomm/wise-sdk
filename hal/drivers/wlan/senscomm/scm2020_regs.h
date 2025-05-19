@@ -17,6 +17,8 @@
  */
 #if defined(CONFIG_WLAN_HW_SCM2010)
 #include "macregs-scm2010.h"
+#elif defined(CONFIG_WLAN_HW_TL7118)
+#include "macregs-scm2010.h" /* subject to change */
 #else
 #include "macregs-scm2020.h"
 #endif
@@ -99,6 +101,8 @@ static inline void mac_writel(u32 val, struct device *dev, u32 offset)
  */
 #if defined(CONFIG_WLAN_HW_SCM2010)
 #include "phyregs-scm2010.h"
+#elif defined(CONFIG_WLAN_HW_TL7118)
+#include "phyregs-tl7118.h" /* subject to change */
 #else
 #include "phyregs-scm2020.h"
 #endif

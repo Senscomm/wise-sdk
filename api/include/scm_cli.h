@@ -13,6 +13,10 @@
 #ifndef __SCM_CLI_H__
 #define __SCM_CLI_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct scm_cli {
 	const char *name;
 	int (*ops) (int argc, char *argv[]);
@@ -33,5 +37,9 @@ struct scm_cli {
 		.usage = u, \
 		.desc = d, \
 	}
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __SCM_CLI_H__ */

@@ -528,9 +528,6 @@ extern void (*ieee80211_notify_action)(struct ieee80211vap *vap,
 void ieee80211_notify_assoc_reject(struct ieee80211vap *vap,
                        const struct ieee80211_frame *wh, uint16_t status, uint8_t * assoc_resp,
                        uint16_t assoc_resp_len);
-void ieee80211_notify_unprot_disassoc(struct ieee80211vap *vap,
-                            uint8_t is_disassoc, const uint8_t src[IEEE80211_ADDR_LEN],
-                            const uint8_t dst[IEEE80211_ADDR_LEN], uint16_t reason_code);
 
 int ieee80211_bmiss_calc_win_thres(struct ieee80211vap *vap);
 void ieee80211_bmiss_update_win(struct ieee80211vap *vap, uint32_t miss);

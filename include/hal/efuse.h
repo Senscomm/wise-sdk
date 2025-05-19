@@ -13,6 +13,10 @@
 #ifndef __EFUSE_H__
 #define __EFUSE_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -123,6 +127,10 @@ static __inline__ int efuse_load(struct device *dev)
 		return -ENOSYS;
 
 	return efuse_get_ops(dev)->load(dev);
+}
+#endif
+
+#ifdef __cplusplus
 }
 #endif
 

@@ -15,6 +15,10 @@
 
 #include <hal/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum pm_wakeup_type {
 	PM_WAKEUP_TYPE_FULL    = 0,
 	PM_WAKEUP_TYPE_WATCHER,
@@ -80,5 +84,9 @@ extern uint64_t (*pm_get_cur_time)(void);
 extern uint32_t (*pm_status)(void);
 extern void (*pm_set_residual)(u32);
 extern u32 (*pm_get_residual)(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_PM_H_

@@ -12,6 +12,10 @@
 #ifndef __WISE_CPU_H__
 #define __WISE_CPU_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void dcache_enable(void);
 void dcache_disable(void);
 
@@ -22,5 +26,9 @@ void dcache_invalidate_range(unsigned long start, unsigned long stop);
 void dcache_invalidate_all(void);
 
 void icache_invalidate_all(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_CPU_H__ */

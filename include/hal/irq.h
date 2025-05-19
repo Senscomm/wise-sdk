@@ -13,6 +13,12 @@
 #ifndef __IRQ_H__
 #define __IRQ_H__
 
+#include <FreeRTOS/FreeRTOS.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int request_irq(int irq,
 		       int (*handler)(int, void *),
 		       const char *name,
@@ -28,7 +34,6 @@ extern unsigned int disable_cpu_interface();
 extern void enable_cpu_interface(unsigned int old);
 #endif
 
-#include <FreeRTOS/FreeRTOS.h>
 #if defined(INC_FREERTOS_H)
 
 #ifdef CONFIG_ARM_CORTEX_A7
@@ -89,6 +94,10 @@ static inline void arc_local_irq_restore(unsigned long flags)
 	    : "memory", "cc"); \
 }
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif

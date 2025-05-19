@@ -134,7 +134,7 @@ struct raw_access {
     struct dma_ctx rx_dma_ctx;
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 struct uart_ctx {
     uint32_t osc;
     uint32_t ier;
@@ -157,7 +157,7 @@ struct atcuart_port {
     } fifo;
     int rx_err;
     int fifo_ctl;
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     struct uart_ctx ctx;
 #endif
 };
@@ -1288,7 +1288,7 @@ __iram__ int atcuart_suspend(struct device *dev, u32 *idle)
     if (!port->initialized)
         return 0;
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     atport->ctx.osc = atcuart_readl(dev, OFT_ATCUART_OSC);
     atport->ctx.ier = atcuart_readl(dev, OFT_ATCUART_IER);
     atport->ctx.lcr = atcuart_readl(dev, OFT_ATCUART_LCR);
@@ -1320,14 +1320,14 @@ __iram__ int atcuart_resume(struct device *dev)
 {
     struct atcuart_port *atport = dev->driver_data;
     struct serial_port *port = &atport->port;
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     uint32_t fc;
 #endif
 
     if (!port->initialized)
         return 0;
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     fc = atport->fifo_ctl;
     fc |= UART_ATCUART_FCR_TFIFORST | UART_ATCUART_FCR_RFIFORST;
     atcuart_writel(atport->ctx.osc, dev, OFT_ATCUART_OSC);
@@ -1373,7 +1373,7 @@ static declare_driver(atcuart) = {
     .ops		= &uart_ops,
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #if !defined(CONFIG_USE_UART0) && !defined(CONFIG_USE_UART1) && !defined(CONFIG_USE_UART2)
 #error UART driver requires UART devices. Select UART devices or remove the driver
 #endif

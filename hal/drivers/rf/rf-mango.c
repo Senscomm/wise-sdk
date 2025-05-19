@@ -604,8 +604,8 @@ u8 mango_afe_init(struct device *dev, u8 path)
 	//Rx clock and data order/format
 	// [7:1]=[0 x 1 0 1 0 1] to match design of ad_bridge input registers (TRXD DDR relative to TRXCLK, I data first)
 	// [0]=1 for 2's compliment (Datasheet says reg32[0]=0 for 2's compliment, but experiments show 0 is really straight-binary)
-	mango_write(dev, path, 0x0, 0x32, 0xA7); // ADC clock is "0" deg.
-	//mango_write(dev, path, 0x0, 0x32, 0xAF); // ADC clock is "180" deg.
+	//mango_write(dev, path, 0x0, 0x32, 0xA7); // ADC clock is "0" deg.
+	mango_write(dev, path, 0x0, 0x32, 0xAF); // ADC clock is "180" deg.
 
 	//Full-duplex mode (DACs/TXD and ADCs/TRXD both active all the time)
 	mango_write(dev, path, 0x0, 0x3F, 0x01); //FD mode

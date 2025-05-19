@@ -14,6 +14,10 @@
 
 #include <hal/kernel.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct hal_soc {
 	const char *name;
 
@@ -39,5 +43,8 @@ void board_init(void);
 #define BOARD(_name_) \
 	ll_entry_declare(struct hal_board, _name_, board)
 
+#ifdef __cplusplus
+}
+#endif
 
 #endif

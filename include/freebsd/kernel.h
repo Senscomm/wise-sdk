@@ -13,6 +13,10 @@
 #include <sys/queue.h>
 #include "cmsis_os.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define _KERNEL
 /*
  *
@@ -43,5 +47,9 @@ struct __system_init {
 	struct __system_init __uninit_##uniquifier = { (system_init_func_t) func }
 
 extern int32_t ticks;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

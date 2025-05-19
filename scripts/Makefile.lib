@@ -42,7 +42,11 @@ __subdir-y	:= $(patsubst %/,%,$(filter %/, $(obj-y)))
 subdir-y	+= $(__subdir-y)
 __subdir-m	:= $(patsubst %/,%,$(filter %/, $(obj-m)))
 subdir-m	+= $(__subdir-m)
+ifeq ($(CONFIG_BUILD_ROM),y)
+obj-y		:= $(patsubst %/, %/built-in.o, $(obj-y))
+else
 obj-y		:= $(filter-out %/, $(obj-y)) $(foreach var, $(filter %/, $(obj-y)), $(var)$(patsubst %-,%,$(subst /,-,$(obj)/$(var))).a)
+endif
 obj-m		:= $(filter-out %/, $(obj-m))
 
 # Subdirectories we need to descend into
@@ -63,7 +67,11 @@ multi-objs   := $(multi-objs-y) $(multi-objs-m)
 
 # $(subdir-obj-y) is the list of objects in $(obj-y) which uses dir/ to
 # tell kbuild to descend
+ifeq ($(CONFIG_BUILD_ROM),y)
+subdir-obj-y := $(filter %/built-in.o, $(obj-y))
+else
 subdir-obj-y := $(filter %.a, $(obj-y))
+endif
 
 # $(obj-dirs) is a list of directories that contain object files
 obj-dirs := $(dir $(multi-objs) $(obj-y))

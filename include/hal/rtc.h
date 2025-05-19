@@ -17,6 +17,10 @@
 #include <hal/device.h>
 #include <hal/clk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Generic RTC interface.
  */
@@ -233,4 +237,9 @@ static __inline__ int rtc_clear_32khz_alarm(struct device *dev)
 	return rtc_get_ops(dev)->clear_32khz_alarm(dev);
 
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif  /* _RTC_H_ */

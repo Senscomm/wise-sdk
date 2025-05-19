@@ -1547,6 +1547,25 @@ void wise_wifi_flush_bss(void) {
 	wpa_bss_flush(wpa_s);
 }
 
+#ifdef CONFIG_IEEE80211_MODE_5GHZ
+uint8_t wise_wifi_freq5g_to_channel(int freq_mhz) {
+	if (freq_mhz >= 5180 && freq_mhz <= 5240) {
+		/* UNII-1 */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5260 && freq_mhz <= 5320) {
+		/* UNII-2 */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5500 && freq_mhz <= 5700) {
+		/* UNII-2e */
+		return (freq_mhz - 5000) / 5;
+	} else if (freq_mhz >= 5745 && freq_mhz <= 5825) {
+		/* UNII-3 */
+		return (freq_mhz - 5000) / 5;
+	} else {
+		return 0;
+	}
+}
+#endif
 
 /**
   * @brief     Get AP list found in last scan
@@ -1599,6 +1618,11 @@ wise_err_t wise_wifi_scan_get_ap_records(uint16_t ap_idx, uint16_t *number, wifi
 			record->primary = 14;
 		else if (bss->freq >= 2407 && bss->freq < 2484)
 			record->primary = (bss->freq - 2407) / 5;
+#ifdef CONFIG_IEEE80211_MODE_5GHZ
+		else {
+			record->primary = wise_wifi_freq5g_to_channel(bss->freq);
+		}
+#endif
 		record->second = WIFI_SECOND_CHAN_NONE;
 		record->rssi = bss->qual;
 		if ((bss->caps & IEEE80211_CAP_PRIVACY) == 0)

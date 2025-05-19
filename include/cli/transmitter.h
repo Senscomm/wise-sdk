@@ -20,6 +20,10 @@
 #include <sweeper.h>
 #include <transmitaction.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct transmitter {
 	int (*m_add_changeitem)(struct transmitter *this, const char *name, int start, int end, int step);
 	int (*m_configure)(struct transmitter *this, const char *cat, const char *item, void *val);
@@ -44,5 +48,9 @@ struct transmitter {
 
 struct transmitter *create_transmitter(struct transmitter *base);
 void destroy_transmitter(struct transmitter *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _TRANSMITTER_H */

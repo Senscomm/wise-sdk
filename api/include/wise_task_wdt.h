@@ -18,6 +18,10 @@
 #include "cmsis_os.h"
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * @brief Initialize task watchdog
  *
@@ -48,5 +52,9 @@ wise_err_t wise_task_wdt_delete(osThreadId_t task_id);
  *                running task to the task watchdog
  */
 wise_err_t wise_task_wdt_reset(osThreadId_t task_id);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //_WISE_TASK_WDT_H_

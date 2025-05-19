@@ -3,6 +3,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
 	DMA_STATUS_NONE = 0, 	 /* Spurious ? */
 	DMA_STATUS_COMPLETE = 1, /* Completion of a transfer list */
@@ -170,5 +174,9 @@ static __inline__ int dma_ch_get_trans_size(struct device *dma_dev, int dma_ch)
 
 	return dma_ops(dma_dev)->dma_ch_get_trans_size(dma_dev, dma_ch);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __DMA_H__ */

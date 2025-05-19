@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * GPIO pin property
  */
@@ -89,5 +93,9 @@ int scm_gpio_enable_interrupt(uint32_t pin, enum scm_gpio_int_type type, scm_gpi
  * @param[in] pin the pin number
  */
 int scm_gpio_disable_interrupt(uint32_t pin);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_GPIO_H__

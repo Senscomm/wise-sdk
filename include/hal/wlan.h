@@ -16,6 +16,10 @@
 #include <hal/types.h>
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define WLAN_DEV_F_DUAL_VIF_EN	0x1
 
 #define IF_SUPPORT_DUAL_VIF(_f) ((_f) & WLAN_DEV_F_DUAL_VIF_EN)
@@ -230,5 +234,9 @@ __ilm__ static inline int get_vap_idx(struct device *dev,
 }
 
 extern struct device *(*wlandev)(int inst);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* _WLAN_H_ */

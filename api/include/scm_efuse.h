@@ -15,6 +15,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SCM_EFUSE_ADDR_ROOT_KEY         0
 #define SCM_EFUSE_SIZE_ROOT_KEY         128
 
@@ -117,5 +121,9 @@ int scm_efuse_sync(void);
  *
  */
 int scm_efuse_load(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_EFUSE_H__

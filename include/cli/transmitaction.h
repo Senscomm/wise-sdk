@@ -17,6 +17,10 @@
 #include <u-boot/list.h>
 #include <action.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct tx_stats {
 	u64 ok;
 	u64 fail_reason[16];
@@ -50,5 +54,9 @@ struct transmitaction {
 
 struct transmitaction *create_transmitaction(struct transmitaction *base);
 void destroy_transmitaction(struct transmitaction *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _TRANSMITACTION_H */

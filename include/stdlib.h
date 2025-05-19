@@ -3,6 +3,10 @@
 
 #include_next <stdlib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef __USE_NATIVE_HEADER__
 
 int os_system(const char *);
@@ -85,5 +89,9 @@ double os_atof(const char *nptr);
 #define atof     os_atof
 
 #endif /* __USE_NATIVE_HEADER__ */
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -19,6 +19,9 @@
 
 #include "hal/pm.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
  * - Any lowpower state maintains WIFI connection.
@@ -140,5 +143,9 @@ int scm_pm_unregister_handler(scm_pm_notify callback);
  * @param[in] hib_max hibernation mode max count
  */
 int scm_pm_set_hib_max_count(uint32_t hib_max);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_PM_H__

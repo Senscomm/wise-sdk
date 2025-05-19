@@ -110,7 +110,11 @@ lib-target := $(obj)/lib.a
 endif
 
 ifneq ($(strip $(obj-y) $(obj-m) $(obj-) $(subdir-m) $(lib-target)),)
+ifeq ($(CONFIG_BUILD_ROM),y)
+builtin-target := $(obj)/built-in.o
+else
 builtin-target := $(obj)/$(subst /,-,$(obj)).a
+endif
 endif
 
 modorder-target := $(obj)/modules.order
@@ -449,8 +453,13 @@ cmd_link_a_target = \
 		      rm -f $@; \
 		      $(AR) cqT $@ $(filter $(obj-y), $^)
 
+ifeq ($(CONFIG_BUILD_ROM),y)
+$(builtin-target): $(obj-y) FORCE
+	$(call if_changed,link_o_target)
+else
 $(builtin-target): $(obj-y) FORCE
 	$(call if_changed,link_a_target)
+endif
 
 targets += $(builtin-target)
 endif # builtin-target

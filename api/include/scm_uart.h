@@ -18,6 +18,10 @@
 #include "hal/uart.h"
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SCM_UART_TRANSFER_MAX_LEN	CONFIG_CLI_UARTBUF_MAXLEN
 
 /**
@@ -177,5 +181,9 @@ int scm_uart_rx_async(enum scm_uart_idx idx, uint8_t *tx_buf, uint32_t tx_len,
  */
 
 int scm_uart_reset(enum scm_uart_idx idx);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_UART_H__

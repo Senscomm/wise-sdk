@@ -18,6 +18,10 @@
 #include <asm/io.h>
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define __iomem
 
 #define barrier() __asm__ __volatile__("": : :"memory")
@@ -56,5 +60,9 @@
 void memset_io(void __iomem *to, int c, size_t len);
 void memcpy_toio(void __iomem *to, const void *from, size_t len);
 void memcpy_fromio(void * to, void __iomem *from, size_t len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_IO_H__ */

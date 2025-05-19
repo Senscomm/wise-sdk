@@ -16,6 +16,10 @@
 #include <u-boot/list.h>
 #include <hal/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * struct console: a minimal console structure
  */
@@ -53,5 +57,9 @@ void print_hex_dump(const char *prefix_str, int prefix_type,
 
 #define print_hex_dump_bytes(prefix_str, prefix_type, buf, len) \
 	print_hex_dump(prefix_str, prefix_type, 16, 1, buf, len, false)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -15,6 +15,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -174,5 +178,9 @@ static __inline__ int uart_get_rx_len(struct device *dev)
 
 	return uart_ops(dev)->get_rx_len(dev);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__UART_H__

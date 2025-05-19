@@ -17,6 +17,10 @@
 #include <hal/device.h>
 #include <hal/clk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -159,5 +163,9 @@ static __inline__ int wdt_expire_now(struct device *wdt)
 		return wdt_ops(wdt)->start(wdt, 1);
 	}
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* _WDT_H_ */

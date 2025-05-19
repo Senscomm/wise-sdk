@@ -16,9 +16,17 @@
 #include <u-boot/list.h>
 #include <hal/types.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*!
  * \brief Initialize the coverage information/constructors. Need to call this at the start of main().
  */
 void gcov_init(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __WISE_GCOV_H__ */

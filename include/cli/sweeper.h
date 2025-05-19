@@ -21,6 +21,10 @@
 #include <assessor.h>
 #include <action.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct sweeper {
 	void (*m_set_changeset)(struct sweeper *this, struct changeset *cs);
 	void (*m_set_assessor)(struct sweeper *this, struct assessor *as);
@@ -40,5 +44,9 @@ struct sweeper {
 
 struct sweeper *create_sweeper(void);
 void destroy_sweeper(struct sweeper *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _SWEEPER_H */

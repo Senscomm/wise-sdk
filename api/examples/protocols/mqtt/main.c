@@ -706,17 +706,33 @@ static wise_err_t event_handler(void *priv, system_event_t * event)
     return WISE_OK;
 }
 
+#define MQTT_CLIENT_ID_SIZE 16
+char mqtt_client_id[MQTT_CLIENT_ID_SIZE];
+
 static void init_ctx(struct mqtt_demo_ctx *ctx)
 {
+    /* Calculate maximum prefix length to leave space for "-XX\0" (3 bytes) */
+    const uint8_t max_prefix_len = MQTT_CLIENT_ID_SIZE - 3;
+
     memset(&demo_ctx, 0, sizeof(demo_ctx));
-    ctx->client_id = CONFIG_MQTT_DEMO_CLIENT_ID;
+
+    strncpy(mqtt_client_id, CONFIG_MQTT_DEMO_CLIENT_ID, max_prefix_len);
+    mqtt_client_id[max_prefix_len] = '\0';
+
+    srand(time(NULL));
+    /* Append a random byte as two hex chars to ensure uniqueness */
+    snprintf(mqtt_client_id + strlen(mqtt_client_id),
+            MQTT_CLIENT_ID_SIZE - strlen(mqtt_client_id),
+            "-%02X", (uint8_t)(rand() & 0xFF));
+
+    ctx->client_id = mqtt_client_id;
     ctx->keep_alive_interval = CONFIG_MQTT_DEMO_KEEP_ALIVE_INTERVAL;
     ctx->connack_timeout = CONFIG_MQTT_DEMO_CONNACK_RECV_TIMEOUT_MS;
     ctx->msg_q_len = CONFIG_MQTT_DEMO_AGENT_COMMAND_QUEUE_LENGTH;
     ctx->wifi_conn_flag = (0x1 << 0); /* wise_event_loop -> mqtt_agent */
-    ctx->ip_got_flag = (0x1 << 1); /* wise_event_loop -> mqtt_agent */
+    ctx->ip_got_flag = (0x1 << 1);   /* wise_event_loop -> mqtt_agent */
 #ifdef CONFIG_LWIP_IPV6
-    ctx->ip6_got_flag = (0x1 << 2); /* wise_event_loop -> mqtt_agent */
+    ctx->ip6_got_flag = (0x1 << 2);  /* wise_event_loop -> mqtt_agent */
 #endif
     ctx->cmd_done_flag = (0x1 << 0); /* mqtt_agent -> init */
     ctx->cli_tid = osThreadGetId();

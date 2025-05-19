@@ -36,6 +36,7 @@
 #ifdef CONFIG_SUPPORT_WIFI_REPEATER
 #include "repeater/wifi_repeater.h"
 #endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -26,6 +26,10 @@
 #include <assert.h>
 #include <strings.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef CHAR_BIT
 #define CHAR_BIT 8
 #endif
@@ -170,6 +174,9 @@ static inline void clear_bit(unsigned int nr, volatile unsigned long *p)
 	*p &= ~BIT_MASK(nr);
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 #include <soc.h>
 

@@ -116,7 +116,7 @@ enum spi_transfer_mode {
 
 static const char *g_pins[] = { "cs", "clk", "mosi", "miso", "wp", "hold"};
 static struct pinctrl_pin_map *g_pmap[6];
-#if defined(CONFIG_SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE) && defined(CONFIG_SOC_SCM2010)
+#if defined(CONFIG_SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE) && (defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118))
 /* XXX: this is a work-around to support a scenario where
  *      scm1612 is connected to a SPI master alongside with
  *      other SPI slaves, i.e., 1:N master-slave configuration.
@@ -220,7 +220,7 @@ __ilm__
 #endif
 static void atcspi_acquire_bus(struct device *dev)
 {
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     struct spi_driver_data *priv = dev->driver_data;
     uint32_t v __maybe_unused;
 
@@ -237,7 +237,7 @@ __ilm__
 #endif
 static void atcspi_release_bus(struct device *dev)
 {
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
     struct spi_driver_data *priv = dev->driver_data;
 
     /*
@@ -1352,7 +1352,7 @@ static int atcspi_probe(struct device *dev)
             printk("failed to claim pin#%d as gpio\n", pmap->pin);
             goto free_pin;
         }
-#if defined(CONFIG_SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE) && defined(CONFIG_SOC_SCM2010)
+#if defined(CONFIG_SPI_SUPPORT_MULTI_SLAVES_AS_A_SLAVE) && (defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118))
         if (!strcmp(g_pins[i], "miso")) {
             uint32_t mode_offset, mode_mask;
 
@@ -1512,7 +1512,7 @@ static declare_driver(spi) = {
     .ops 		= &spi_ops,
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #if !defined(CONFIG_USE_SPI1) && !defined(CONFIG_USE_SPI2)
 #if defined(CONFIG_USE_SPI0) && defined(CONFIG_SPI_FLASH)
 #error SPI driver requires SPI devices. Select SPI devices or remove the driver

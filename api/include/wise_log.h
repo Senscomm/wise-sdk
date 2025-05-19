@@ -123,5 +123,4 @@ void wise_log_write(wise_log_level_t level, const char* tag, const char* format,
 }
 #endif
 
-
 #endif /* __WISE_LOG_H__ */

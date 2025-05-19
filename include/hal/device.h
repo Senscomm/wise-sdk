@@ -18,6 +18,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEVICE_MAX_BASE		4
 #define DEVICE_MAX_IRQS		4
 #define DEVICE_MAX_PIOS		4
@@ -106,5 +110,9 @@ int driver_init();
 int driver_deinit(void);
 int pm_suspend_device(u32 *);
 void pm_resume_device(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

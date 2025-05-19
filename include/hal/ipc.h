@@ -18,6 +18,10 @@
 #include <hal/sw-irq.h>
 #include <freebsd/errors.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define IPC_GET_MODULE(f)           ((f & 0x000000f0) >> 4)
 #define IPC_GET_WLAN(f)       ((f & 0x00000400) >> 10)
 #define IPC_SET_WLAN(f, t)  do {\
@@ -259,5 +263,9 @@ static __inline__ int ipc_sync(struct device *dev)
 
 	return ipc_ops(dev)->sync(dev);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

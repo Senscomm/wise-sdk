@@ -1208,18 +1208,15 @@ void scm2020_phy_vht_mu_group(struct sc_softc *sc,
 void scm2020_phy_vht_gid_paid_filter(struct sc_softc *sc,
 		int vif, bool enable, u16 aid, u8* addr);
 #endif
-#ifdef CONFIG_SUPPORT_HE
-extern void (*scm2020_phy_he_bss_color_filter)(struct sc_softc *sc,
-		int vif, bool enable, u8 bss_color);
-extern void (*scm2020_phy_he_dir_filter)(struct sc_softc *sc,
-		int vif, u8 dir);
-extern void (*scm2020_phy_he_sta_id_filter)(struct sc_softc *sc,
-		int vif, u16 aid, u8 bssidx);
-#endif
+
 extern void (*scm2020_phy_auto_mode)(struct sc_softc *sc);
 extern void (*scm2020_phy_tone)(struct sc_softc *sc, u8 tone);
 extern void (*scm2020_phy_multi)(struct sc_softc *sc, u8 tone);
+#if defined(CONFIG_WLAN_HW_TL7118)
+extern void (*scm2020_phy_dump)(struct sc_softc *sc, u32 loop, u32 trig, u8 dec);
+#else
 extern void (*scm2020_phy_dump)(struct sc_softc *sc, u32 loop);
+#endif
 extern void (*scm2020_phy_dump2)(struct sc_softc *sc,
 		u32 lang, u8 iter, u8 trig, u8 mode, u8 deci);
 extern void (*scm2020_phy_tx_mode)(struct sc_softc *sc);
@@ -1246,7 +1243,7 @@ u32 cturn_cal(struct sc_softc *sc);
 /**
  * PM
  */
-#ifdef CONFIG_WLAN_HW_SCM2010
+#if defined(CONFIG_WLAN_HW_SCM2010) || defined(CONFIG_WLAN_HW_TL7118)
 #define scm2020_pm_stay()   pm_stay(PM_DEVICE_WIFI);
 #define scm2020_pm_relax()  pm_relax(PM_DEVICE_WIFI);
 #else
@@ -1311,11 +1308,39 @@ extern void	(*scm2020_scan_end)(struct ieee80211com *ic, struct ieee80211vap *va
 extern void	(*scm2020_scan_set_mandatory_hwrates)(struct ieee80211com *ic,
 			struct ieee80211vap *vap, struct ieee80211_channel *chan);
 extern void	(*scm2020_set_channel)(struct ieee80211com *ic);
-extern int 	(*scm2020_set_sta_aid)(struct ieee80211_node *ni, bool add);
-extern int 	(*scm2020_update_bss_color)(struct ieee80211_node *ni, bool reinit);
-extern int 	(*scm2020_update_muedca)(struct ieee80211_node *ni);
-extern int 	(*scm2020_update_uora)(struct ieee80211_node *ni, bool reinit);
-extern int 	(*scm2020_update_sr)(struct ieee80211_node *ni);
+
+#ifdef CONFIG_SOC_SCM2010
+extern void (*scm2020_mu_edca_timeout)(void *arg);
+extern int (*scm2020_update_bss_color)(struct ieee80211_node *ni, bool reinit);
+extern int (*scm2020_update_muedca)(struct ieee80211_node *ni);
+extern int (*scm2020_update_uora)(struct ieee80211_node *ni, bool reinit);
+extern int (*scm2020_update_sr)(struct ieee80211_node *ni);
+extern int (*scm2020_set_sta_aid)(struct ieee80211_node *ni, bool add);
+#ifdef CONFIG_SUPPORT_HE
+extern void (*scm2020_phy_he_bss_color_filter)(struct sc_softc *sc, int vif, bool enable, u8 bss_color);
+extern void (*scm2020_phy_he_dir_filter)(struct sc_softc *sc, int vif, u8 dir);
+extern void (*scm2020_phy_he_sta_id_filter)(struct sc_softc *sc, int vif, u16 aid, u8 bssidx);
+#endif
+#elif CONFIG_WLAN_HW_TL7118
+void	scm2020_mu_edca_timeout(void *arg);
+int scm2020_update_bss_color(struct ieee80211_node *ni, bool reinit);
+int scm2020_update_muedca(struct ieee80211_node *ni);
+int scm2020_update_uora(struct ieee80211_node *ni, bool reinit);
+int scm2020_update_sr(struct ieee80211_node *ni);
+int scm2020_set_sta_aid(struct ieee80211_node *ni, bool add);
+#ifdef CONFIG_SUPPORT_HE
+void scm2020_phy_he_bss_color_filter(struct sc_softc *sc,
+		int vif, bool enable, u8 bss_color);
+void scm2020_phy_he_dir_filter(struct sc_softc *sc,
+		int vif, u8 dir);
+void scm2020_phy_he_sta_id_filter(struct sc_softc *sc,
+		int vif, u16 aid, u8 bssidx);
+#endif
+#endif
+
+
+
+
 extern void	(*scm2020_set_twt_timer)(struct ieee80211com *ic, struct ieee80211_node *ni,
 			u8 timertype, u32 value, bool disable_timer);
 extern void	(*scm2020_hmac_int_mask)(struct sc_softc *sc, bool on);
@@ -1348,7 +1373,7 @@ extern void	(*scm2020_set_bssid)(struct device *dev, u32 vif,
 extern void	(*scm2020_set_bssid_mask)(struct device *dev, u32 vif, u8 bssid_indicator);
 extern void	(*scm2020_config_rx_filter)(struct ieee80211vap *vap,
 			scm2020_reg_mac_en mac_enable, scm2020_reg_bss_en bss_enable, bool bfe_en);
-extern void	(*scm2020_mu_edca_timeout)(void *arg);
+
 extern void	(*scm2020_set_tsf)(struct ieee80211_node *ni,
 			struct device *dev, struct ieee80211vap *vap, int vif,
 			const struct ieee80211_rx_stats *rxs);

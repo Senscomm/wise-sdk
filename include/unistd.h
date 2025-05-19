@@ -28,6 +28,10 @@
 
 #include <sys/stat.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 extern int      (*os_open)  (const char *pathname, int flags, ...);
 extern int      (*os_creat) (const char *pathname, mode_t mode);
 extern int      (*os_close) (int fd);
@@ -60,6 +64,10 @@ extern int      (*os_select)(int nfds, fd_set * readfds, fd_set * writefds,
 #define STDIN_FILENO  0
 #define STDOUT_FILENO 1
 #define STDERR_FILENO 2
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __USE_NATIVE_HEADER__ */
 

@@ -17,6 +17,10 @@
 #include <u-boot/list.h>
 #include <changeset.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct assessor {
 	void (*m_exclude)(struct assessor *this, struct changeset *cs);
 	bool (*m_assess)(struct assessor *this, struct changeset *cs);
@@ -26,5 +30,9 @@ struct assessor {
 
 struct assessor *create_assessor(void);
 void destroy_assessor(struct assessor *this);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _ASSESSOR_H */

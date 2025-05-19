@@ -17,6 +17,10 @@
 
 #include "wise_err.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /**
  * I2C device index
  */
@@ -230,5 +234,9 @@ int scm_i2c_slave_tx(enum scm_i2c_idx idx, uint8_t *tx_buf, uint32_t tx_len);
  * @param[in] rx_len length of the buffer
  */
 int scm_i2c_slave_rx(enum scm_i2c_idx idx, uint8_t *rx_buf, uint32_t rx_len);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__SCM_I2C_H__

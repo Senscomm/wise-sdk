@@ -16,6 +16,10 @@
 #include <hal/types.h>
 #include <u-boot/list.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct changeitem {
 	struct list_head list;
 	struct list_head *head;
@@ -38,4 +42,9 @@ struct changeitem {
 struct changeitem *create_changeitem(const char *name,
 		int start, int end, int step);
 void destroy_changeitem(struct changeitem *this);
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif /* _CHANGEITEM_H */

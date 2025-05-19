@@ -13,6 +13,14 @@
 #ifndef __MEM_H__
 #define __MEM_H__
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void hexdump(const void *ptr, size_t sz);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

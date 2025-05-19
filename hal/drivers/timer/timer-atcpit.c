@@ -605,7 +605,7 @@ static declare_driver(timer) = {
 	.ops = &atcpit_timer_ops,
 };
 
-#ifdef CONFIG_SOC_SCM2010
+#if defined(CONFIG_SOC_SCM2010) || defined(CONFIG_SOC_TL7118)
 #if !defined(CONFIG_USE_TIMER0) && !defined(CONFIG_USE_TIMER1)
 #error Timer driver requires timer devices. Select Timer devices or remove the driver
 #endif

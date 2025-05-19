@@ -17,6 +17,10 @@
 #include <hal/device.h>
 #include <hal/clk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * Generic RF interface.
  */
@@ -135,4 +139,9 @@ static __inline__ int rf_get_cal_data(struct device *dev, u8 bd_no, struct rf_ca
 	return rf_get_ops(dev)->get_cal_data(dev, bd_no, data);
 
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif  /* _RF_H_ */

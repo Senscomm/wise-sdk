@@ -4,6 +4,10 @@
 /* Modified for WISE */
 #include <hal/compiler.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #if 0
 #include <linux/stddef.h>
 #include <linux/poison.h>
@@ -697,5 +701,9 @@ static inline void hlist_add_after(struct hlist_node *n,
 	     pos && ({ n = pos->next; 1; }) &&				 \
 		({ tpos = hlist_entry(pos, typeof(*tpos), member); 1;}); \
 	     pos = n)
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

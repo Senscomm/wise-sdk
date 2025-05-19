@@ -15,6 +15,10 @@
 
 #include <hal/device.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /*
  * High-level device driver
  */
@@ -95,5 +99,9 @@ static __inline__ int adc_set_cb(struct device *dev, adc_cb cb, void *ctx)
 
 	return adc_ops(dev)->set_cb(dev, cb, ctx);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //__ADC_H__
