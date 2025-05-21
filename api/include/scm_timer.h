@@ -76,8 +76,11 @@ struct scm_timer_cfg_freerun {
  * TIMER parameter for SCM_TIMER_MODE_PWM
  */
 struct scm_timer_cfg_pwm {
-	uint16_t high; /* usec, up to ~1638 usec (UINT16_MAX / 40MHz) */
-	uint16_t low;  /* usec, up to ~1638 usec (UINT16_MAX / 40MHz) */
+    /* XXX: duty of 0 or 100 can't be achieved by configuring high, low.
+     *      Use park instead.
+     */
+	uint16_t high; /* usec, valid range: [1 - 1638] usec (1638 = UINT16_MAX / 40MHz) */
+	uint16_t low;  /* usec, valid range: [1 - 1638] usec (1638 = UINT16_MAX / 40MHz) */
 	uint8_t park;  /* level of PWM signal when the timer is stopped */
 };
 
