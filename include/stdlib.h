@@ -11,7 +11,7 @@ extern "C" {
 
 int os_system(const char *);
 
-#define system os_system
+#define system(cmd) os_system(cmd)
 
 #ifdef CONFIG_MEM_HEAP_DEBUG
 
