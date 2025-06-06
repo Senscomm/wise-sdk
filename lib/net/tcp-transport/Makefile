@@ -5,7 +5,7 @@ ccflags-y += -I$(srctree)/lib/net/esp-tls/esp-tls-crypto
 ccflags-y += -I$(srctree)/api/include
 ccflags-y += -I$(srctree)/lib/lwip/src/include
 ccflags-y += -I$(srctree)/lib/lwip/ports/freertos/include
-ccflags-y += -I$(srctree)/lib/mbedtls-2.16.2/include
+ccflags-y += -I$(srctree)/lib/mbedtls-2.28.10/include
 ccflags-y += -I$(src)/include
 ccflags-y += -I$(src)/private_include
 

@@ -13,7 +13,8 @@
 #ifndef __WISE_UIO_H__
 #define __WISE_UIO_H__
 
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /*def __USE_NATIVE_HEADER__*/
 #include_next <sys/uio.h>
 #else
 struct iovec {

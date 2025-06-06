@@ -53,6 +53,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <hal/kernel.h>
 #include <hal/device.h>
 #include <hal/console.h>
+#include <hal/timer.h>
 #include <hal/serial.h>         /* FIXME: ugly */
 #include <vfs.h>
 
@@ -597,4 +598,10 @@ int os_vasprintf(char **ptr, const char *fmt, va_list ap)
 	*ptr = buf;
 
 	return size;
+}
+
+int usleep (unsigned long  __useconds)
+{
+    udelay(__useconds);
+    return 0;
 }

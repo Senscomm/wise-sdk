@@ -5,7 +5,8 @@
 #ifndef _WISE_NET_IF_H
 #define _WISE_NET_IF_H
 
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /* def __USE_NATIVE_HEADER__ */
 
 #include_next <net/if.h>
 
@@ -20,6 +21,10 @@ extern "C" {
 
 #ifndef IFNAMSIZ
 #define IFNAMSIZ 	16
+#endif
+
+#ifndef IF_NAMESIZE
+#define IF_NAMESIZE 	IFNAMSIZ
 #endif
 
 /* this macro shows whether if statistics located in if_data

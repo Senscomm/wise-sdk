@@ -16,15 +16,15 @@
 #include <stddef.h>
 #include <stdarg.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 #ifdef __USE_NATIVE_HEADER__
 
 #include_next <stdio.h>
 
 #else                           /* __USE_NATIVE_HEADER__ */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #ifdef CONFIG_NDS32
 #include <sys/reent.h>
@@ -156,8 +156,6 @@ int os_vasprintf(char **ptr, const char *fmt, va_list ap);
 #define vasprintf	os_vasprintf
 #endif
 
-#endif                          /* __USE_NATIVE_HEADER__ */
-
 int _getchar_timeout(unsigned timeout);
 extern int (*getchar_timeout)(unsigned timeout);
 
@@ -167,5 +165,7 @@ int kvprintf(char const *fmt, void (*func)(int, void *), void *arg,
 #ifdef __cplusplus
 }
 #endif
+
+#endif                          /* __USE_NATIVE_HEADER__ */
 
 #endif

@@ -14,13 +14,13 @@
 
 #include_next <errno.h>
 
+#ifdef __USE_NATIVE_HEADER__
+
+#else
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#if defined(__USE_NATIVE_HEADER__)
-
-#else
 
 #if 0
 #define  EPERM            1  /* Operation not permitted */
@@ -161,10 +161,11 @@ extern int FreeRTOS_errno;
 
 
 #endif
-#endif /*  __USE_NATIVE_HEADER__ */
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /*  __USE_NATIVE_HEADER__ */
 
 #endif

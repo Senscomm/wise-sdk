@@ -59,7 +59,8 @@
 #ifndef _WISE_NETDB_H_
 #define _WISE_NETDB_H_
 
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /* def __USE_NATIVE_HEADER__ */
 
 #include_next <netdb.h>
 

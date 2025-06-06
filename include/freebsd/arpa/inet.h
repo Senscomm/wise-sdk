@@ -60,7 +60,8 @@
 #ifndef _WISE_ARPA_INET_H_
 #define	_WISE_ARPA_INET_H_
 
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /* def __USE_NATIVE_HEADER__ */
 
 #include_next <arpa/inet.h>
 
@@ -167,6 +168,7 @@ in_addr_t	 os_inet_addr(const char *cp);
 #define inet_addr		os_inet_addr
 
 #if CONFIG_LWIP_IPV6
+struct in6_addr;
 char *os_inet6_ntoa(struct in6_addr in);
 int os_inet6_aton(const char *cp, struct in6_addr *inp);
 

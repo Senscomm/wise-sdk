@@ -14,7 +14,8 @@
 
 #include_next <sys/time.h>
 
-#ifndef __USE_NATIVE_HEADER__
+/* XXX: must use what the platform provides. */
+#if 1 /* ndef __USE_NATIVE_HEADER__ */
 
 int _os_gettimeofday(struct timeval *tv, struct timezone *tz);
 

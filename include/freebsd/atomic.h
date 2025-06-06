@@ -244,15 +244,15 @@ atomic_xchg(atomic_t *v, int i)
 }
 
 static inline int
-atomic_cmpxchg(atomic_t *v, int old, int new)
+atomic_cmpxchg(atomic_t *v, int _old, int _new)
 {
-	int ret = old;
+	int ret = _old;
 
 	for (;;) {
-		if (atomic_cmpset_int(&v->counter, old, new))
+		if (atomic_cmpset_int(&v->counter, _old, _new))
 			break;
 		ret = READ_ONCE(v->counter);
-		if (ret != old)
+		if (ret != _old)
 			break;
 	}
 	return (ret);

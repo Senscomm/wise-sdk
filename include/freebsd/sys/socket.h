@@ -31,7 +31,8 @@
  *	@(#)socket.h	8.4 (Berkeley) 2/21/94
  * $FreeBSD$
  */
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /*def __USE_NATIVE_HEADER__*/
 
 #include_next <sys/socket.h>
 
@@ -374,6 +375,7 @@ struct sockproto {
 #endif
 
 #include <sys/_sockaddr_storage.h>
+#include <sys/uio.h>
 
 #if __BSD_VISIBLE
 /*
@@ -516,6 +518,17 @@ struct cmsghdr {
 	int		cmsg_type;		/* protocol-specific type */
 /* followed by	u_char  cmsg_data[]; */
 };
+
+/* cmsg header/data alignment. NOTE: we align to native word size (double word
+size on 16-bit arch) so structures are not placed at an unaligned address.
+16-bit arch needs double word to ensure 32-bit alignment because socklen_t
+could be 32 bits. If we ever have cmsg data with a 64-bit variable, alignment
+will need to increase long long */
+#define ALIGN_H(size) (((size) + sizeof(long) - 1U) & ~(sizeof(long)-1U))
+#define ALIGN_D(size) ALIGN_H(size)
+#ifndef _ALIGN
+#define _ALIGN(size) ALIGN_D(size)
+#endif
 
 #if __BSD_VISIBLE
 /*
@@ -691,6 +704,10 @@ struct mmsghdr {
 
 #include <sys/cdefs.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int	os_accept(int, struct sockaddr * __restrict, socklen_t * __restrict);
 int	os_bind(int, const struct sockaddr *, socklen_t);
 int	os_connect(int, const struct sockaddr *, socklen_t);
@@ -712,25 +729,84 @@ ssize_t	os_sendmsg(int, const struct msghdr *, int);
 int	os_setsockopt(int, int, int, const void *, socklen_t);
 int	os_shutdown(int, int);
 
-extern int	(*os_socket)(int, int, int);
+extern int (*os_socket)(int, int, int);
+extern int (*os_close)(int fd);
 
-#define accept(s,addr,addrlen)                    os_accept(s,addr,addrlen)
-#define bind(s,name,namelen)                      os_bind(s,name,namelen)
-#define shutdown(s,how)                           os_shutdown(s,how)
-#define getpeername(s,name,namelen)               os_getpeername(s,name,namelen)
-#define getsockname(s,name,namelen)               os_getsockname(s,name,namelen)
-#define setsockopt(s,level,optname,opval,optlen)  os_setsockopt(s,level,optname,opval,optlen)
-#define getsockopt(s,level,optname,opval,optlen)  os_getsockopt(s,level,optname,opval,optlen)
-#define closesocket(s)                            os_close(s)
-#define connect(s,name,namelen)                   os_connect(s,name,namelen)
-#define listen(s,backlog)                         os_listen(s,backlog)
-#define recv(s,mem,len,flags)                     os_recv(s,mem,len,flags)
-#define recvmsg(s,message,flags)                  os_recvmsg(s,message,flags)
-#define recvfrom(s,mem,len,flags,from,fromlen)    os_recvfrom(s,mem,len,flags,from,fromlen)
-#define send(s,dataptr,size,flags)                os_send(s,dataptr,size,flags)
-#define sendmsg(s,message,flags)                  os_sendmsg(s,message,flags)
-#define sendto(s,dataptr,size,flags,to,token)     os_sendto(s,dataptr,size,flags,to,token)
-#define socket(domain,type,protocol)              os_socket(domain,type,protocol)
+static inline int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    return os_accept(sockfd, addr, addrlen);
+}
+static inline int bind(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    return os_bind(sockfd, addr, addrlen);
+}
+static inline int shutdown(int sockfd, int how)
+{
+    return os_shutdown(sockfd, how);
+}
+static inline int getpeername (int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    return os_getpeername (sockfd, addr, addrlen);
+}
+static inline int getsockname (int sockfd, struct sockaddr *addr, socklen_t *addrlen)
+{
+    return os_getsockname (sockfd, addr, addrlen);
+}
+static inline int setsockopt(int sockfd, int level, int optname, const void *optval,
+		  socklen_t optlen)
+{
+    return os_setsockopt(sockfd, level, optname, optval, optlen);
+}
+static inline int getsockopt(int sockfd, int level, int optname, void *optval,
+        socklen_t *optlen)
+{
+    return os_getsockopt(sockfd, level, optname, optval, optlen);
+}
+static inline int closesocket(int fd)
+{
+    return os_close(fd);
+}
+static inline int connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
+{
+    return os_connect(sockfd, addr, addrlen);
+}
+static inline int listen(int sockfd, int backlog)
+{
+    return os_listen(sockfd, backlog);
+}
+static inline ssize_t recv(int sockfd, void *buf, size_t len, int flags)
+{
+    return os_recv(sockfd, buf, len, flags);
+}
+static inline ssize_t recvmsg(int sockfd, struct msghdr *msg, int flags)
+{
+    return os_recvmsg(sockfd, msg, flags);
+}
+static inline ssize_t recvfrom(int sockfd, void *buf, size_t len, int flags,
+		    struct sockaddr *from, socklen_t *addrlen)
+{
+    return os_recvfrom(sockfd, buf, len, flags, from, addrlen);
+}
+static inline ssize_t send(int sockfd, const void *buf, size_t size, int flags)
+{
+    return os_send(sockfd, buf, size, flags);
+}
+static inline ssize_t sendmsg(int sockfd, const struct msghdr *msg, int flags)
+{
+    return os_sendmsg(sockfd, msg, flags);
+}
+static inline ssize_t sendto(int sockfd, const void *buf, size_t size, int flags,
+		  const struct sockaddr *to, socklen_t tolen)
+{
+    return os_sendto(sockfd, buf, size, flags, to, tolen);
+}
+static inline int socket(int domain, int type, int proto)
+{
+    return os_socket(domain, type, proto);
+}
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* !_KERNEL */
 

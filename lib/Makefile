@@ -18,7 +18,7 @@ libs-y += lib/ifconfig/
 libs-y += lib/libifconfig/
 libs-y += lib/cjson/
 libs-$(CONFIG_WPA_SUPPLICANT) += lib/hostap/wpa_supplicant/
-libs-$(CONFIG_MBEDTLS) += lib/mbedtls-2.16.2/library/
+libs-$(CONFIG_MBEDTLS) += lib/mbedtls-2.28.10/library/
 libs-$(CONFIG_TLS_SUPPORT) += lib/tls-transport/
 
 ifneq ($(CONFIG_LINK_TO_ROM),y)

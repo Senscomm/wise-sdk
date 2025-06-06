@@ -5,7 +5,8 @@
 #ifndef _FBSD_COMPAT_SYS_SOCKIO_H_
 #define _FBSD_COMPAT_SYS_SOCKIO_H_
 
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /* def __USE_NATIVE_HEADER__ */
 
 #include <sys/sockio.h>
 
