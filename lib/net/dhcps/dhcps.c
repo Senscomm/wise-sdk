@@ -181,7 +181,11 @@ static bool is_ip_bound(struct dhcps *dhcps, ip_addr_t ip,
 	return false;
 }
 
+#ifndef __WISE__
 static void bind(struct dhcps *dhcps, struct dhcps_client *cl)
+#else /* Avoid name clash */
+static void _bind(struct dhcps *dhcps, struct dhcps_client *cl)
+#endif
 {
 	list_del(&cl->list); /* remove from offered */
 	list_add_tail(&cl->list, &dhcps->clist[BOUND]);
@@ -982,7 +986,11 @@ dhcps_recv(void *arg, struct udp_pcb *pcb, struct pbuf *p,
 					break;
 				}
 				ip_addr_copy(dhcps->your_ip, cl->ipaddr);
+#ifndef __WISE__
 				bind(dhcps, cl);
+#else
+				_bind(dhcps, cl);
+#endif
 			} else if (is_bound(dhcps, chwaddr, &cl) && cl != NULL) {
 				if (ip_addr_cmp(&cl->ipaddr, &dhcps->client_ip)) {
 					/*

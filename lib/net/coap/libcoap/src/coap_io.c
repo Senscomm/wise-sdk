@@ -74,7 +74,7 @@
 #  define GEN_IPV6_PKTINFO IPV6_RECVPKTINFO
 #elif defined(IPV6_PKTINFO)
 #  define GEN_IPV6_PKTINFO IPV6_PKTINFO
-#else
+#elif !defined(__WISE__)
 #  error "Need IPV6_PKTINFO or IPV6_RECVPKTINFO to request ancillary data from OS."
 #endif /* IPV6_RECVPKTINFO */
 #endif /* !(WITH_CONTIKI || RIOT_VERSION) */

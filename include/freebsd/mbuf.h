@@ -307,8 +307,8 @@ void				m_tag_delete_nonpersistent(struct mbuf*);
 __ilm__ static inline void
 m_tag_setup(struct m_tag* tagPointer, u_int32_t cookie, int type, int length)
 {
-	tagPointer->m_tag_id = type;
-	tagPointer->m_tag_len = length;
+	tagPointer->m_tag_id = (u_int16_t)type;
+	tagPointer->m_tag_len = (u_int16_t)length;
 	tagPointer->m_tag_cookie = cookie;
 }
 

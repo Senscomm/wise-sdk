@@ -13,10 +13,11 @@
 #ifndef __WISE_UNISTD_H__
 #define __WISE_UNISTD_H__
 
-#if defined(__USE_NATIVE_HEADER__)
+/* XXX: complete replacement */
+#if 0 /* def __USE_NATIVE_HEADER__*/
+
 #include_next <unistd.h>
 
-//#if !defined(__USE_NATIVE_HEADER__)
 #else
 
 #include <sys/types.h>
@@ -56,6 +57,8 @@ extern int      (*os_select)(int nfds, fd_set * readfds, fd_set * writefds,
 #define lseek(fd, offset, whence)           (*os_lseek)(fd, offset, whence)
 #define select(fd, rfds, wfds, exfds, tv)   (*os_select)(fd, rfds, wfds, exfds, tv)
 #define dup(fd)                             (*os_dup)(fd)
+
+extern int usleep (unsigned long  __useconds);
 
 #define SEEK_SET  0
 #define SEEK_CUR  1

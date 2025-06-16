@@ -27,6 +27,7 @@ autoconf*
 *.cfg
 *.map
 *.sym
+*Zone.Identifier
 kernel/FreeRTOS/core
 include/FreeRTOS
 include/config/

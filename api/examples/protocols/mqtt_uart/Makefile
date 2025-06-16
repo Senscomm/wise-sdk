@@ -9,7 +9,7 @@ ccflags-y += -I$(srctree)/lib/lwip/src/include
 ccflags-y += -I$(srctree)/lib/net/mqtt/coreMQTT/source/include
 ccflags-y += -I$(srctree)/lib/net/mqtt/coreMQTT/source/interface
 ccflags-y += -I$(srctree)/lib/tls-transport
-ccflags-y += -I$(srctree)/lib/mbedtls-2.16.2/include
+ccflags-y += -I$(srctree)/lib/mbedtls-2.28.10/include
 
 ccflags-y += -I$(srctree)/api/include
 

@@ -31,7 +31,8 @@
  *	@(#)in.h	8.3 (Berkeley) 1/3/94
  * $FreeBSD$
  */
-#ifdef __USE_NATIVE_HEADER__
+/* XXX: native header not available */
+#if 0 /* def __USE_NATIVE_HEADER__ */
 
 #include_next <netinet/in.h>
 
@@ -45,6 +46,7 @@
 #include <sys/_types.h>
 #include <machine/endian.h>
 #else
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #endif
 
@@ -427,6 +429,7 @@ struct sockaddr_in6 {
 	uint8_t 	sin6_len;
 	sa_family_t 	sin6_family;
 	in_port_t	sin6_port;
+    uint32_t    sin6_flowinfo; /* IPv6 flow information       */
 	struct in6_addr sin6_addr;
 	uint32_t 	sin6_scope_id;
 };
@@ -475,6 +478,12 @@ struct sockaddr_in6 {
 /* Options for use with `getsockopt' and `setsockopt' at the IPv6 level.
    The first word in the comment at the right is the data type used;
    "bool" means a boolean value stored in an `int'.  */
+
+/* XXX: define options that are actually available
+ *      not to confuse upper layers.
+ */
+#ifndef __WISE__
+
 #define IPV6_ADDRFORM		1
 #define IPV6_2292PKTINFO	2
 #define IPV6_2292HOPOPTS	3
@@ -541,6 +550,15 @@ struct sockaddr_in6 {
 #define IPV6_UNICAST_IF		76
 #define IPV6_RECVFRAGSIZE	77
 #define IPV6_FREEBIND		78
+#else /* __WISE__ */
+
+#define IPV6_CHECKSUM		7
+#define IPV6_MULTICAST_HOPS	18 /* definition only */
+#define IPV6_JOIN_GROUP		20
+#define IPV6_LEAVE_GROUP	21
+#define IPV6_V6ONLY		26
+
+#endif /* __WISE__ */
 
 /*
  * Options for controlling the firewall and dummynet.

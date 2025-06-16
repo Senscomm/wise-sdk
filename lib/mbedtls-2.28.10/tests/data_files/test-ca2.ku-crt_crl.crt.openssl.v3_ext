@@ -1,0 +1,3 @@
+basicConstraints = CA:true
+subjectKeyIdentifier=none
+keyUsage = keyCertSign, cRLSign

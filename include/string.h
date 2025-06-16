@@ -18,11 +18,11 @@
 
 #include_next <string.h>
 
+#ifndef __USE_NATIVE_HEADER__
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#ifndef __USE_NATIVE_HEADER__
 
 char *os_strndup2(const char *s, size_t n);
 char *os_strcasestr2(const char *str, const char *substr);
@@ -33,10 +33,11 @@ char *os_strcasestr2(const char *str, const char *substr);
 #undef strcasestr
 #define strcasestr os_strcasestr2
 
-#endif /* __USE_NATIVE_HEADER__ */
 
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* __USE_NATIVE_HEADER__ */
 
 #endif

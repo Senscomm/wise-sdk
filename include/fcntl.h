@@ -15,20 +15,25 @@
 
 #include_next <fcntl.h>
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC 0
+#endif
+
+/* XXX: always needed to build against wise */
+#ifdef __WISE__ /*ndef __USE_NATIVE_HEADER__*/
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#ifndef __USE_NATIVE_HEADER__
 
 extern int (*os_fcntl) (int fd, int cmd, ...);
 
 #define fcntl(fd, cmd, ...) os_fcntl(fd, cmd, ##__VA_ARGS__)
 
-#endif /* __USE_NATIVE_HEADER__ */
-
 #ifdef __cplusplus
 }
 #endif
+
+#endif /* __USE_NATIVE_HEADER__ */
 
 #endif /* __WISE_FCNTL_H__ */

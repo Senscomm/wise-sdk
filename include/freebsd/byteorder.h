@@ -133,7 +133,7 @@ be16dec(const void *pp)
 {
 	unsigned char const *p = (unsigned char const *)pp;
 
-	return ((p[0] << 8) | p[1]);
+	return (uint16_t)((p[0] << 8) | p[1]);
 }
 
 static __inline uint32_t
@@ -157,7 +157,7 @@ le16dec(const void *pp)
 {
 	unsigned char const *p = (unsigned char const *)pp;
 
-	return ((p[1] << 8) | p[0]);
+	return (uint16_t)((p[1] << 8) | p[0]);
 }
 
 static __inline uint32_t
@@ -181,8 +181,8 @@ be16enc(void *pp, uint16_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	p[0] = (u >> 8) & 0xff;
-	p[1] = u & 0xff;
+	p[0] = (unsigned char )((u >> 8) & 0xff);
+	p[1] = (unsigned char )(u & 0xff);
 }
 
 static __inline void
@@ -190,10 +190,10 @@ be32enc(void *pp, uint32_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	p[0] = (u >> 24) & 0xff;
-	p[1] = (u >> 16) & 0xff;
-	p[2] = (u >> 8) & 0xff;
-	p[3] = u & 0xff;
+	p[0] = (unsigned char)((u >> 24) & 0xff);
+	p[1] = (unsigned char)((u >> 16) & 0xff);
+	p[2] = (unsigned char)((u >> 8) & 0xff);
+	p[3] = (unsigned char)(u & 0xff);
 }
 
 static __inline void
@@ -201,8 +201,8 @@ be64enc(void *pp, uint64_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	be32enc(p, u >> 32);
-	be32enc(p + 4, u & 0xffffffff);
+	be32enc(p, (uint32_t)(u >> 32));
+	be32enc(p + 4, (uint32_t)(u & 0xffffffff));
 }
 
 static __inline void
@@ -210,8 +210,8 @@ le16enc(void *pp, uint16_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	p[0] = u & 0xff;
-	p[1] = (u >> 8) & 0xff;
+	p[0] = (unsigned char)(u & 0xff);
+	p[1] = (unsigned char)((u >> 8) & 0xff);
 }
 
 static __inline void
@@ -219,10 +219,10 @@ le32enc(void *pp, uint32_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	p[0] = u & 0xff;
-	p[1] = (u >> 8) & 0xff;
-	p[2] = (u >> 16) & 0xff;
-	p[3] = (u >> 24) & 0xff;
+	p[0] = (unsigned char)(u & 0xff);
+	p[1] = (unsigned char)((u >> 8) & 0xff);
+	p[2] = (unsigned char)((u >> 16) & 0xff);
+	p[3] = (unsigned char)((u >> 24) & 0xff);
 }
 
 static __inline void
@@ -230,8 +230,8 @@ le64enc(void *pp, uint64_t u)
 {
 	unsigned char *p = (unsigned char *)pp;
 
-	le32enc(p, u & 0xffffffff);
-	le32enc(p + 4, u >> 32);
+	le32enc(p, (uint32_t)(u & 0xffffffff));
+	le32enc(p + 4, (uint32_t)(u >> 32));
 }
 
 #ifdef CONFIG_SUPPORT_HE

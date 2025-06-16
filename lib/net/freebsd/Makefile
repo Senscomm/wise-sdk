@@ -15,4 +15,5 @@ obj-y += fbsd_ether.o
 obj-y += if.o
 obj-y += fbsd_if_media.o
 obj-y += rtsock.o
+obj-y += getifaddrs.o
 endif

@@ -14,7 +14,8 @@
 
 #include_next <sys/types.h>
 
-#ifndef __USE_NATIVE_H__
+/* XXX: always needed to build against wise */
+#ifdef __WISE__ /*ndef __USE_NATIVE_HEADER__*/
 
 #ifndef __BIT_TYPES_DEFINED__
 /* NDS32 does not defines the following types */
@@ -33,6 +34,6 @@ typedef __uint64_t u_int64_t;
 #define BIG_ENDIAN	__ORDER_BIG_ENDIAN__
 #endif
 
-#endif /* __USE_NATIVE_H__ */
+#endif /* __USE_NATIVE_HEADER__ */
 
 #endif /* __WISE_SYS_TYPES_H__ */

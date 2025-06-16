@@ -1,6 +1,6 @@
 ccflags-y += -I$(srctree)/lib/lwip/src/include
-ccflags-y += -I$(srctree)/lib/mbedtls-2.16.2/include
-ccflags-y += -I$(srctree)/lib/mbedtls-2.16.2/include/mbedtls
+ccflags-y += -I$(srctree)/lib/mbedtls-2.28.10/include
+ccflags-y += -I$(srctree)/lib/mbedtls-2.28.10/include/mbedtls
 ccflags-y += -I$(srctree)/include/freebsd
 
 ccflags-y += -I$(src)/port/include
@@ -43,4 +43,3 @@ obj-y += libcoap/src/oscore/oscore_context.o
 obj-y += libcoap/src/oscore/oscore_cose.o
 obj-y += libcoap/src/oscore/oscore_crypto.o
 endif
-
