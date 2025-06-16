@@ -1084,6 +1084,7 @@ void sntp_set_system_time(uint32_t sec, uint32_t us)
 
 #ifdef CONFIG_CMD_SNTP
 
+#include <hal/console.h>
 #include "cli.h"
 
 void cli_time_sync_callback(uint32_t sec, uint32_t us)

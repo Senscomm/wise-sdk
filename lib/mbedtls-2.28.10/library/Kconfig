@@ -55,6 +55,12 @@ config MBEDTLS_ECDSA_C
 	help
      Enable the elliptic curve DSA library.
 
+config MBEDTLS_HKDF_C
+	bool "MBEDTLS_HKDF_C"
+	default n
+	help
+     Enable the HKDF algorithm (RFC 5869)
+
 config MBEDTLS_PEM_PARSE_C
 	bool "MBEDTLS_PEM_PARSE_C"
 	default y

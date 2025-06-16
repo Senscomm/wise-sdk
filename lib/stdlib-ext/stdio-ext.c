@@ -605,3 +605,33 @@ int usleep (unsigned long  __useconds)
     udelay(__useconds);
     return 0;
 }
+
+int __wrap_sprintf(char *str, const char *format, ...)
+{
+    int ret;
+    va_list ap;
+
+    va_start(ap, format);
+    ret = vsprintf(str, format, ap);
+    if (str)
+        str[ret] = '\0';
+    va_end(ap);
+    return ret;
+}
+
+int __wrap_vprintf(const char *format, va_list ap)
+{
+    return os_vprintf(format, ap);
+}
+
+int __wrap_printf(const char *format, ...)
+{
+    int ret;
+    va_list ap;
+
+    va_start(ap, format);
+    ret = os_vprintf(format, ap);
+    va_end(ap);
+
+    return ret;
+}

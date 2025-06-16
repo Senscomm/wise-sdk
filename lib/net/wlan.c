@@ -23,6 +23,7 @@
 #include <hal/init.h>
 #include "hal/efuse.h"
 #include "hal/wlan.h"
+#include "hal/console.h"
 
 #include "if_media.h"
 #include <net80211/ieee80211_var.h>
