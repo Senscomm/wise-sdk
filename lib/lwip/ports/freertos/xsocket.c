@@ -210,7 +210,7 @@ static struct sock *sock_alloc(struct netconn *conn)
 		}
 	}
 
-	conn->private = (void *) sock;
+	conn->priv = (void *) sock;
 
 	file = &sock->file;
 	vfs_init_file(file);
@@ -1986,7 +1986,7 @@ void socket_callback(struct netconn *conn, enum netconn_evt event,
 
 	if (conn == NULL)
 		return;
-	if ((sock = conn->private) == NULL)
+	if ((sock = conn->priv) == NULL)
 		return;
 
 	/*

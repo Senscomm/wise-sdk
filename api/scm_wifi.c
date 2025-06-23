@@ -359,12 +359,21 @@ int scm_wifi_mode(wifi_mode_t mode, uint8_t wlan_if)
 		return WISE_FAIL;
 }
 
+int scm_wifi_get_mode(wifi_mode_t *mode, uint8_t wlan_if)
+{
+	return wise_wifi_get_mode(mode, wlan_if);
+}
+
 static bool g_sta_started;
 
 #define STA_IS_STARTED() g_sta_started
 #define STA_SET_STARTED(s) { \
 	g_sta_started = s; \
 }
+
+static wifi_sta_config_t saved_sta_config = {0};
+
+#define SAVED_WISE_STA_CFG() &saved_sta_config
 
 static int addr_precheck(const unsigned char *addr)
 {
@@ -810,6 +819,9 @@ int scm_wifi_sta_set_config(scm_wifi_assoc_request *req, void *fast_config)
 				(wifi_fast_connect_t *) fast_config) !=
 		WISE_OK)
 		return WISE_FAIL;
+
+	/* save the station config if all settings are OK */
+	memcpy(SAVED_WISE_STA_CFG(), &sta, sizeof(wifi_sta_config_t));
 
 	return WISE_OK;
 
@@ -1593,6 +1605,25 @@ int scm_wifi_sap_deauth_sta (const char *txtaddr, unsigned char addr_len)
 }
 
 #endif
+
+int scm_wifi_get_config(uint8_t wlan_if, wifi_config_t *cfg)
+{
+	if (cfg == NULL) {
+		SCM_ERR_LOG(SCM_API_TAG,"Invalid Input\n");
+		return WISE_FAIL;
+	}
+
+	if (wlan_if == WIFI_IF_STA)
+		memcpy(cfg, SAVED_WISE_STA_CFG(), sizeof(wifi_sta_config_t));
+#ifdef CONFIG_API_SOFTAP
+	else if (wlan_if == WIFI_IF_AP)
+		memcpy(cfg, SAVED_WISE_AP_CFG(), sizeof(wifi_ap_config_t));
+#endif
+	else
+		return WISE_FAIL;
+
+	return WISE_OK;
+}
 
 int scm_wifi_set_options(scm_wifi_set_option opt, void *arg)
 {
