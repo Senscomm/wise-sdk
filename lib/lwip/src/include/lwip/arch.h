@@ -90,7 +90,6 @@
 #define LWIP_PLATFORM_DIAGF(x) do {printf x;} while(0)
 #include <stdio.h>
 #include <stdlib.h>
-extern int (*printk)(const char *const fmt, ...);
 #endif
 
 /** Platform specific assertion handling.<br>

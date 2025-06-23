@@ -563,6 +563,10 @@
 
 #if !NO_SYS
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* XXX: these are required even when LWIP_TCPIP_CORE_LOCKING is not defined.
  */
 void sys_check_core_locking(void);
@@ -606,7 +610,12 @@ void sys_unlock_tcpip_core(void);
 #define LOCK_TCPIP_CORE()
 #define UNLOCK_TCPIP_CORE()
 #endif /* LWIP_TCPIP_CORE_LOCKING */
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif /* NO_SYS */
 
 #if defined(__WISE__)
 

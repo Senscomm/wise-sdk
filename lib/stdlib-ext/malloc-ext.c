@@ -88,6 +88,26 @@ void os_dma_free_dbg(void *ptr)
 }
 #endif
 
+void *__wrap_malloc(size_t sz)
+{
+    return os_malloc_dbg(sz, __func__);
+}
+
+void __wrap_free(void *ptr)
+{
+    os_free(ptr);
+}
+
+void *__wrap_realloc(void *ptr, size_t sz)
+{
+    return os_realloc_dbg(ptr, sz, __func__);
+}
+
+void *__wrap_calloc(size_t n, size_t sz)
+{
+    return os_calloc_dbg(n, sz, __func__);
+}
+
 #else
 
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
@@ -103,5 +123,30 @@ void os_dma_free(void *ptr)
 	vPortFree(ptr);
 }
 #endif
+
+extern void *os_malloc(size_t);
+extern void os_free(void *);
+extern void *os_calloc(size_t, size_t);
+extern void *os_realloc(void *, size_t);
+
+void *__wrap_malloc(size_t sz)
+{
+    return os_malloc(sz);
+}
+
+void __wrap_free(void *ptr)
+{
+    os_free(ptr);
+}
+
+void *__wrap_realloc(void *ptr, size_t sz)
+{
+    return os_realloc(ptr, sz);
+}
+
+void *__wrap_calloc(size_t n, size_t sz)
+{
+    return os_calloc(n, sz);
+}
 
 #endif /* CONFIG_MEM_HEAP_DEBUG */

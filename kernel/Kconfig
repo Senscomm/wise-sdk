@@ -80,7 +80,23 @@ endmenu
 
 endif # SUPPORT_GCOV
 
+config SUPPORT_CPP
+	bool "Support C++"
+    default n
+
+if SUPPORT_CPP
+
+menu "C++ support"
+
+config CPP_STATIC_INIT
+	bool "Run C++ static constructors"
+    default n
+
 endmenu
+
+endif # SUPPORT_CPP
+
+endmenu # General setup
 
 menu "Power management"
 

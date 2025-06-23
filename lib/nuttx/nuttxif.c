@@ -16,6 +16,7 @@
 #ifdef CONFIG_IPC_DMA
 #include <hal/dma.h>
 #endif
+#include <hal/console.h>
 #include "compat_param.h"
 #include "systm.h"
 #include "kernel.h"

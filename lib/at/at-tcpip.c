@@ -18,6 +18,7 @@
 #include <ctype.h>
 #include <hal/kernel.h>
 #include <hal/timer.h>
+#include <hal/console.h>
 #include <sys/socket.h>
 #include <sys/sockio.h>
 #include <netinet/in.h>
