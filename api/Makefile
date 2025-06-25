@@ -38,6 +38,7 @@ obj-$(CONFIG_CLI_TIMER) += scm_cli_timer.o
 obj-$(CONFIG_API_PTA) += scm_pta.o
 obj-$(CONFIG_CLI_PTA) += scm_cli_pta.o
 obj-$(CONFIG_API_WDT) += scm_wdt.o
+obj-$(CONFIG_API_FS) += scm_fs.o
 obj-$(CONFIG_CLI_FS) += scm_cli_fs.o
 obj-$(CONFIG_API_I2S) += scm_i2s.o
 obj-$(CONFIG_CLI_I2S) += scm_cli_i2s.o

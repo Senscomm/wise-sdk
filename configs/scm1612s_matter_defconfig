@@ -1466,7 +1466,8 @@ CONFIG_API_GPIO=y
 # CONFIG_API_TIMER is not set
 # CONFIG_API_PTA is not set
 # CONFIG_API_WDT is not set
-# CONFIG_CLI_FS is not set
+CONFIG_API_FS=y
+CONFIG_CLI_FS=y
 # CONFIG_API_I2S is not set
 # CONFIG_API_AUDIO is not set
 CONFIG_WISE_API=y
