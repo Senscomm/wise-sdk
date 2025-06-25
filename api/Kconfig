@@ -287,9 +287,16 @@ config API_WDT
 	help
 	 Include Watchdog APIs in SDK
 
+config API_FS
+	bool "Include FS APIs"
+	select XYZMODEM
+	default n
+	help
+	 Include FS APIs in SDK
+
 config CLI_FS
 	bool "Include FS CLIs"
-	select XYZMODEM
+	depends on API_FS
 	default n
 	help
 	 Include FS CLIs in SDK
