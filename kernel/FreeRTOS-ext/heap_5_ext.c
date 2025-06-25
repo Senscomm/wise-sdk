@@ -225,6 +225,7 @@ void xPortCheckMemEnd( void )
 /*-----------------------------------------------------------*/
 
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
+
 __ilm__ static void prvInsertBlockIntoFreeListWithDMA( BlockLink_t *pxBlockToInsert, BaseType_t xDMABuffer )
 {
 BlockLink_t *pxBlockStart = &_xStart;
@@ -300,7 +301,7 @@ __ilm__ void *pvPortMallocDMA( size_t xWantedSize )
 #endif
 {
 BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
-size_t xOrgWantedSize;
+size_t xOrgWantedSize __maybe_unused;
 void *pvReturn = NULL;
 
 	/* The heap must be initialised before the first call to
@@ -491,7 +492,7 @@ size_t xAddress;
 		xAddress &= ~portBYTE_ALIGNMENT_MASK;
 	}
 
-	if ( xAddress == ( size_t ) pxPreviousBlock->pxNextFreeBlock )
+	if( xAddress == ( size_t ) pxPreviousBlock->pxNextFreeBlock )
 	{
 		return pdTRUE;
 	}
@@ -623,7 +624,7 @@ __ilm__ void *p_pvPortMalloc( size_t xWantedSize )
 {
 BlockLink_t *pxBlock, *pxPreviousBlock, *pxNewBlockLink;
 BlockLink_t *pxBlockEnd = _pxEnd;
-size_t xOrgWantedSize;
+size_t xOrgWantedSize __maybe_unused;
 void *pvReturn = NULL;
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
 BaseType_t xDMABuffer = pdFALSE;

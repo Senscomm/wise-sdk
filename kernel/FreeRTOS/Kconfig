@@ -364,10 +364,12 @@ if !PORT_NEWLIB
 config SUPPORT_DMA_DYNAMIC_ALLOC
     bool "Enable DMA dynamic allocation"
 	default y
+    select MEM_HEAP_EXT
 
 config USE_MALLOC_DEBUG
     bool "Debug enabled malloc/free"
     default n
+    select MEM_HEAP_EXT
     help
      Track allocated memory and detect orphaned ones as well as
      overflows.
@@ -400,6 +402,10 @@ config MEM_HEAP_PERIOD_TIME_DEBUG
 
 endif
 endif
+
+config MEM_HEAP_EXT
+    bool
+    default n
 
 config CHECK_FOR_STACK_OVERFLOW
        int
