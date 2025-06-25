@@ -1,0 +1,26 @@
+name: Trigger submodule update
+
+on:
+
+  workflow_dispatch:
+
+  push:
+    branches:
+      - master
+      
+  pull_request:
+    types:
+      - closed
+    branches:
+      - master
+      
+jobs:
+  notifyUpdate:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Repository Dispatch to parent repo
+      uses: peter-evans/repository-dispatch@v2
+      with:
+        token: ${{ secrets.PARENT_REPO_TOKEN }}
+        repository: Senscomm/connectedhomeip
+        event-type: wise-sdk-update
