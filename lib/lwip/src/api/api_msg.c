@@ -831,7 +831,7 @@ netconn_alloc(enum netconn_type t, netconn_callback callback)
 #endif /* LWIP_SO_LINGER */
   conn->flags = init_flags;
 #ifdef __WISE__
-  conn->private = NULL;
+  conn->priv = NULL;
 #endif
   return conn;
 free_and_return:

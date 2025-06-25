@@ -302,7 +302,7 @@ struct netconn {
     int type;
     int protocol;
   } sock;
-  void *private;
+  void *priv;
 #endif
 };
 

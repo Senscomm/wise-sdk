@@ -515,6 +515,10 @@ void scm_wifi_sta_dump_ap_info(scm_wifi_status *connect_status);
 
 int scm_wifi_sta_get_psk(uint8_t *psk, int len);
 
+int scm_wifi_get_mode(wifi_mode_t *mode, uint8_t wlan_if);
+
+int scm_wifi_get_config(uint8_t wlan_if, wifi_config_t *cfg);
+
 #ifdef CONFIG_API_SOFTAP
 
 int scm_wifi_sap_start(char *ifname, int *len);
