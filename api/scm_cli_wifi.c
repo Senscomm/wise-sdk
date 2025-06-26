@@ -1927,7 +1927,7 @@ static int scm_cli_dhcps_stop(int argc, char *argv[])
 	}
 
 #ifdef CONFIG_LWIP_DHCPS
-	ret = netifapi_dhcps_stop(scm_wifi_get_netif(WISE_IF_WIFI_AP));
+	ret = scm_wifi_dhcps_stop();
 	if (!IS_OK(ret)) {
 		/* re-direct return value */
 		ret = SCM_CLI_FAIL;
@@ -1958,7 +1958,7 @@ static int scm_cli_dhcps_start(int argc, char *argv[])
 	}
 
 #ifdef CONFIG_LWIP_DHCPS
-	ret = netifapi_dhcps_start(scm_wifi_get_netif(WISE_IF_WIFI_AP));
+	ret = scm_wifi_dhcps_start();
 	if (!IS_OK(ret)) {
 		/* re-direct return value */
 		ret = SCM_CLI_FAIL;
@@ -1987,7 +1987,7 @@ static int scm_cli_dhcp_stop(int argc, char *argv[])
 		goto done;
 	}
 
-	ret = netifapi_dhcp_stop(scm_wifi_get_netif(WISE_IF_WIFI_STA));
+	ret = scm_wifi_dhcp_stop();
 	if (!IS_OK(ret))  {
 		/* re-direct return value */
 		ret = SCM_CLI_FAIL;
@@ -2016,7 +2016,7 @@ static int scm_cli_dhcp_start(int argc, char *argv[])
 		goto done;
 	}
 
-	ret = netifapi_dhcp_start(scm_wifi_get_netif(WISE_IF_WIFI_STA));
+	ret = scm_wifi_dhcp_start();
 	if (!IS_OK(ret)) {
 		/* re-direct return value */
 		ret = SCM_CLI_FAIL;

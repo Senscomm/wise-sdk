@@ -1309,6 +1309,28 @@ static int scm_wifi_sap_store_cfg(wifi_ap_config_t *ap)
 	return ret;
 }
 
+int scm_wifi_sap_get_state(bool *en, bool *started, bool *configured)
+{
+	if (en)
+		*en = true;
+	if (started)
+		*started = SAP_IS_STARTED();
+	if (configured)
+		*configured = SAP_IS_CONFIGURED();
+
+	return WISE_OK;
+}
+
+int scm_wifi_sap_set_state(bool *started, bool *configured)
+{
+	if (started)
+		SAP_SET_STARTED(*started);
+	if (configured)
+		SAP_SET_CONFIGURED(*configured);
+
+	return WISE_OK;
+}
+
 int scm_wifi_sap_start(char *ifname, int *len)
 {
 	int ret = WISE_FAIL;
@@ -1800,6 +1822,38 @@ int scm_wifi_get_channel(char *ifname, uint8_t *primary, scm_wifi_2nd_ch_loc *se
     }
 
     return WISE_OK;
+}
+
+int scm_wifi_dhcps_stop(void)
+{
+	int ret = WISE_FAIL;
+#ifdef CONFIG_LWIP_DHCPS
+	ret = netifapi_dhcps_stop(scm_wifi_get_netif(WISE_IF_WIFI_AP));
+#endif
+	return ret;
+}
+
+int scm_wifi_dhcps_start(void)
+{
+	int ret = WISE_FAIL;
+#ifdef CONFIG_LWIP_DHCPS
+	ret = netifapi_dhcps_start(scm_wifi_get_netif(WISE_IF_WIFI_AP));
+#endif
+	return ret;
+}
+
+int scm_wifi_dhcp_stop(void)
+{
+	int ret = WISE_FAIL;
+	ret = netifapi_dhcp_stop(scm_wifi_get_netif(WISE_IF_WIFI_STA));
+	return ret;
+}
+
+int scm_wifi_dhcp_start(void)
+{
+	int ret = WISE_FAIL;
+	ret = netifapi_dhcp_start(scm_wifi_get_netif(WISE_IF_WIFI_STA));
+	return ret;
 }
 
 #ifdef CONFIG_API_MONITOR
