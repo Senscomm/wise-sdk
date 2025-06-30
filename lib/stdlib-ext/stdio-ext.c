@@ -525,6 +525,22 @@ int _vsnprintf(char *str, size_t size, const char *fmt, va_list va)
     return state.bytes_written;
 }
 
+int _vsprintf(char *str, const char *fmt, va_list va)
+{
+    size_t size = (size_t) 0x7fffffff; /* allow up to "maxint" characters */
+    struct MemFile state;
+    MEMFILE *f = fmemopen_w(&state, str, size);
+    tfp_format(f, fmt, va);
+    if (size > 0) {
+        if (state.bytes_written < size) {
+            *(state.buffer) = '\0';
+        } else {
+            str[size - 1] = '\0';
+        }
+    }
+    return state.bytes_written;
+}
+
 int
 patch_std_kvprintf(const char *format, void (*fn)(int c, void *arg),
               void *arg, va_list ap)
@@ -604,6 +620,25 @@ int usleep (unsigned long  __useconds)
 {
     udelay(__useconds);
     return 0;
+}
+
+
+int __wrap_vsnprintf(char *str, size_t size, const char *fmt, va_list va)
+{
+#ifdef CONFIG_USE_SIMPLE_PRINTF
+    return _vsnprintf(str, size, fmt, va);
+#else
+    return vsnprintf(str, size, fmt, va);
+#endif
+}
+
+int __wrap_vsprintf(char *str, const char *fmt, va_list va)
+{
+#ifdef CONFIG_USE_SIMPLE_PRINTF
+    return _vsprintf(str, fmt, va);
+#else
+    return vsprintf(str, fmt, va);
+#endif
 }
 
 int __wrap_sprintf(char *str, const char *format, ...)

@@ -828,7 +828,6 @@ int scm_wifi_sta_set_config(scm_wifi_assoc_request *req, void *fast_config)
 fail:
 	SCM_ERR_LOG(SCM_API_TAG,"%s Invalid Input: %s\n", __func__, err);
 	return ret;
-
 }
 
 int scm_wifi_sta_connect(void)
