@@ -521,6 +521,10 @@ int scm_wifi_get_config(uint8_t wlan_if, wifi_config_t *cfg);
 
 #ifdef CONFIG_API_SOFTAP
 
+int scm_wifi_sap_get_state(bool *en, bool *started, bool *configured);
+
+int scm_wifi_sap_set_state(bool *started, bool *configured);
+
 int scm_wifi_sap_start(char *ifname, int *len);
 
 int scm_wifi_sap_stop(void);
@@ -546,6 +550,15 @@ int scm_wifi_get_options(scm_wifi_get_option opt, void *buf);
 int scm_wifi_set_channel(char *ifname, uint8_t primary, scm_wifi_2nd_ch_loc secondary);
 
 int scm_wifi_get_channel(char *ifname, uint8_t *primary, scm_wifi_2nd_ch_loc *secondary);
+
+int scm_wifi_dhcps_stop(void);
+
+int scm_wifi_dhcps_start(void);
+
+int scm_wifi_dhcp_stop(void);
+
+int scm_wifi_dhcp_start(void);
+
 
 #ifdef CONFIG_API_MONITOR
 
