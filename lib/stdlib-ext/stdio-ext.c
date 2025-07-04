@@ -622,6 +622,7 @@ int usleep (unsigned long  __useconds)
     return 0;
 }
 
+
 int __wrap_vsnprintf(char *str, size_t size, const char *fmt, va_list va)
 {
 #ifdef CONFIG_USE_SIMPLE_PRINTF

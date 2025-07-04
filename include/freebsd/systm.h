@@ -16,7 +16,6 @@
 
 #include "callout.h"
 #include <sys/cdefs.h>
-#include <sys/queue.h>
 
 #include "libkern.h"
 
