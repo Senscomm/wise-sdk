@@ -18,8 +18,8 @@ extern "C" {
 #endif
 
 int scm_fs_load(const char *filename);
-int scm_fs_write(const char *filename, const char *buf, int len);
-int scm_fs_read(const char *filename, char *buf, int len);
+int scm_fs_write(const char *filename, const char *buf, int len, bool log);
+int scm_fs_read(const char *filename, char *buf, int len, bool log);
 int scm_fs_rm(const char *filename);
 long int scm_fs_size(const char *filename);
 int scm_fs_unmount(const char *pathname);

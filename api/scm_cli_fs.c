@@ -60,7 +60,7 @@ static int scm_cli_fs_read(int argc, char *argv[])
     }
 
     buf[size] = '\0';
-    scm_fs_read(name, buf, size);
+    scm_fs_read(name, buf, size, true);
     printf("size: %d\n%s\n", size, buf);
 
     free(buf);
@@ -79,7 +79,7 @@ static int scm_cli_fs_write(int argc, char *argv[])
     printf("write %s\n", name);
     printf("size: %d\n%s\n", strlen(argv[2]), argv[2]);
 
-    scm_fs_write(name, argv[2], strlen(argv[2]));
+    scm_fs_write(name, argv[2], strlen(argv[2]), true);
 
     return CMD_RET_SUCCESS;
 }
