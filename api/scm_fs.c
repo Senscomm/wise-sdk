@@ -101,7 +101,7 @@ out:
     return (err == 0) ? 0: 1;
 }
 
-int scm_fs_write(const char *filename, const char *buf, int len)
+int scm_fs_write(const char *filename, const char *buf, int len, bool log)
 {
     int fd;
     int ret = -1;
@@ -109,7 +109,8 @@ int scm_fs_write(const char *filename, const char *buf, int len)
     fd = open(filename, O_RDWR | O_CREAT | O_TRUNC);
     if (fd < 0)
     {
-        printf("open fail\n");
+        if (log)
+            printf("open fail\n");
         goto errout;
     }
 
@@ -125,7 +126,7 @@ errout:
     return ret;
 }
 
-int scm_fs_read(const char *filename, char *buf, int len)
+int scm_fs_read(const char *filename, char *buf, int len, bool log)
 {
     int fd;
     int ret = -1;
@@ -133,7 +134,8 @@ int scm_fs_read(const char *filename, char *buf, int len)
     fd = open(filename, O_RDONLY);
     if (fd < 0)
     {
-        printf("open fail\n");
+        if (log)
+            printf("open fail\n");
         goto errout;
     }
 
@@ -195,7 +197,7 @@ int scm_fs_read_config_value(const char *ns, const char *key, char *buf, int len
 
     snprintf(path, sizeof(path), CONFIG_DIR "/%s_%s", ns, key);
 
-    return scm_fs_read(path, buf, len);
+    return scm_fs_read(path, buf, len, false);
 }
 
 int scm_fs_write_config_value(const char *ns, const char *key, const char *buf, int len)
@@ -207,7 +209,7 @@ int scm_fs_write_config_value(const char *ns, const char *key, const char *buf, 
 
     snprintf(path, sizeof(path), CONFIG_DIR "/%s_%s", ns, key);
 
-    return scm_fs_write(path, buf, len);
+    return scm_fs_write(path, buf, len, true);
 }
 
 int scm_fs_remove_config_value(const char *ns, const char *key)

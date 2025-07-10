@@ -1524,6 +1524,24 @@ int scm_wifi_sap_get_config(scm_wifi_softap_config *sap)
 	return WISE_OK;
 }
 
+int scm_wifi_clear_config(uint8_t wlan_if)
+{
+	if (wlan_if == WIFI_IF_STA) {
+		wise_wifi_clean_config(WISE_IF_WIFI_STA, WIFI_IF_STA);
+		memset(SAVED_WISE_STA_CFG(), 0, sizeof(wifi_sta_config_t));
+	}
+#ifdef CONFIG_API_SOFTAP
+	else if (wlan_if == WIFI_IF_AP) {
+		wise_wifi_clean_config(WISE_IF_WIFI_AP, WIFI_IF_AP);
+		memset(SAVED_WISE_AP_CFG(), 0, sizeof(wifi_ap_config_t));
+	}
+#endif
+	else
+		return WISE_FAIL;
+
+	return WISE_OK;
+}
+
 int scm_wifi_sap_set_beacon_interval(uint32_t interval)
 {
 	if ((interval < WPA_AP_MIN_BEACON) || (interval > WPA_AP_MAX_BEACON)) {
