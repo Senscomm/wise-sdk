@@ -29,6 +29,7 @@ int scm_fs_read_config_value(const char *ns, const char *key, char *buf, int len
 int scm_fs_write_config_value(const char *ns, const char *key, const char *buf, int len);
 int scm_fs_remove_config_value(const char *ns, const char *key);
 int scm_fs_exists_config_value(const char *ns, const char *key);
+int scm_fs_clear_all_config_value(void);
 
 #ifdef __cplusplus
 }

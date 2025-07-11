@@ -188,6 +188,40 @@ int scm_fs_format(const char *pathname)
 #define CONFIG_DIR "/config"
 #define CONFIG_PATH_MAX 128
 
+int scm_fs_clear_all_config_value(void)
+{
+    DIR * dir;
+    struct dirent * entry;
+    char path[CONFIG_PATH_MAX];
+
+    dir = opendir(CONFIG_DIR);
+    if (dir == NULL)
+    {
+        printf("Failed to open %s\n", CONFIG_DIR);
+        return -1;
+    }
+
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        snprintf(path, sizeof(path), "%s", entry->d_name);
+
+        if (remove(path) == 0)
+        {
+            printf("Deleted config file: %s\n", path);
+        }
+        else
+        {
+            printf("Failed to delete: %s\n", path);
+        }
+    }
+
+    closedir(dir);
+    return 0;
+}
+
 int scm_fs_read_config_value(const char *ns, const char *key, char *buf, int len)
 {
     char path[CONFIG_PATH_MAX] = {0};
@@ -206,6 +240,13 @@ int scm_fs_write_config_value(const char *ns, const char *key, const char *buf, 
 
     if (ns == NULL || key == NULL || buf == NULL || len <= 0)
         return -1;
+
+#if 0
+    printf("ns: %s\n", ns);
+    printf("key: %s\n", key);
+    printf("buf: %s\n", buf);
+    printf("len: %d\n", len);
+#endif
 
     snprintf(path, sizeof(path), CONFIG_DIR "/%s_%s", ns, key);
 
