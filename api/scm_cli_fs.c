@@ -210,6 +210,17 @@ static int scm_cli_fs_cexist(int argc, char *argv[])
     return CMD_RET_FAILURE;
 }
 
+static int scm_cli_fs_clrall(int argc, char *argv[])
+{
+    if (argc != 1)
+        return CMD_RET_USAGE;
+
+    if (scm_fs_clear_all_config_value() < 0)
+        return CMD_RET_FAILURE;
+
+    return CMD_RET_SUCCESS;
+}
+
 static const struct cli_cmd scm_fs_cmd[] = {
     CMDENTRY(load , scm_cli_fs_load, "", ""),
     CMDENTRY(read , scm_cli_fs_read, "", ""),
@@ -221,6 +232,7 @@ static const struct cli_cmd scm_fs_cmd[] = {
     CMDENTRY(cwrite , scm_cli_fs_cwrite, "", ""),
     CMDENTRY(cread , scm_cli_fs_cread, "", ""),
     CMDENTRY(crm , scm_cli_fs_crm, "", ""),
+    CMDENTRY(clrall , scm_cli_fs_clrall, "", ""),
     CMDENTRY(cexist , scm_cli_fs_cexist, "", ""),
 };
 
