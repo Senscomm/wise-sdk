@@ -6,3 +6,10 @@ config USE_SIMPLE_PRINTF
 
 endmenu
 
+menu "matter support"
+
+config MATTER_SUPPORT
+	bool "Configurations for matter supporting"
+	default n
+
+endmenu

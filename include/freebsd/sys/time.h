@@ -20,7 +20,10 @@
 int _os_gettimeofday(struct timeval *tv, struct timezone *tz);
 
 int _gettimeofday(struct timeval *t, struct timezone *tz);
+
+#ifndef CONFIG_MATTER_SUPPORT
 #define gettimeofday 		_gettimeofday
+#endif
 
 int _settimeofday(struct timeval *t, struct timezone *tz);
 #define settimeofday		_settimeofday
