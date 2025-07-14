@@ -431,9 +431,15 @@ __func_tab__ struct mbuf *
 __ilm__ static struct mbuf *
 ___m_get(int how, short type, int flags)
 {
-	struct mbuf *memoryBuffer =
+	struct mbuf *memoryBuffer;
+
+#ifdef CONFIG_MEMP_NUM_MBUF_DYNA_EXT
+    memoryBuffer =
 		(flags & M_EXT ? (struct mbuf *)memp_malloc(MEMP_MBUF_EXT_NODE)
 		 : (struct mbuf *)memp_malloc(MEMP_MBUF_CACHE));
+#else
+    memoryBuffer = (struct mbuf *)memp_malloc(MEMP_MBUF_CACHE);
+#endif
 	if (memoryBuffer == NULL)
 		return NULL;
 
@@ -469,7 +475,9 @@ _m_free_ext(struct mbuf *memoryBuffer)
 		if (memoryBuffer->m_ext.ext_free)
 			memoryBuffer->m_ext.ext_free(memoryBuffer);
 		memoryBuffer->m_ext.ext_buf = NULL;
+#ifdef CONFIG_MEMP_NUM_MBUF_DYNA_EXT
 		memp_free(MEMP_MBUF_EXT_NODE, memoryBuffer);
+#endif
 		break;
 	default:
 		printk("unknown type(%d)\n", memoryBuffer->m_ext.ext_type);
