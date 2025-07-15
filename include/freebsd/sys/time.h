@@ -17,6 +17,10 @@
 /* XXX: must use what the platform provides. */
 #if 1 /* ndef __USE_NATIVE_HEADER__ */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 int _os_gettimeofday(struct timeval *tv, struct timezone *tz);
 
 int _gettimeofday(struct timeval *t, struct timezone *tz);
@@ -24,6 +28,10 @@ int _gettimeofday(struct timeval *t, struct timezone *tz);
 
 int _settimeofday(struct timeval *t, struct timezone *tz);
 #define settimeofday		_settimeofday
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __USE_NATIVE_HEADER__ */
 

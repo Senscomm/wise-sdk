@@ -62,4 +62,3 @@ int _settimeofday(struct timeval *tv, struct timezone *tz)
 
 	return 0;
 }
-
