@@ -856,6 +856,42 @@ int scm_wifi_sta_connect(void)
 	return ret;
 }
 
+/* Connect AP according to the scan results */
+int scm_wifi_sta_connect_advance(void)
+{
+	scm_wifi_ap_info *pst_results = NULL;
+	int ret;
+	u16_t num, max_ap_num = WIFI_SCAN_AP_LIMIT;
+
+	pst_results = malloc(sizeof(scm_wifi_ap_info)*max_ap_num);
+	if (pst_results == NULL) {
+		return WISE_FAIL;
+	}
+
+	ret = scm_wifi_sta_scan_results(pst_results, &num, max_ap_num);
+
+	if (ret == WISE_OK) {
+		scm_wifi_assoc_request req = {0};
+		wifi_config_t config;
+		scm_wifi_get_config(WIFI_IF_STA, &config);
+
+		for (uint16_t loop = 0; (loop < num) && (loop < max_ap_num); loop++) {
+			if (strcmp((char *)config.sta.ssid, pst_results[loop].ssid) != 0)
+				continue;
+
+		memcpy(req.ssid, config.sta.ssid, strlen((char *)config.sta.ssid));
+		memcpy(req.key, config.sta.password, strlen((char *)config.sta.password));
+			req.auth = pst_results[loop].auth;
+		req.pairwise = SCM_WIFI_PAIRWISE_AES;
+		scm_wifi_sta_set_config(&req, NULL);
+		ret = scm_wifi_sta_connect();
+		}
+	}
+	free(pst_results);
+
+	return ret;
+}
+
 int scm_wifi_sta_disconnect(void)
 {
 	struct netif *lwip_netif = scm_wifi_get_netif(WISE_IF_WIFI_STA);
