@@ -457,7 +457,7 @@ int snprintk(char *str, size_t size, const char *format, ...)
 #define PRINTK_BUFSIZ CONFIG_PRINTK_BUF_LEN
 #define PRINTK_BUFIDX(i) ((i) & (PRINTK_BUFSIZ - 1))
 
-static char printk_buf[PRINTK_BUFSIZ];
+__kernel__ static char printk_buf[PRINTK_BUFSIZ];
 unsigned printk_head = 0;
 unsigned printk_tail = 0;
 

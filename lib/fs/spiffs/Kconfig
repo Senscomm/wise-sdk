@@ -26,10 +26,10 @@ config SPIFFS_OBJ_NAME_LEN
 
 config SPIFFS_SYSTEM_PART_ADDR
 	hex "System partition address"
-	default 0x80380000
+	default 0x803C0000
 
 config SPIFFS_SYSTEM_PART_SIZE
 	hex "System partition size"
-	default 0x80000
+	default 0x40000
 
 endif

@@ -111,7 +111,7 @@
 static const struct memp_desc memp_dummy = {0};
 
 #define LWIP_MEMPOOL_SECTION(name,num,size,desc,s) LWIP_MEMPOOL_DECLARE_SECTION(name,num,size,desc,s)
-#define LWIP_MEMPOOL(name,num,size,desc) LWIP_MEMPOOL_DECLARE(name,num,size,desc)
+#define LWIP_MEMPOOL(name,num,size,desc) LWIP_MEMPOOL_DECLARE_SECTION(name,num,size,desc,CONFIG_MEM_MEMP_DEFAULT_SECTION)
 #define LWIP_MEMPOOL_DUMMY(name)
 #include "lwip/priv/memp_std.h"
 

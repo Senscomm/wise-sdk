@@ -188,11 +188,11 @@ int scm_fs_format(const char *pathname)
 #define CONFIG_DIR "/config"
 #define CONFIG_PATH_MAX 128
 
-int scm_fs_clear_all_config_value(void)
+int scm_fs_clear_all_config_value(const char *ns)
 {
     DIR * dir;
     struct dirent * entry;
-    char path[CONFIG_PATH_MAX];
+    char path[CONFIG_PATH_MAX], *delim, *fname;
 
     dir = opendir(CONFIG_DIR);
     if (dir == NULL)
@@ -207,6 +207,12 @@ int scm_fs_clear_all_config_value(void)
             continue;
 
         snprintf(path, sizeof(path), "%s", entry->d_name);
+        fname = path + strlen(CONFIG_DIR) + 1;
+        delim = strchr(fname, '_');
+        if (ns && delim && strncmp(fname, ns, (delim - fname)))
+        {
+            continue;
+        }
 
         if (remove(path) == 0)
         {

@@ -20,7 +20,7 @@ ccflags-y += -I$(srctree)/hal/drivers/ble
 ccflags-y += -I$(srctree)/hal/drivers/ble/priv
 
 # defines
-ccflags-y += -DSCM2010
+ccflags-y += -DSCM2010=1
 ccflags-y += -DNIMBLE_CFG_CONTROLLER
 ifdef CONFIG_BLE_NIMBLE_HOST
 ccflags-y += -DNIMBLE_CFG_HOST

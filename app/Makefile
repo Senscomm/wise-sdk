@@ -6,3 +6,6 @@ ccflags-$(CONFIG_IRQ_DISPATCHER) += -I$(srctree)/hal/drivers/sdio
 obj-$(CONFIG_DEMO_CMDLINE) += cli/main.o
 obj-$(CONFIG_MCUBOOT_BL)   += mcuboot/main.o
 obj-$(CONFIG_DEMO_HOW_TO_DEBUG) += how-to-debug/
+
+obj-$(CONFIG_AYLA)         += ayla/
+

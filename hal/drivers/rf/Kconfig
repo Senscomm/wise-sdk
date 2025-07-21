@@ -19,7 +19,7 @@ config RF_XRC564
 
 config RF_CLI
 	bool "RF CLI support"
-	default n
+	default y
 
 endif
 

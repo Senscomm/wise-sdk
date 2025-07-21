@@ -113,8 +113,14 @@ typedef struct _slist sys_slist_t;
  * @param __cn Container struct type pointer
  * @param __n The field name of sys_node_t within the container struct
  */
+#if (SCM2010)
+/* XXX: just to avoid name crashes */
+#define SYS_SLIST_CONTAINER(__ln, __cn, __n) \
+    ((__ln) ? _CONTAINER_OF_((__ln), __typeof__(*(__cn)), __n) : NULL)
+#else
 #define SYS_SLIST_CONTAINER(__ln, __cn, __n) \
     ((__ln) ? CONTAINER_OF((__ln), __typeof__(*(__cn)), __n) : NULL)
+#endif
 /*
  * @brief Provide the primitive to peek container of the list head
  *

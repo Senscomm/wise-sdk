@@ -47,7 +47,7 @@ config FLASH_IMAGE_OFFSET
 
 config FLASH_IMAGE_SIZE
     hex "Flash image size"
-    default 0x180000
+    default 0x1A0000
 
 config SCMBOOT_SECURE
     bool "Add secure scmboot signature"
@@ -146,7 +146,7 @@ config SUPPORT_PMP_CMD
 
 config PM_CMD_RTC_CAL
     bool "set RTC calibration period by cli command"
-    default n
+    default y
 
 config SCM2010_PM_WIFI_AUTO_RUN
     bool "Enable SCM2010 PM Enter automatically after connection"
@@ -164,13 +164,13 @@ menu "Power management feature"
 
 config PM_VOLTAGE_CTRL
 	bool "PM voltage control"
-	default y
+	default n
 	help
      Regulator voltage down when enter lowpower mode.
 
 config PM_AON_VOLTAGE_CTRL_OCR
 	bool "PM AON voltage switch by OCR"
-	default y
+	default n
 	help
 	 Always ON domain voltage switch by OCR mode.
 
@@ -183,13 +183,13 @@ config PM_AON_VOLTAGE_CTRL
 
 config PM_PLL_CTRL
 	bool "PM PLL control"
-	default y
+	default n
 	help
 	 PLL turn off when enter lowpower mode.
 
 config PM_LOWPOWER_IO_OFF
 	bool "PM IO LDO off sleep"
-	default y
+	default n
 	help
 	 IO LDO turn off in lowpower mode.
 
@@ -208,13 +208,13 @@ config PM_WAKEUP_LOG_ON
 
 config PM_FLASH_DPD
 	bool "PM FLASH deep powerdown"
-	default y
+	default n
 	help
 	 Flash enter deep power down mode.
 
 config PM_WC_LOG
 	bool "PM log in watcher"
-	default y
+	default n
 	help
 	 Enable PM LOG in watcher.
 
@@ -226,19 +226,19 @@ config PM_WC_UART1
 
 config PM_AON_GPIO_CTRL
 	bool "PM AON GPIO control"
-	default y
+	default n
 	help
 	 AON GPIO not set by the user are converted to input when enter lowpower mode.
 
 config PM_RFC_LP_BYS
 	bool "PM RFC LP bypass"
-	default y
+	default n
 	help
 	 RFC lowpower mode bypass.
 
 config PM_DLDO_DCDC_CTRL
 	bool "PM Capless LDO/DCDC control"
-	default y
+	default n
 	help
 	 PM Capless LDO and DCDC control.
 

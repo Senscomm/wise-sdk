@@ -1,0 +1,20 @@
+menu "Ayla configuration"
+
+config AYLA_WIFI_SUPPORT
+	bool "Ayla Wi-Fi support"
+	default y
+
+config AYLA_WIFI_SETUP_CLEARTEXT_SUPPORT
+	bool "Ayla Wi-Fi setup in cleartext mode support"
+	depends on AYLA_WIFI_SUPPORT
+	default y
+
+config AYLA_BLUETOOTH_SUPPORT
+	bool "Ayla Bluetooth support"
+	default y
+
+config AYLA_LOCAL_CONTROL_SUPPORT
+	bool "Ayla Local Control support"
+	default y
+
+endmenu

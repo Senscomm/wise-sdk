@@ -153,19 +153,18 @@ extern "C" {
 #define  ENOTSUP		125
 #endif
 
+#ifdef __cplusplus
+}
+#endif
+
+#endif /*  __USE_NATIVE_HEADER__ */
+
 #ifdef CONFIG_USE_POSIX_ERRNO
 
 extern int FreeRTOS_errno;
 #undef errno
 #define errno	 FreeRTOS_errno
 
-
-#endif
-
-#ifdef __cplusplus
-}
-#endif
-
-#endif /*  __USE_NATIVE_HEADER__ */
+#endif /* CONFIG_USE_POSIX_ERRNO */
 
 #endif

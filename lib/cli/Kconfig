@@ -23,7 +23,7 @@ config CMDLINE_PROMPT
 
 config CMDLINE_MAX_LEN
 	int "Command line max. length"
-	default 256
+	default 512
 
 config CLI_HISTORY
     bool "Command history"
@@ -37,7 +37,7 @@ config CLI_MAX_HISTORY
 
 config CLI_AUTOCOMPLETE
     bool "Command auto completion"
-    default n
+    default y
 
 config CLI_EXT
     bool "Enable CLI extension framework"
@@ -85,7 +85,7 @@ endif # CMD_PROC
 
 menuconfig CMD_UTIL_FILE
 	bool "File utilities"
-	default n
+	default y
 
 if CMD_UTIL_FILE
 source "lib/fs/Kconfig"
@@ -112,7 +112,7 @@ config CMD_PING
 config CMD_DHCLIENT
 	bool "dhclient"
 	depends on LWIP_DHCP
-	default n
+	default y
 	help
 	 dhclient is an LWIP Dynamic Host Configuration Protocol client
 	 command
@@ -128,14 +128,14 @@ config CMD_DHCPS
 config CMD_MDNS
 	bool "mdns"
 	depends on LWIP_MDNS_RESPONDER
-	default n
+	default y
 	help
 	 mdns is an LWIP Multicase DNS command
 
 config CMD_SNTP
 	bool "sntp"
 	depends on LWIP_SNTP
-	default n
+	default y
 	help
 	 mdns is an LWIP simple NTP
 
@@ -243,7 +243,7 @@ config CMD_REBOOT
 
 config CMD_RESET
 	bool "Reset the system"
-	default n
+	default y
 	help
 	 Lightweight SW reset w/o Boot ROM or bootloader
 

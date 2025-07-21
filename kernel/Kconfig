@@ -20,6 +20,13 @@ config DEFAULT_ASSERT_VERBOSITY
     int "Default Assert verbosity"
     default 2
 
+config USE_KERNEL_BSS_DEFAULT_SECTION
+    bool "Use '.kernel' section for uninitialized data of kernel"
+    default n
+    help
+     Specify y to use the special '.kernel' section to place uninitialized data
+     of kernel's internal use
+
 config SUPPORT_MTSMP
 	bool "Record mbuf timestamp"
     default n

@@ -1,0 +1,36 @@
+#
+#    Copyright 2022 Ayla Networks, Inc.  All rights reserved.
+#
+#    Description:
+#      Configuration options for AylaDevKit application.
+#
+
+menu "Ayla libadm options"
+    choice
+      prompt "Rendezvous Mode"
+      default RENDEZVOUS_MODE_ON_NETWORK
+      help
+          Specifies the Rendezvous mode of the peripheral.
+
+      config RENDEZVOUS_MODE_SOFTAP
+          bool "Soft-AP"
+      config RENDEZVOUS_MODE_BLE
+          bool "BLE"
+          depends on BT_ENABLED
+      config RENDEZVOUS_MODE_ON_NETWORK
+          bool "On-Network"
+      config RENDEZVOUS_MODE_SOFTAP_ON_NETWORK
+          bool "Soft-AP / On-Network"
+      config RENDEZVOUS_MODE_BLE_ON_NETWORK
+          bool "BLE / On-Network"
+    endchoice
+
+    config RENDEZVOUS_MODE
+       int
+       range 0 8
+       default 1 if RENDEZVOUS_MODE_SOFTAP
+       default 2 if RENDEZVOUS_MODE_BLE
+       default 4 if RENDEZVOUS_MODE_ON_NETWORK
+       default 5 if RENDEZVOUS_MODE_SOFTAP_ON_NETWORK
+       default 6 if RENDEZVOUS_MODE_BLE_ON_NETWORK
+endmenu

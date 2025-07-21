@@ -72,3 +72,20 @@ endif
 if MCUBOOT_BL
 source "app/mcuboot/Kconfig"
 endif
+
+if EXT_APP
+menu "Ext Applications"
+
+config AYLA
+	bool "Ayla"
+    select LWIP_MDNS_RESPONDER
+    select LWIP_SNTP
+    select LIB_HTTPD
+
+if AYLA
+source "app/ayla/Kconfig"
+endif
+
+endmenu
+endif
+

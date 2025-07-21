@@ -8,8 +8,8 @@
  * SPDX-License-Identifier:	GPL-2.0+
  */
 
-/* 
- * Modified for WISE. This is too good not to use.  
+/*
+ * Modified for WISE. This is too good not to use.
  */
 
 #ifndef __LINKER_LISTS_H__
@@ -203,9 +203,9 @@
  */
 #define ll_entry_start(_type, _list)					\
 ({									\
-	static char start[0] __aligned(4) __attribute__((unused,	\
+	static char _start[0] __aligned(4) __attribute__((unused,	\
 		section(".wise_list_2_"#_list"_1")));			\
-	(_type *)&start;						\
+	(_type *)&_start;						\
 })
 
 /**
@@ -226,9 +226,9 @@
  */
 #define ll_entry_end(_type, _list)					\
 ({									\
-	static char end[0] __aligned(4) __attribute__((unused,		\
+	static char _end[0] __aligned(4) __attribute__((unused,		\
 		section(".wise_list_2_"#_list"_3")));			\
-	(_type *)&end;							\
+	(_type *)&_end;							\
 })
 /**
  * ll_entry_count() - Return the number of elements in linker-generated array
@@ -248,9 +248,9 @@
  */
 #define ll_entry_count(_type, _list)					\
 	({								\
-		_type *start = ll_entry_start(_type, _list);		\
-		_type *end = ll_entry_end(_type, _list);		\
-		unsigned int _ll_result = end - start;			\
+		_type *_start = ll_entry_start(_type, _list);		\
+		_type *_end = ll_entry_end(_type, _list);		\
+		unsigned int _ll_result = _end - _start;			\
 		_ll_result;						\
 	})
 
@@ -295,9 +295,9 @@
  */
 #define ll_start(_type)							\
 ({									\
-	static char start[0] __aligned(4) __attribute__((unused,	\
+	static char _start[0] __aligned(4) __attribute__((unused,	\
 		section(".wise_list_1")));				\
-	(_type *)&start;						\
+	(_type *)&_start;						\
 })
 
 /**
@@ -315,9 +315,9 @@
  */
 #define ll_end(_type)							\
 ({									\
-	static char end[0] __aligned(4) __attribute__((unused,		\
+	static char _end[0] __aligned(4) __attribute__((unused,		\
 		section(".wise_list_3")));				\
-	(_type *)&end;							\
+	(_type *)&_end;							\
 })
 
 #endif /* __ASSEMBLY__ */

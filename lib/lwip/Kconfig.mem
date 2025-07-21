@@ -33,6 +33,13 @@ config MEM_ALIGNMENT
        int "Memory alignment"
        default 4
 
+config MEM_MEMP_DEFAULT_SECTION
+       string "Memory pool default section"
+       default ".bss"
+       help
+        Specify a default section in which statically allocated memory pools are
+        placed.
+
 # Not used
 #config MEM_SIZE
 #      int

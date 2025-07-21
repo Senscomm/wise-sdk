@@ -1,5 +1,5 @@
 config LIB_HTTP_PARSER
 	bool
-	default n
+	default y
 	help
 	Say y to add http parser library

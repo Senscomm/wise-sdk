@@ -1,0 +1,7 @@
+#
+# Copyright 2022 Ayla Networks, Inc.  All rights reserved.
+#
+# The configuration for esp32 platforms.
+#
+CONFIG_ESP32_REV_MIN_3=y
+

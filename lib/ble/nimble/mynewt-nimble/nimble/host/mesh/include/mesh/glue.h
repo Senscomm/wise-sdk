@@ -556,8 +556,14 @@ static inline unsigned int find_msb_set(uint32_t op)
 
 #define printk console_printf
 
+#if (SCM2010)
+/* XXX: just to avoid name crashes */
+#define _CONTAINER_OF_(ptr, type, field) \
+	((type *)(((char *)(ptr)) - offsetof(type, field)))
+#else
 #define CONTAINER_OF(ptr, type, field) \
 	((type *)(((char *)(ptr)) - offsetof(type, field)))
+#endif
 
 
 #define k_sem ble_npl_sem
