@@ -19,6 +19,10 @@
 
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /****************************************************************************
  * Public Types
  ****************************************************************************/
@@ -407,5 +411,9 @@ int flash_area_id_to_multi_image_slot(int image_index, int area_id);
  ****************************************************************************/
 
 int flash_area_id_from_image_offset(uint32_t offset);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* _FLASH_MAP_BACKEND_H_ */

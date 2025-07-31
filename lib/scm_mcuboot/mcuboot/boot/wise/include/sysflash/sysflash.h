@@ -13,6 +13,10 @@
 #ifndef _SYSFLASH_H_
 #define _SYSFLASH_H_
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /****************************************************************************
  * Pre-processor Definitions
  ****************************************************************************/
@@ -29,4 +33,7 @@
                                          SECONDARY_ID)
 #define FLASH_AREA_IMAGE_SCRATCH       SCRATCH_ID
 
+#ifdef __cplusplus
+}
+#endif
 #endif /* _SYSFLASH_H_ */
