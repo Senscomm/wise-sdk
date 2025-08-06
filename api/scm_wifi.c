@@ -929,6 +929,12 @@ int scm_wifi_sta_get_ap_country(char *country)
 	return WISE_OK;
 }
 
+int scm_wifi_sta_get_ap_info(wifi_ap_record_t *ap_info)
+{
+	return wise_wifi_sta_get_ap_info(ap_info, WIFI_IF_STA);
+}
+
+
 #ifdef CONFIG_IEEE80211_MODE_5GHZ
 uint8_t scm_wise_freq5g_to_channel(int freq_mhz)
 {
