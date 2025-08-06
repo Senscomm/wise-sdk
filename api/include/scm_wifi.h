@@ -499,6 +499,8 @@ int scm_wifi_sta_set_config(scm_wifi_assoc_request *req, void *fast_config);
 
 int scm_wifi_sta_connect(void);
 
+int scm_wifi_sta_connect_advance(void);
+
 int scm_wifi_sta_disconnect(void);
 
 int scm_wifi_sta_disconnect_event(uint8_t enable);
