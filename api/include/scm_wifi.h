@@ -521,6 +521,8 @@ int scm_wifi_get_config(uint8_t wlan_if, wifi_config_t *cfg);
 
 int scm_wifi_clear_config(uint8_t wlan_if);
 
+int scm_wifi_sta_get_ap_info(wifi_ap_record_t *ap_info);
+
 #ifdef CONFIG_API_SOFTAP
 
 int scm_wifi_sap_get_state(bool *en, bool *started, bool *configured);
