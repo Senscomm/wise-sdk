@@ -720,7 +720,11 @@ void bt_mesh_proxy_addr_add(struct os_mbuf *buf, uint16_t addr)
 {
 	struct bt_mesh_proxy_client *client;
 	struct bt_mesh_proxy_role *cli =
+#if (SCM2010)
+		_CONTAINER_OF_(buf, struct bt_mesh_proxy_role, buf);
+#else
 		CONTAINER_OF(buf, struct bt_mesh_proxy_role, buf);
+#endif
 
 	client = find_client(cli->conn_handle);
 
@@ -880,7 +884,11 @@ void notify_complete(void)
 	BT_DBG("");
 
 	while ((n = sys_slist_get(&idle_waiters))) {
+#if (SCM2010)
+		_CONTAINER_OF_(n, struct bt_mesh_proxy_idle_cb, n)->cb();
+#else
 		CONTAINER_OF(n, struct bt_mesh_proxy_idle_cb, n)->cb();
+#endif
 	}
 }
 

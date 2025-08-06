@@ -17,12 +17,12 @@ config WISE_API_SYSTEM
 
 config WISE_API_TASK_WATCHDOG
 	bool "Enable Wise task watchdog API"
-	default "n"
+	default y
 
 if WISE_API_TASK_WATCHDOG
 config TASK_WATCHDOG_RESET
 	bool "Reset device when expire task watchdog"
-	default "n"
+	default y
 
 config CMD_TASK_WATCHDOG_TEST
 	bool "Task watchdog test command"

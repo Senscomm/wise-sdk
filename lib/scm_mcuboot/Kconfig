@@ -62,11 +62,11 @@ config SCM2010_OTA_PRIMARY_SLOT_OFFSET
 
 config SCM2010_OTA_SECONDARY_SLOT_OFFSET
 	hex "MCUboot application image secondary slot offset"
-	default 0x80200000
+	default 0x80220000
 
 config SCM2010_OTA_SLOT_SIZE
 	hex "MCUboot application image slot size (in bytes)"
-	default 0x180000
+	default 0x1A0000
 
 config SCM2010_OTA_SCRATCH_OFFSET
 	hex "MCUboot scratch partition offset"

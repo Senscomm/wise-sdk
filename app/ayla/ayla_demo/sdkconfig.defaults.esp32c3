@@ -1,0 +1,47 @@
+#
+# Copyright 2022 Ayla Networks, Inc.  All rights reserved.
+#
+# The configuration for ESP32c3.
+#
+
+#
+# Backward compatible with versions prior to v1.13.
+#
+# If a new product is started, it strongly recommends to delete all compatible
+# configurations. If there are already products on the market, just upgrade
+# the agent to solve bugs or add new functions, please keep it.
+#
+#CONFIG_PARTITION_TABLE_CUSTOM_FILENAME="ayla_flash_partitions.csv"
+
+#
+# The optimized the stack size.
+#
+CONFIG_ESP_IPC_TASK_STACK_SIZE=1024
+CONFIG_ESP_MAIN_TASK_STACK_SIZE=4000
+CONFIG_ESP_SYSTEM_EVENT_TASK_STACK_SIZE=4096
+CONFIG_ESP_TIMER_TASK_STACK_SIZE=2050
+CONFIG_FREERTOS_IDLE_TASK_STACKSIZE=1500
+CONFIG_LWIP_TCPIP_TASK_STACK_SIZE=4600
+CONFIG_MDNS_TASK_STACK_SIZE=2400
+
+#
+# The BT configurations for ESP32c3.
+#
+CONFIG_BT_CTRL_LPCLK_SEL_MAIN_XTAL=y
+CONFIG_BT_CTRL_LPCLK_SEL_RTC_SLOW=n
+CONFIG_BT_CTRL_MODEM_SLEEP_MODE_1=y
+CONFIG_BT_CTRL_MODEM_SLEEP=y
+CONFIG_BT_CTRL_SLEEP_CLOCK_EFF=1
+CONFIG_BT_CTRL_SLEEP_MODE_EFF=1
+CONFIG_BT_NIMBLE_ENABLE_CONN_REATTEMPT=n
+CONFIG_BT_NIMBLE_HOST_BASED_PRIVACY=y
+CONFIG_BT_NIMBLE_HS_FLOW_CTRL_ITVL=1000
+CONFIG_BT_NIMBLE_HS_FLOW_CTRL_THRESH=2
+CONFIG_BT_NIMBLE_HS_FLOW_CTRL_TX_ON_DISCONNECT=y
+CONFIG_BT_NIMBLE_HS_FLOW_CTRL=y
+
+#
+# Keeps compatible with the old version sdkconfig.defaults.esp32c3
+#
+CONFIG_ESPTOOLPY_FLASHMODE_QIO=y
+CONFIG_LWIP_DNS_SUPPORT_MDNS_QUERIES=n

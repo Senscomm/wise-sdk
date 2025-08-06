@@ -35,9 +35,9 @@ void mtx_destroy(struct mtx*);
 __ilm__
 #endif
 static inline void
-mtx_lock(struct mtx* mutex)
+mtx_lock(struct mtx* mt)
 {
-	osMutexAcquire(mutex->mid, osWaitForever);
+	osMutexAcquire(mt->mid, osWaitForever);
 }
 
 
@@ -45,16 +45,16 @@ mtx_lock(struct mtx* mutex)
 __ilm__
 #endif
 static inline void
-mtx_unlock(struct mtx* mutex)
+mtx_unlock(struct mtx* mt)
 {
-	osMutexRelease(mutex->mid);
+	osMutexRelease(mt->mid);
 }
 
 
 static inline int
-mtx_owned(struct mtx* mutex)
+mtx_owned(struct mtx* mt)
 {
-	return osMutexGetOwner(mutex->mid) == osThreadGetId();
+	return osMutexGetOwner(mt->mid) == osThreadGetId();
 }
 
 

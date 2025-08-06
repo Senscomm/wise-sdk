@@ -44,7 +44,7 @@ config API_SCMCHANNEL
 
 config API_WATCHER
     bool "Include Senscomm WATCHER APIs"
-	default y
+	default n
 	depends on PM_SCM2010
 	help
 	 Include Senscomm WATCHER APIs in SDK
@@ -60,7 +60,7 @@ endif # API_WIFI
 
 config CLI_WIFI
 	bool "Include Wi-FI CLIs for API testing"
-	default y
+	default n
 	depends on API_WIFI
 	help
 	 Include Wi-Fi CLIs in SDK
@@ -71,34 +71,34 @@ menu "Wi-Fi CLI"
 
 config CLI_WIFI_STA
 	bool "Include Wi-Fi STA CLIs for API testing"
-	default y
+	default n
 	help
 	 Include Wi-Fi STA CLIs in SDK
 
 config CLI_WIFI_SOFTAP
 	bool "Include Wi-Fi SAP CLIs for API testing"
-	default y
+	default n
 	select API_SOFTAP
 	help
 	 Include Wi-Fi SAP CLIs in SDK
 
 config CLI_WIFI_WATCHER
 	bool "Include Wi-Fi WATCHER CLIs for API testing"
-	default y
+	default n
 	depends on API_WATCHER
 	help
 	 Include Wi-Fi WATCHER CLIs in SDK
 
 config CLI_WIFI_SCAN
 	bool "Include Wi-Fi SCAN CLIs for API testing"
-	default y
+	default n
 	select API_SCAN
 	help
 	 Include Wi-Fi SCAN CLIs in SDK
 
 config CLI_WIFI_DHCP
 	bool "Include WI-FI DHCP CLIs for API Testing"
-	default y
+	default n
 	help
 	 Include Wi-Fi DHCP CLIs for API Testing
 
@@ -143,7 +143,7 @@ config API_PM
 config CLI_PM
 	bool "Include PM CLIs for API testing"
 	depends on API_PM
-	default y
+	default n
 	help
 	 Include PM CLIs in SDK
 
@@ -177,7 +177,7 @@ config CLI_GPIO
 
 config API_CRYPTO
 	bool "Include CRYPTO APIs"
-	default n
+	default y
 	help
 	 Include CRYPTO APIs in SDK
 
@@ -283,7 +283,7 @@ config CLI_PTA
 config API_WDT
 	bool "Include Watchdog APIs"
 	depends on WDT
-	default n
+	default y
 	help
 	 Include Watchdog APIs in SDK
 

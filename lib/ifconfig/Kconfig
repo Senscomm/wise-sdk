@@ -17,7 +17,7 @@ config IFCONFIG_SSID
 
 config IFCONFIG_CHANNEL
 	bool "channel"
-	default n
+	default y
 	select NET80211_IOC_CURCHAN
 
 config IFCONFIG_AUTHMODE
@@ -26,19 +26,19 @@ config IFCONFIG_AUTHMODE
 
 config IFCONFIG_POWERSAVE
 	bool "powersave/-powersave/powersavelseep"
-	default n
+	default y
 
 config IFCONFIG_HE_LTF_GI
 	bool "heltfgi/-heltfgi"
-	default n
+	default y
 
 config IFCONFIG_WME_FIX_AC
 	bool "wme/-wme"
-	default n
+	default y
 
 config IFCONFIG_RTSTHRESHOLD
 	bool "rtsthreshold"
-	default n
+	default y
 
 config IFCONFIG_PROTMODE
 	bool "protmode"
@@ -46,7 +46,7 @@ config IFCONFIG_PROTMODE
 
 config IFCONFIG_TXPOEWR
 	bool "txpower"
-	default n
+	default y
 
 config IFCONFIG_BSSID
 	bool "bssid/ap"
@@ -54,7 +54,7 @@ config IFCONFIG_BSSID
 
 config IFCONFIG_SCAN
 	bool "scan/-scan"
-	default n
+	default y
 
 config IFCONFIG_WMM
 	bool "[bss:]cwmin/cwmax/aifs/txoplimit"

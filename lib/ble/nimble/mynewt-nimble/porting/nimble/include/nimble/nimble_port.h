@@ -36,6 +36,8 @@ int nimble_port_deinit(void);
 
 void nimble_port_stop(void);
 
+bool nimble_port_is_stopped(void);
+
 void nimble_port_run(void);
 
 struct ble_npl_eventq *nimble_port_get_dflt_eventq(void);

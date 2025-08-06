@@ -2,7 +2,7 @@ menu "HTTP Server"
 
 config LIB_HTTPD
 	bool "Support http server"
-	default n
+	default y
 	select LIB_HTTP_PARSER
 	help
 	Say y to enable http server

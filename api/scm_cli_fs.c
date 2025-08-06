@@ -212,10 +212,16 @@ static int scm_cli_fs_cexist(int argc, char *argv[])
 
 static int scm_cli_fs_clrall(int argc, char *argv[])
 {
-    if (argc != 1)
+    char *ns = NULL;
+
+    if (argc > 2)
         return CMD_RET_USAGE;
 
-    if (scm_fs_clear_all_config_value() < 0)
+    if (argc == 2) {
+        ns = argv[1];
+    }
+
+    if (scm_fs_clear_all_config_value(ns) < 0)
         return CMD_RET_FAILURE;
 
     return CMD_RET_SUCCESS;
@@ -262,5 +268,6 @@ CMD(fs, do_fs,
         "fs cwrite <ns> <key> <val>" OR
         "fs cread <ns> <key>" OR
         "fs crm <ns> <key>" OR
+        "fs clrall (<ns>)" OR
         "fs cexist <ns> <key>"
    );

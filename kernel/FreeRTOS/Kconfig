@@ -322,7 +322,7 @@ config TIMER_TASK_PRIORITY
 
 config TIMER_TASK_STACK_SIZE
        int
-       default 1024
+       default 2048
 
 config TIMER_QUEUE_LENGTH
        int
@@ -405,7 +405,7 @@ endif
 
 config MEM_HEAP_EXT
     bool
-    default n
+    default y
 
 config CHECK_FOR_STACK_OVERFLOW
        int

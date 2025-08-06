@@ -460,7 +460,7 @@ config SUPPORT_NODE_STATS
 
 config SUPPORT_IF_STATS
 	bool
-	default y
+	default n
 	help
 	 Say y to enable getting statistics per ifnet via ioctl
 

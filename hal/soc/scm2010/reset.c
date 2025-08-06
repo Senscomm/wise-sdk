@@ -52,6 +52,9 @@ void c_startup(void);
 static void c_startup_common(void)
 {
 	__memset(VMA(bss), 0, SSIZE(bss));
+#ifdef CONFIG_USE_KERNEL_BSS_DEFAULT_SECTION
+	__memset(VMA(kernel), 0, SSIZE(kernel));
+#endif
 #ifdef CONFIG_SUPPORT_NODE_POOL
 	__memset(VMA(nodebss), 0, SSIZE(nodebss));
 #endif

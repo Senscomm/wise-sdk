@@ -312,6 +312,11 @@ SECTIONS
     } > IRQDSHM
 #endif
 
+    .kernel (NOLOAD) : ALIGN(4)
+    {
+        *(.kernel)
+    } > EXTRAM1
+
     .heap_ext1 (NOLOAD) : ALIGN(16)
     {
 #ifdef CONFIG_HEAP_AUTO_SIZE
@@ -427,6 +432,7 @@ SECTIONS
     EXPORT_SECTION_INFO(irqdbin, .irqd_bin);
     EXPORT_SECTION_INFO(irqdshm, .irqd_shm);
 #endif
+    EXPORT_SECTION_INFO(kernel,  .kernel);
     EXPORT_SECTION_INFO(heapext1,.heap_ext1);
     EXPORT_SECTION_INFO(heapext2,.heap_ext2);
 #else

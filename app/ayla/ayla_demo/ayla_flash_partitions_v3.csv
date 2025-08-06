@@ -1,0 +1,53 @@
+#
+# Copyright 2022 Ayla Networks, Inc.  All rights reserved.
+#
+
+#
+# To save factory calibration data for the module.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+phy_init,    data, phy,      0xf000,   0x001000
+
+#
+# The Ayla critical parameters.
+#
+# The parameters are written once at the factory and helpful to avoid
+# reconfiging when the product is repared.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+nvs_id,      data, nvs,      0x010000, 0x002000
+nvs_id_keys, data, nvs_keys, 0x012000, 0x001000, encrypted
+nvs_keys,    data, nvs_keys, 0x013000, 0x001000, encrypted
+
+#
+# NVS storage to persist configurations.
+#
+# If the application also needs the partition to store data, it can be
+# extended.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+nvs,         data, nvs,      0x014000, 0x060000
+
+#
+# Unused space.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+#,           ,     ,         0x074000, 0x012000
+
+#
+# For debugging purposes.
+#
+# Unless Flash is very tight, it is highly recommended to keep the two
+# partitions.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+log_snap,    data, nvs,	     0x086000, 0x008000, encrypted
+coredump,    data, coredump, 0x08e000, 0x010000, encrypted
+
+#
+# Firmware partitions.
+#
+# Name,      Type, SubType,  Offset,   Size,     Flags
+otadata,     data, ota,      0x09e000, 0x002000
+ota_0,       app,  ota_0,    0x0a0000, 0x1b0000
+ota_1,       app,  ota_1,    0x250000, 0x1b0000

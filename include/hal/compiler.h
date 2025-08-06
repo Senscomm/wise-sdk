@@ -31,6 +31,11 @@
 #define __xip_boot__    __section(".xip.boot")
 #define __xip__ 	    __section(".xip.text")
 #define __iram__ 	    __section(".iram.text")
+#ifdef CONFIG_USE_KERNEL_BSS_DEFAULT_SECTION
+#define __kernel__      __section(".kernel")
+#else
+#define __kernel__      __section(".bss")
+#endif
 #ifdef CONFIG_BUILD_ROM
 #define __dram__ 	    __section(".iram.data")
 #define __dconst__

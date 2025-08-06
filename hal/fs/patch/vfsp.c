@@ -334,3 +334,8 @@ int os_format(const char * pathname)
 
     return ret;
 }
+
+int __wrap_remove(const char *pathname)
+{
+    return os_remove(pathname);
+}

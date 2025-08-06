@@ -427,6 +427,11 @@ struct {								\
 		(head)->stqh_last = &STAILQ_FIRST((head));		\
 } while (0)
 
+#define	STAILQ_REMOVE_HEAD_UNTIL(head, elm, field) do {			\
+	if ((STAILQ_FIRST((head)) = STAILQ_NEXT((elm), field)) == NULL)	\
+		(head)->stqh_last = &STAILQ_FIRST((head));		\
+} while (0)
+
 #define STAILQ_SWAP(head1, head2, type) do {				\
 	QUEUE_TYPEOF(type) *swap_first = STAILQ_FIRST(head1);		\
 	QUEUE_TYPEOF(type) **swap_last = (head1)->stqh_last;		\

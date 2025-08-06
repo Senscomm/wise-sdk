@@ -64,7 +64,11 @@ static struct friend_adv {
 	uint16_t app_idx;
 } adv_pool[FRIEND_BUF_COUNT];
 
+#if (SCM2010)
+#define FRIEND_ADV(buf) _CONTAINER_OF_(BT_MESH_ADV(buf), struct friend_adv, adv)
+#else
 #define FRIEND_ADV(buf) CONTAINER_OF(BT_MESH_ADV(buf), struct friend_adv, adv)
+#endif
 
 static struct bt_mesh_adv *adv_alloc(int id)
 {

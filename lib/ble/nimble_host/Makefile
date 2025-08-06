@@ -27,7 +27,7 @@ ccflags-y += -I$(srctree)/lib/tinycrypt/lib/include
 ccflags-y += -I$(srctree)/include/FreeRTOS
 
 # defines
-ccflags-y += -DSCM2010
+ccflags-y += -DSCM2010=1
 ccflags-y += -DNIMBLE_CFG_HOST
 
 # static assert

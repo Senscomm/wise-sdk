@@ -145,6 +145,12 @@ nimble_port_stop(void)
 {
 	ble_npl_eventq_put(&g_eventq_dflt, &g_stop_ev);
 }
+
+bool
+nimble_port_is_stopped(void)
+{
+    return g_port_run == 0;
+}
 #endif
 
 #if NIMBLE_CFG_CONTROLLER

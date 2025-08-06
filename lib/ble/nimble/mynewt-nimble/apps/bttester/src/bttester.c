@@ -274,7 +274,11 @@ static uint8_t *recv_cb(uint8_t *buf, size_t *off)
 		return buf;
 	}
 
+#if (SCM2010)
+	old_buf = _CONTAINER_OF_(buf, struct btp_buf, data);
+#else
 	old_buf = CONTAINER_OF(buf, struct btp_buf, data);
+#endif
 	os_eventq_put(cmds_queue, old_buf->ev);
 
 	new_buf = new_ev->ev_arg;

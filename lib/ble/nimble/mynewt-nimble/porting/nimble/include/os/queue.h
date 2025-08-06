@@ -108,6 +108,13 @@ extern "C" {
  *
  */
 
+#if (SCM2010)
+/* To avoid name crashes */
+
+#include <freebsd/sys/queue.h>
+
+#else
+
 /*
  * Singly-linked List declarations.
  */
@@ -415,6 +422,8 @@ struct {								\
 		(head)->tqh_last = (elm)->field.tqe_prev;		\
 	*(elm)->field.tqe_prev = TAILQ_NEXT((elm), field);		\
 } while (0)
+
+#endif /* SCM2010 */
 
 /*
  * Circular queue declarations.
