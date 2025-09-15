@@ -879,12 +879,12 @@ int scm_wifi_sta_connect_advance(void)
 			if (strcmp((char *)config.sta.ssid, pst_results[loop].ssid) != 0)
 				continue;
 
-		memcpy(req.ssid, config.sta.ssid, strlen((char *)config.sta.ssid));
-		memcpy(req.key, config.sta.password, strlen((char *)config.sta.password));
+			memcpy(req.ssid, config.sta.ssid, strlen((char *)config.sta.ssid));
+			memcpy(req.key, config.sta.password, strlen((char *)config.sta.password));
 			req.auth = pst_results[loop].auth;
-		req.pairwise = SCM_WIFI_PAIRWISE_AES;
-		scm_wifi_sta_set_config(&req, NULL);
-		ret = scm_wifi_sta_connect();
+			req.pairwise = SCM_WIFI_PAIRWISE_AES;
+			scm_wifi_sta_set_config(&req, NULL);
+			ret = scm_wifi_sta_connect();
 		}
 	}
 	free(pst_results);
