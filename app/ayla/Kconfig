@@ -17,4 +17,12 @@ config AYLA_LOCAL_CONTROL_SUPPORT
 	bool "Ayla Local Control support"
 	default y
 
+config AYLA_SYSTEM_PARTITION_ADDR
+    hex "Ayla System Partition Address"
+    default 0x80014000
+
+config AYLA_SYSTEM_PARTITION_SIZE
+    int "Ayla System Partition Size"
+    default 4096
+
 endmenu
