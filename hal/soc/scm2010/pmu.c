@@ -415,6 +415,20 @@ void pmu_ctlr_aon(uint8_t flag)
 #endif
 }
 
+int pmu_status_done(void)
+{
+	uint32_t v;
+
+	/* wait PICL_OK */
+	v = readl(PMU_BASE_ADDR + PMU_DLCPD_IFR_OFFSET);
+	if ((v & PMU_DLCPD_IFR_SCU_OK_F) && (v & PMU_DLCPD_IFR_SCU_OK_F)) {
+		writel(v, PMU_BASE_ADDR + PMU_DLCPD_IFR_OFFSET);
+		return 1;
+	}
+
+	return 0;
+}
+
 #ifdef CONFIG_CMD_PMU
 
 #include <cli.h>
@@ -457,6 +471,67 @@ static int do_pmu_write(int argc, char *argv[])
 	return CMD_RET_SUCCESS;
 }
 
+/* Note: All wakeup source will be disabled, except for SW wakeup */
+static void pmu_ioldo_mode(uint32_t on)
+{
+	uint32_t v;
+	if (on) {
+		printf("Turn ON IOLDO\n");
+		pmu_indirect_write(0x0108, WAKEUP_TO_ACTIVE);
+
+		// SW trigger to wake up
+		v = readl(SMU(LOWPOWER_CTRL));
+		v |= 1 << 30 | 1 << 10;  // trigger SW wake up
+		writel(v, SMU(LOWPOWER_CTRL));
+
+		while (1) {
+			if (pmu_status_done()) {
+				break;
+			}
+		}
+
+		v = readl(SMU(LOWPOWER_CTRL));
+		v &= ~(1 << 30);  // clear SW wake up
+		writel(v, SMU(LOWPOWER_CTRL));
+
+	} else {
+		printf("Turn OFF IOLDO\n");
+		pmu_indirect_write(0x010A, ACTIVE_TO_ACTIVE_IO_OFF);
+
+		// Disable all wake up source , except for SW wake up
+		v = readl(SMU(LOWPOWER_CTRL));
+		v &= (~0x7FF); // clear bit[10:0]
+		v |= 1 << 10;  // enable SW wake up only
+		writel(v, SMU(LOWPOWER_CTRL));
+		v |= 1 << 31; // trigger IOLDO off
+		writel(v, SMU(LOWPOWER_CTRL));
+
+		while (1) {
+			if (pmu_status_done()) {
+				break;
+			}
+		}
+	}
+}
+
+static int do_pmu_ioldo(int argc, char *argv[])
+{
+	uint32_t val;
+
+	if (argc != 2) {
+		return CMD_RET_USAGE;
+	}
+	val = strtoul(argv[1], NULL, 16);
+	if (val && val != 1) {
+		return CMD_RET_USAGE;
+	}
+
+	pmu_ioldo_mode(val);
+
+	return CMD_RET_SUCCESS;
+}
+
+
 static int do_pmu_dump(int argc, char *argv[])
 {
 	uint32_t addr;
@@ -485,6 +560,7 @@ static int do_pmu_dump(int argc, char *argv[])
 static const struct cli_cmd pmu_cmd[] = {
 	CMDENTRY(read, do_pmu_read, "", ""),
 	CMDENTRY(write, do_pmu_write, "", ""),
+	CMDENTRY(ioldo, do_pmu_ioldo, "", ""),
 	CMDENTRY(dump, do_pmu_dump, "", ""),
 };
 
@@ -507,6 +583,7 @@ CMD(pmu, do_pmu,
 		"CLI commands for PMU",
 		"pmu read [addr]" OR
 		"pmu write [addr] [val]" OR
+		"pmu ioldo [0:off/1:on]" OR
 		"pmu dump"
 	);
 
