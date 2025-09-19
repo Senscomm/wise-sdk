@@ -1,7 +1,6 @@
 /out
 /platform/build_ver.h
 /scripts
-/include/generated
 cscope.*
 tags*
 mktags.sh
