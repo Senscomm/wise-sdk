@@ -253,8 +253,8 @@ validation_done:
 
 	if (!dp->factory_config_valid) {
 		/* invalid factory config */
-		static uint8_t dacBuf[1024];
-		MutableByteSpan dacSpan(dacBuf);
+		uint8_t* dacBuf = new uint8_t[1024];
+		MutableByteSpan dacSpan(dacBuf, 1024);
 		chip_err = FactoryProvider.GetDeviceAttestationCert(dacSpan);
 		if (chip_err == CHIP_NO_ERROR)
 		{
@@ -267,8 +267,8 @@ validation_done:
 		dp->dac_pub_key = ByteSpan(dp->dac_pub_key_buf, pub_key.Length());
 		ExtractVIDPIDFromX509Cert(dp->dac, dac_vid_pid);
 
-		static uint8_t cdBuf[1024];
-		MutableByteSpan cdSpan(cdBuf);
+		uint8_t* cdBuf = new uint8_t[1024];
+		MutableByteSpan cdSpan(cdBuf, 1024);
 		chip_err = FactoryProvider.GetCertificationDeclaration(cdSpan);
 		if (chip_err == CHIP_NO_ERROR)
 		{
