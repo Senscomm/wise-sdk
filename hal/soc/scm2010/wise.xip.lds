@@ -1,5 +1,13 @@
 #include "wise.lds.h"
 
+#if defined(CONFIG_N22_ONLY) && !defined(CONFIG_SUPPORT_SCDC)
+/* Allow more memory to be available for user application(s)
+   in case of standalone builds.
+   Please note that it might hurt performance, e.g., throughput.
+*/
+#define MAX_USER_MEMORY
+#endif
+
 #ifndef CONFIG_RRAM_MEM_EXTEND
     _buffer_deduction = 0;
 #else
@@ -277,11 +285,13 @@ SECTIONS
     } > DLM
 
 #ifdef CONFIG_SUPPORT_NODE_POOL
+#ifndef MAX_USER_MEMORY
     .node.data (NOLOAD) : ALIGN(4)
     {
         *(.node.data)
         . = ALIGN(4);
     } > DLM
+#endif
 #endif
 
     .stack (NOLOAD) : ALIGN(16)
@@ -325,6 +335,16 @@ SECTIONS
         *(.heap_ext1)
 #endif
     } > EXTRAM1
+
+#ifdef CONFIG_SUPPORT_NODE_POOL
+#ifdef MAX_USER_MEMORY
+    .node.data (NOLOAD) : ALIGN(4)
+    {
+        *(.node.data)
+        . = ALIGN(4);
+    } > EXTRAM2
+#endif
+#endif
 
     .dma (NOLOAD) : ALIGN(16)
     {
