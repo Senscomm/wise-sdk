@@ -139,6 +139,7 @@ int scm_i2c_configure(enum scm_i2c_idx idx, struct scm_i2c_cfg *cfg, scm_i2c_not
 	i2c_cfg.role = (enum i2c_role)cfg->role;
 	i2c_cfg.addr_len = (enum i2c_addr_len)cfg->addr_len;
 	i2c_cfg.bitrate = cfg->bitrate;
+    i2c_cfg.skip_address = cfg->skip_address;
 	i2c_cfg.slave_addr = cfg->slave_addr;
 	i2c_cfg.dma_en = cfg->dma_en;
 	i2c_cfg.pull_up_en = cfg->pull_up_en;

@@ -54,6 +54,7 @@ struct scm_i2c_cfg {
 	enum scm_i2c_role role;         /* master or slave */
 	enum scm_i2c_addr_len addr_len; /* addressing length */
 	uint32_t bitrate;               /* target bitrate in bps */
+    uint8_t skip_address;           /* skip address in master mode */
 	uint16_t slave_addr;            /* used for slave mode only */
 	uint8_t dma_en;                 /* use of the DMA */
 	uint8_t pull_up_en;             /* use of the internal pull up */

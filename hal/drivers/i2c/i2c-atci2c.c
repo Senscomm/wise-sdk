@@ -119,6 +119,7 @@ struct i2c_driver_data {
 	struct device *dev;
 	struct pinctrl_pin_map *pin_scl;
 	struct pinctrl_pin_map *pin_sda;
+    uint8_t skip_address;
 	enum i2c_role role;
 	uint8_t dma_en;
 	uint8_t *tx_buf;
@@ -271,7 +272,7 @@ static int i2c_master_start(struct device *dev)
 	atci2c_writel(v, OFT_ATCI2C_INTEN);
 
 	v = I2C_ATCI2C_CTRL_PHASE_START | \
-		I2C_ATCI2C_CTRL_PHASE_ADDR | \
+		(priv->skip_address ? 0 : I2C_ATCI2C_CTRL_PHASE_ADDR) | \
 		I2C_ATCI2C_CTRL_PHASE_DATA | \
 		stop_phase | \
 		trans_dir |
@@ -779,6 +780,7 @@ static int atci2c_i2c_configure(struct device *dev, struct i2c_cfg *cfg, i2c_cb 
 	priv->cb_ctx = ctx;
 	priv->dma_en = cfg->dma_en;
 	priv->role = cfg->role;
+    priv->skip_address = cfg->skip_address;
 
 	return 0;
 }

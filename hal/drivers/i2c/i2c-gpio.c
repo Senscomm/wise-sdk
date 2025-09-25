@@ -19,6 +19,7 @@ struct i2c_gpio_driver_data {
 	struct device *dev;
 	uint8_t pin_scl;
 	uint8_t pin_sda;
+    uint8_t skip_address;
 
 	struct i2c_event event;
 	i2c_cb cb;
@@ -47,13 +48,20 @@ static uint8_t i2c_gpio_read_input(uint8_t pin)
 	return gpio_get_value(pin);
 }
 
-static int i2c_gpio_start(struct device *dev, uint8_t addr)
+static int i2c_gpio_start(struct device *dev)
 {
 	struct i2c_gpio_driver_data *priv = dev->driver_data;
 
 	i2c_gpio_set_low(priv->pin_sda);
 	udelay(I2C_GPIO_DELAY/2);
 	i2c_gpio_set_low(priv->pin_scl);
+
+    return 0;
+}
+
+static int i2c_gpio_addr(struct device *dev, uint8_t addr)
+{
+	struct i2c_gpio_driver_data *priv = dev->driver_data;
 	return i2c_gpio_tx_byte(priv, addr);
 }
 
@@ -183,14 +191,21 @@ static void i2c_cmpl(struct device *dev, enum i2c_event_type evt)
 
 static int i2c_gpio_master_tx(struct device *dev, uint16_t addr, uint8_t *tx_buf, uint32_t tx_len)
 {
+	struct i2c_gpio_driver_data *priv = dev->driver_data;
 	int ret;
 
-	addr = addr << 1;
+    ret = i2c_gpio_start(dev);
+    if (ret) {
+        goto done;
+    }
 
-	ret = i2c_gpio_start(dev, addr);
-	if (ret) {
-		goto done;
-	}
+    if (!priv->skip_address) {
+        addr = addr << 1;
+        ret = i2c_gpio_addr(dev, addr);
+        if (ret) {
+            goto done;
+        }
+    }
 
 	ret = i2c_gpio_send(dev, tx_buf, tx_len);
 
@@ -205,14 +220,23 @@ done:
 
 static int i2c_gpio_master_rx(struct device *dev, uint16_t addr, uint8_t *rx_buf, uint32_t rx_len)
 {
+	struct i2c_gpio_driver_data *priv = dev->driver_data;
 	int ret;
 
-	addr = (addr << 1) | 0x1;
+    ret = i2c_gpio_start(dev);
+    if (ret) {
+        goto done;
+    }
 
-	ret = i2c_gpio_start(dev, addr);
-	if (ret) {
-		goto done;
-	}
+    if (!priv->skip_address) {
+
+        addr = (addr << 1) | 0x1;
+
+        ret = i2c_gpio_addr(dev, addr);
+        if (ret) {
+            goto done;
+        }
+    }
 
 	ret = i2c_gpio_recv(dev, rx_buf, rx_len);
 
@@ -240,6 +264,7 @@ static int i2c_gpio_configure(struct device *dev, struct i2c_cfg *cfg, i2c_cb cb
 
 	priv->cb = cb;
 	priv->ctx = ctx;
+    priv->skip_address = cfg->skip_address;
 
 	return 0;
 }

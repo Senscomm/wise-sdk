@@ -82,12 +82,12 @@ static void bp5758d_regiater_channel(enum bp5758d_channel channel, enum bp5758d_
 	g_ctx->mapping_addr[channel] = pin;
 }
 
-static int send_i2c(uint16_t addr, uint8_t *value, uint32_t len)
+static int send_i2c(uint8_t *value, uint32_t len)
 {
 	int ret = 0;
 
 #ifdef CONFIG_API_I2C
-	ret = scm_i2c_master_tx(SCM_I2C_IDX_GPIO, addr, value, len, 0);
+	ret = scm_i2c_master_tx(SCM_I2C_IDX_GPIO, 0, value, len, 0);
 #endif
 
 	return ret;
@@ -95,7 +95,8 @@ static int send_i2c(uint16_t addr, uint8_t *value, uint32_t len)
 
 int bp5758d_init(void)
 {
-	uint8_t value[16];
+	struct scm_i2c_cfg cfg = {0,};
+	uint8_t value[17];
 
 	if (g_ctx) {
 		printf("Already initialized\n");
@@ -114,21 +115,25 @@ int bp5758d_init(void)
 	bp5758d_regiater_channel(BP5758D_CHANNEL_W, BP5758D_PIN_OUT4);
 	bp5758d_regiater_channel(BP5758D_CHANNEL_C, BP5758D_PIN_OUT5);
 
-	memset(value, 0, 16);
+	memset(value, 0, 17);
 
-	value[0] = BP5758D_ENABLE_ALL_OUT;
-
-	value[1] = 14;
+	value[0] = BP5758D_ADDR_SETUP;
+	value[1] = BP5758D_ENABLE_ALL_OUT;
 	value[2] = 14;
 	value[3] = 14;
 	value[4] = 14;
 	value[5] = 14;
+	value[6] = 14;
 
 #ifdef CONFIG_API_I2C
 	scm_i2c_init(SCM_I2C_IDX_GPIO);
+    cfg.skip_address = 1;
+    scm_i2c_configure(SCM_I2C_IDX_GPIO, &cfg, NULL, NULL);
+#else
+    (void)cfg;
 #endif
 
-	return send_i2c(BP5758D_ADDR_SETUP, value, sizeof(value));
+	return send_i2c(value, sizeof(value));
 }
 
 int bp5758d_deinit(void)
@@ -148,14 +153,15 @@ int bp5758d_deinit(void)
 
 int bp5758d_shutdown(void)
 {
-    uint8_t value[10] = { 0 };
+    uint8_t value[11] = { 0 };
 
-	return send_i2c(BP5758D_ADDR_SETUP, value, sizeof(value));
+    value[0] = BP5758D_ADDR_SETUP;
+	return send_i2c(value, sizeof(value));
 }
 
 int bp5758d_set_standby(bool enable)
 {
-	uint8_t value;
+	uint8_t value[2];
 	int ret;
 
 	if (check_initialized() < 0) {
@@ -163,19 +169,22 @@ int bp5758d_set_standby(bool enable)
 	}
 
 	if (enable) {
-		value = BP5758D_DISABLE_ALL_OUT;
+        value[0] = BP5758D_ADDR_SETUP;
+		value[1] = BP5758D_DISABLE_ALL_OUT;
 
-		ret = send_i2c(BP5758D_ADDR_SETUP, &value, 1);
+		ret = send_i2c(value, 2);
 		if (!ret) {
-			ret = send_i2c(BP5758D_ADDR_SLEEP, NULL, 0);
+            value[0] = BP5758D_ADDR_SLEEP;
+			ret = send_i2c(value, 1);
 		}
 
 		if (!ret) {
 			g_ctx->sleep_mode = true;
 		}
 	} else {
-		value = BP5758D_ENABLE_ALL_OUT;
-		ret = send_i2c(BP5758D_ADDR_SETUP, &value, 1);
+        value[0] = BP5758D_ADDR_SETUP;
+		value[1] = BP5758D_ENABLE_ALL_OUT;
+		ret = send_i2c(value, 2);
 		if (!ret) {
 			g_ctx->sleep_mode = false;
 		}
@@ -190,7 +199,7 @@ int bp5758d_set_standby(bool enable)
 
 int bp5758d_set_current(uint8_t rgb_current, uint8_t cw_current)
 {
-	uint8_t value[5];
+	uint8_t value[6];
 	int ret;
 
 	if (check_initialized() < 0) {
@@ -220,18 +229,19 @@ int bp5758d_set_current(uint8_t rgb_current, uint8_t cw_current)
 		}
 	}
 
-	value[0] = g_ctx->rgb_current;
+	value[0] = BP5758D_ADDR_OUT1_CR;
 	value[1] = g_ctx->rgb_current;
 	value[2] = g_ctx->rgb_current;
-	value[3] = g_ctx->cw_current;
+	value[3] = g_ctx->rgb_current;
 	value[4] = g_ctx->cw_current;
+	value[5] = g_ctx->cw_current;
 
-	return send_i2c(BP5758D_ADDR_OUT1_CR, value, sizeof(value));
+	return send_i2c(value, 6);
 }
 
 int bp5758d_set_channel(enum bp5758d_channel channel, uint16_t ch_value)
 {
-	uint8_t value[2] = { 0, };
+	uint8_t value[3] = { 0, };
 	uint8_t addr;
 	int ret;
 
@@ -247,17 +257,18 @@ int bp5758d_set_channel(enum bp5758d_channel channel, uint16_t ch_value)
 		}
 	}
 
-	value[0] = (ch_value & 0x1F);
-	value[1] = (ch_value >> 5);
+	value[1] = (ch_value & 0x1F);
+	value[2] = (ch_value >> 5);
 
 	addr = get_mapping_addr(channel);
+	value[0] = addr;
 
-	return send_i2c(addr, value, sizeof(value));
+	return send_i2c(value, 3);
 }
 
 int bp5758d_set_rgb_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b)
 {
-	uint8_t value[6] = { 0, };
+	uint8_t value[7] = { 0, };
 	int ret;
 
 	if (check_initialized() < 0) {
@@ -272,21 +283,22 @@ int bp5758d_set_rgb_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b
 		}
 	}
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_R]  * 2 + 0] = value_r & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_R]  * 2 + 1] = value_r >> 5;
+    value[0] = BP5758D_ADDR_OUT1_GL;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_R] * 2 + 0] = value_r & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_R] * 2 + 1] = value_r >> 5;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_G]  * 2 + 0] = value_g & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_G]  * 2 + 1] = value_g >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_G] * 2 + 0] = value_g & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_G] * 2 + 1] = value_g >> 5;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_B]  * 2 + 0] = value_b & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_B]  * 2 + 1] = value_b >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_B] * 2 + 0] = value_b & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_B] * 2 + 1] = value_b >> 5;
 
-	return send_i2c(BP5758D_ADDR_OUT1_GL, value, sizeof(value));
+	return send_i2c(value, 7);
 }
 
 int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w)
 {
-	uint8_t value[4] = { 0, };
+	uint8_t value[5] = { 0, };
 	int ret;
 
 	if (check_initialized() < 0) {
@@ -301,19 +313,20 @@ int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w)
 		}
 	}
 
-	value[(g_ctx->mapping_addr[BP5758D_CHANNEL_W] - BP5758D_PIN_OUT4) * 2 + 0] = value_w & 0x1F;
-	value[(g_ctx->mapping_addr[BP5758D_CHANNEL_W] - BP5758D_PIN_OUT4) * 2 + 1] = value_w >> 5;
+    value[0] = BP5758D_ADDR_OUT4_GL;
+	value[1 + (g_ctx->mapping_addr[BP5758D_CHANNEL_W] - BP5758D_PIN_OUT4) * 2 + 0] = value_w & 0x1F;
+	value[1 + (g_ctx->mapping_addr[BP5758D_CHANNEL_W] - BP5758D_PIN_OUT4) * 2 + 1] = value_w >> 5;
 
-	value[(g_ctx->mapping_addr[BP5758D_CHANNEL_C] - BP5758D_PIN_OUT4) * 2 + 0] = value_c & 0x1F;
-	value[(g_ctx->mapping_addr[BP5758D_CHANNEL_C] - BP5758D_PIN_OUT4) * 2 + 1] = value_c >> 5;
+	value[1 + (g_ctx->mapping_addr[BP5758D_CHANNEL_C] - BP5758D_PIN_OUT4) * 2 + 0] = value_c & 0x1F;
+	value[1 + (g_ctx->mapping_addr[BP5758D_CHANNEL_C] - BP5758D_PIN_OUT4) * 2 + 1] = value_c >> 5;
 
-	return send_i2c(BP5758D_ADDR_OUT4_GL, value, sizeof(value));
+	return send_i2c(value, 5);
 }
 
 int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b, uint16_t value_c, uint16_t value_w)
 {
 
-	uint8_t value[10] = { 0, };
+	uint8_t value[11] = { 0, };
 	int ret;
 
 	if (check_initialized() < 0) {
@@ -327,22 +340,24 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 		}
 	}
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_R]  * 2 + 0] = value_r & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_R]  * 2 + 1] = value_r >> 5;
+    value[0] = BP5758D_ADDR_OUT1_GL;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_G]  * 2 + 0] = value_g & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_G]  * 2 + 1] = value_g >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_R] * 2 + 0] = value_r & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_R] * 2 + 1] = value_r >> 5;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_B]  * 2 + 0] = value_b & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_B]  * 2 + 1] = value_b >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_G] * 2 + 0] = value_g & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_G] * 2 + 1] = value_g >> 5;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_W]  * 2 + 0] = value_w & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_W]  * 2 + 1] = value_w >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_B] * 2 + 0] = value_b & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_B] * 2 + 1] = value_b >> 5;
 
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_C]  * 2 + 0] = value_c & 0x1F;
-	value[g_ctx->mapping_addr[BP5758D_CHANNEL_C]  * 2 + 1] = value_c >> 5;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_W] * 2 + 0] = value_w & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_W] * 2 + 1] = value_w >> 5;
 
-	ret = send_i2c(BP5758D_ADDR_OUT1_GL, value, sizeof(value));
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_C] * 2 + 0] = value_c & 0x1F;
+	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_C] * 2 + 1] = value_c >> 5;
+
+	ret = send_i2c(value, 11);
 	if (ret) {
 		return ret;
 	}

@@ -82,6 +82,7 @@ struct i2c_cfg {
 	enum i2c_role role;
 	enum i2c_addr_len addr_len;
 	uint32_t bitrate; /* Kbps */
+    uint8_t skip_address;
 	uint16_t slave_addr;
 	uint8_t dma_en;
 	uint8_t pull_up_en;
