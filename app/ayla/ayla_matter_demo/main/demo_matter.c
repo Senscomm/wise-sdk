@@ -7,10 +7,10 @@
  * Ayla Networks, Inc.
  */
 #include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
 #include <FreeRTOS.h>
-#ifdef __no_stub__
-#include <driver/gpio.h>
-#endif /* __no_stub__ */
 #include <queue.h>
 #include <task.h>
 
@@ -28,13 +28,14 @@
 
 #include "app_int.h"
 
-#ifdef __no_stub__
-#define GPIO_LED		    GPIO_NUM_4
-#define GPIO_BOOT_BUTTON	GPIO_NUM_0
+#include "scm_gpio.h"
+#include "bp5758d.h"
+#include "gpio_types.h"
 
-#define GPIO_OUTPUT_PIN_SEL	(1ULL<<GPIO_LED)
-#define GPIO_INPUT_PIN_SEL	(1ULL<<GPIO_BOOT_BUTTON)
-#endif /* __no_stub__ */
+#define GPIO_OUTPUT_PIN_SEL	\
+    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_GREEN_LED) | BIT64(GPIO_LINK_LED))
+
+#define GPIO_INPUT_PIN_SEL	BIT64(GPIO_BOOT_BUTTON)
 
 #define DEMO_ENDPOINT_SWITCH	1
 
@@ -50,7 +51,9 @@ enum demo_queue_event {
 
 static char version[] = APP_NAME " " BUILD_STRING;
 char template_version[] = DEMO_TEMPLATE_VERSION;
-static u8 led;
+static u8 boot_button;
+static u8 blue_led;
+static u8 green_led;
 static int input;
 static int output;
 static int decimal_in;
@@ -141,6 +144,81 @@ static const uint8_t demo_test_cert_declaration[539] = {
 	0xca, 0x94, 0x0b
 };
 
+typedef int gpio_num_t;
+
+int gpio_get_level(int gpio)
+{
+	//printf("GPIO: get pin=%d\n", gpio);
+	uint8_t value;
+
+	if (scm_gpio_read((uint32_t)gpio, &value) != WISE_OK) {
+		printf("Error reading GPIO level\n");
+		return -1;
+	}
+	return (int)value;
+}
+
+void gpio_set_level(int gpio, u8 level)
+{
+	printf("GPIO: set pin=%d, level=%d\n", gpio, level);
+	if (scm_gpio_write((uint32_t)gpio, level) != WISE_OK) {
+		printf("Error setting GPIO level\n");
+	}
+	return;
+}
+
+void gpio_config(gpio_config_t *config)
+{
+	for (int pin = 0; pin < 64; pin++) {
+		if (config->pin_bit_mask & (1ULL << pin)) {
+			enum scm_gpio_property property = SCM_GPIO_PROP_INPUT;
+
+			if (config->mode == GPIO_MODE_OUTPUT) {
+				property = SCM_GPIO_PROP_OUTPUT;
+			} else if (config->pull_up_en) {
+				property = SCM_GPIO_PROP_INPUT_PULL_UP;
+			} else if (config->pull_down_en) {
+				property = SCM_GPIO_PROP_INPUT_PULL_DOWN;
+			}
+
+			if (scm_gpio_configure(pin, property) != WISE_OK) {
+				printf("Error configuring GPIO pin %d\n", pin);
+			}
+		}
+	}
+	return;
+}
+
+static void set_led(gpio_num_t gpio_num, u8 on)
+{
+	/*
+	 * LEDs are active low.
+	 *
+	 * GPIO_pin--resistor--LED--VCC
+	 */
+	if (on) {
+		if (GPIO_BLUE_LED == gpio_num) {
+			printf("Blue set ON\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_B, 20);
+		} else if (GPIO_GREEN_LED == gpio_num) {
+			printf("Green set ON\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_G, 20);
+		}
+
+		gpio_set_level(gpio_num, 0);
+	} else {
+		if (GPIO_BLUE_LED == gpio_num) {
+			printf("Blue set OFF\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_B, 0);
+		} else if (GPIO_GREEN_LED == gpio_num) {
+			printf("Green set OFF\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_G, 0);
+		}
+
+		gpio_set_level(gpio_num, 1);
+	}
+}
+
 static enum ada_err demo_sync_to_matter(u8 on_off)
 {
 	enum ada_err err;
@@ -159,16 +237,15 @@ static enum ada_err demo_sync_to_cloud(u8 on_off)
 {
 	enum ada_err err = AE_OK;
 	log_put(LOG_DEBUG "%s: From matter %d", __func__, on_off);
-	if (led != on_off) {
-		log_put(LOG_INFO "%s: Set LED to %d",
+	if (blue_led != on_off) {
+		log_put(LOG_INFO "%s: Set Blue LED to %d",
 		    __func__, on_off);
-		led = on_off;
-#ifdef __no_stub__
+		blue_led = on_off;
 		gpio_set_level(GPIO_LED, on_off);
-#endif /* __no_stub__ */
-		err = ada_sprop_send_by_name("led");
+		bp5758d_set_channel(BP5758D_CHANNEL_B, on_off ? 20 : 0);
+		err = ada_sprop_send_by_name("Blue_LED");
 		if (err) {
-			log_put(LOG_ERR "%s: send led: err %d",
+			log_put(LOG_ERR "%s: send blue_led: err %d",
 			    __func__, err);
 		}
 	}
@@ -198,13 +275,15 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 	if (ret) {
 		return ret;
 	}
+    if (sprop->val == &blue_led) {
+		set_led(GPIO_BLUE_LED, blue_led);
+	} else {
+		set_led(GPIO_GREEN_LED, green_led);
+	}
 
-	log_put(LOG_INFO "%s on_off %u", __func__, led);
-#ifdef __no_stub__
-	gpio_set_level(GPIO_LED, led);
-#endif /* __no_stub__ */
+	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
 
-	demo_write_notify_event(led);
+	demo_write_notify_event(blue_led);
 
 	return AE_OK;
 }
@@ -263,7 +342,11 @@ static struct ada_sprop demo_props[] = {
 	/*
 	 * boolean properties. It associates with a LED and a button.
 	 */
-	{ "led", ATLV_BOOL, &led, sizeof(led),
+	{ "Blue_button", ATLV_BOOL, &boot_button, sizeof(boot_button),
+		ada_sprop_get_bool, NULL},
+	{ "Blue_LED", ATLV_BOOL, &blue_led, sizeof(blue_led),
+		ada_sprop_get_bool, demo_led_set },
+	{ "Green_LED", ATLV_BOOL, &green_led, sizeof(green_led),
 		ada_sprop_get_bool, demo_led_set },
 	/*
 	 * Integer properties.
@@ -317,38 +400,6 @@ static void demo_matter_event_cb(enum adm_event_id id)
 
 static void demo_gpio_init(void)
 {
-#ifdef __no_stub__
-	gpio_config_t io_conf;
-
-	memset(&io_conf, 0, sizeof(io_conf));
-	/*disable interrupt*/
-	io_conf.intr_type = GPIO_INTR_DISABLE;
-	/*set as output mode*/
-	io_conf.mode = GPIO_MODE_OUTPUT;
-	/*bit mask of the pins that you want to set*/
-	io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
-	/*enable pull-down mode*/
-	io_conf.pull_down_en = GPIO_PULLDOWN_ENABLE;
-	/*disable pull-up mode*/
-	io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
-	/*configure GPIO with the given settings*/
-	gpio_config(&io_conf);
-
-	gpio_set_level(GPIO_LED, 0);
-
-	memset(&io_conf, 0, sizeof(io_conf));
-	/*disable interrupt, query pin level in idle loop*/
-	io_conf.intr_type = GPIO_INTR_DISABLE;
-	/*set as input mode*/
-	io_conf.mode = GPIO_MODE_INPUT;
-	/*bit mask of the pins that you want to set*/
-	io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
-	/*disable pull-down mode*/
-	io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
-	/*enable pull-up mode*/
-	io_conf.pull_up_en = GPIO_PULLUP_ENABLE;
-	gpio_config(&io_conf);
-#endif /* __no_stub__ */
 	log_put(LOG_INFO "%s: Init completed", __func__);
 }
 
@@ -415,13 +466,14 @@ void demo_init(void)
 
 	ada_sprop_mgr_register("demo_matter",
 	    demo_props, ARRAY_LEN(demo_props));
+
 }
 
 static void demo_button_toggle(unsigned long pressed, unsigned long released)
 {
 	if (pressed && ((released - pressed) > 50)) {
 		log_put(LOG_INFO "Button pressed more than 50ms");
-		demo_write_notify_event(!led);
+		demo_write_notify_event(!blue_led);
 	}
 }
 
@@ -432,9 +484,23 @@ void demo_idle(void)
 	uint32_t event;
 	enum ada_err err;
 	uint32_t retry_count = 0;
+	gpio_config_t io_conf;
+
+	io_conf.intr_type = GPIO_INTR_DISABLE;
+	io_conf.mode = GPIO_MODE_OUTPUT;
+	io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+	io_conf.pull_down_en = 0;
+	io_conf.pull_up_en = 0;
+
+	gpio_config(&io_conf);
 
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
+
+	/* start with all LEDs to off */
+	set_led(GPIO_BLUE_LED, 0);
+	set_led(GPIO_GREEN_LED, 0);
+	set_led(GPIO_LINK_LED, 0);
 
 	while (1) {
 #ifdef __no_stub__
