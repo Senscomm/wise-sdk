@@ -109,9 +109,13 @@ int bp5758d_init(void)
 		return -1;
 	}
 
-	bp5758d_regiater_channel(BP5758D_CHANNEL_B, BP5758D_PIN_OUT1);
+	/*
+	 * Configure channel-to-pin mapping according to different LED module hardware
+	 * This configuration corresponds to the SkyLighting LED module
+	 */
+	bp5758d_regiater_channel(BP5758D_CHANNEL_B, BP5758D_PIN_OUT3);
 	bp5758d_regiater_channel(BP5758D_CHANNEL_G, BP5758D_PIN_OUT2);
-	bp5758d_regiater_channel(BP5758D_CHANNEL_R, BP5758D_PIN_OUT3);
+	bp5758d_regiater_channel(BP5758D_CHANNEL_R, BP5758D_PIN_OUT1);
 	bp5758d_regiater_channel(BP5758D_CHANNEL_W, BP5758D_PIN_OUT4);
 	bp5758d_regiater_channel(BP5758D_CHANNEL_C, BP5758D_PIN_OUT5);
 
