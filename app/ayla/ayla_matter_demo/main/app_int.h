@@ -18,6 +18,12 @@
 #define DEMO_OEM_MODEL	        "" /* may be set to your OEM model name */
 #define DEMO_TEMPLATE_VERSION   "demo_matter 1.1" /* demo template version */
 
+#define GPIO_BLUE_LED		19
+#define GPIO_GREEN_LED		18
+#define GPIO_LINK_LED		16
+#undef  GPIO_RGB_LED
+#define GPIO_BOOT_BUTTON	0
+#define GPIO_LED            GPIO_BLUE_LED
 /**
  * \brief Demo app initialization.
  */

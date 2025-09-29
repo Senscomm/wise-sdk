@@ -103,11 +103,13 @@ int bp5758d_init(void)
 		return -1;
 	}
 
-	g_ctx = zalloc(sizeof(struct bp5758d_ctx));
+	g_ctx = malloc(sizeof(struct bp5758d_ctx));
 	if (!g_ctx) {
 		printf("Not enough resource\n");
 		return -1;
 	}
+
+    memset(g_ctx, 0, sizeof(*g_ctx));
 
 	/*
 	 * Configure channel-to-pin mapping according to different LED module hardware
