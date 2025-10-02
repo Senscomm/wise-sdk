@@ -12,6 +12,8 @@
 
 #include <ayla/log.h>
 #include <ada/libada.h>
+#include <ada/client.h>
+#include <ada/sched.h>
 #include <adm/adm_cli.h>
 
 #include "app_common.h"
@@ -42,6 +44,12 @@ static int demo_client_start(void)
 
     cf->mac_addr = mac;
     cf->hw_id = hw_id;
+
+	/*
+	 * Load config for individual modules
+	 */
+	sched_conf_load();
+
     cf->enable = 1;
     cf->get_all = 1;
 
@@ -50,6 +58,21 @@ static int demo_client_start(void)
         log_put(LOG_ERR "ADA init failed");
         return -1;
     }
+
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT
+	/*
+	 * Enable local control access.
+	 */
+	rc = ada_client_lc_up();
+	if (rc) {
+		log_put(LOG_ERR "ADA local control up failed");
+	}
+#endif
+
+	/*
+	 * Start schedule activities.
+	 */
+	ada_sched_enable();
 
     return 0;
 }
