@@ -31,6 +31,38 @@
 BOOT_LOG_MODULE_DECLARE(mcuboot);
 
 #if defined(MCUBOOT_SWAP_USING_SCRATCH) || defined(MCUBOOT_SWAP_USING_MOVE)
+
+int
+swap_erase_scratch_trailer_sectors(const struct boot_loader_state *state,
+                                   const struct flash_area *fap)
+{
+    uint32_t sector;
+    uint32_t trailer_sz;
+    uint32_t total_sz;
+    uint32_t off;
+    uint32_t sz;
+    int rc;
+
+    BOOT_LOG_DBG("erasing trailer; fa_id=%d", flash_area_get_id(fap));
+
+    /* delete starting from last sector and moving to beginning */
+    sector = state->scratch.num_sectors - 1;
+    trailer_sz = boot_trailer_sz(BOOT_WRITE_SZ(state));
+    total_sz = 0;
+    do {
+        sz = flash_sector_get_size(&state->scratch.sectors[sector]);
+        off = flash_sector_get_off(&state->scratch.sectors[sector]) -
+            flash_sector_get_off(&state->scratch.sectors[0]);
+        rc = boot_erase_region(fap, off, sz);
+        assert(rc == 0);
+
+        sector--;
+        total_sz += sz;
+    } while (total_sz < trailer_sz);
+
+    return rc;
+}
+
 int
 swap_erase_trailer_sectors(const struct boot_loader_state *state,
                            const struct flash_area *fap)
@@ -58,6 +90,8 @@ swap_erase_trailer_sectors(const struct boot_loader_state *state,
         slot = BOOT_PRIMARY_SLOT;
     } else if (flash_area_get_id(fap) == fa_id_secondary) {
         slot = BOOT_SECONDARY_SLOT;
+    } else if (flash_area_get_id(fap) == FLASH_AREA_IMAGE_SCRATCH) {
+        return swap_erase_scratch_trailer_sectors(state, fap);
     } else {
         return BOOT_EFLASH;
     }
@@ -130,10 +164,10 @@ swap_status_init(const struct boot_loader_state *state,
 int
 swap_read_status(struct boot_loader_state *state, struct boot_status *bs)
 {
-    const struct flash_area *fap;
-    uint32_t off;
+    const struct flash_area *fap, *dst_fap;
+    uint32_t off, src_trailer_off, dst_trailer_off, trailer_sz;
     uint8_t swap_info;
-    int area_id;
+    int area_id, dest_id;
     int rc;
 
     bs->source = swap_status_source(state);
@@ -144,11 +178,13 @@ swap_read_status(struct boot_loader_state *state, struct boot_status *bs)
 #if MCUBOOT_SWAP_USING_SCRATCH
     case BOOT_STATUS_SOURCE_SCRATCH:
         area_id = FLASH_AREA_IMAGE_SCRATCH;
+        dest_id = FLASH_AREA_IMAGE_PRIMARY(BOOT_CURR_IMG(state));
         break;
 #endif
 
     case BOOT_STATUS_SOURCE_PRIMARY_SLOT:
         area_id = FLASH_AREA_IMAGE_PRIMARY(BOOT_CURR_IMG(state));
+        dest_id = FLASH_AREA_IMAGE_SCRATCH;
         break;
 
     default:
@@ -176,6 +212,29 @@ swap_read_status(struct boot_loader_state *state, struct boot_status *bs)
 
         /* Extract the swap type info */
         bs->swap_type = BOOT_GET_SWAP_TYPE(swap_info);
+    }
+
+    if (bs->swap_type != BOOT_SWAP_TYPE_NONE) {
+        /* Restore (potentially) removed trailer from the redundant. */
+        rc = flash_area_open(dest_id, &dst_fap);
+        assert(rc == 0);
+
+        src_trailer_off = boot_status_off(fap);
+        dst_trailer_off = boot_status_off(dst_fap);
+
+        trailer_sz = boot_trailer_sz(flash_area_align(dst_fap));
+        if (trailer_sz < boot_trailer_sz(flash_area_align(fap))) {
+            trailer_sz = boot_trailer_sz(flash_area_align(fap));
+        }
+
+        rc = swap_erase_trailer_sectors(state, dst_fap);
+        assert(rc == 0);
+
+        rc = boot_copy_region(state, fap, dst_fap,
+                    src_trailer_off, dst_trailer_off, trailer_sz);
+        assert(rc == 0);
+
+        flash_area_close(dst_fap);
     }
 
     flash_area_close(fap);

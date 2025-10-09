@@ -190,6 +190,10 @@ boot_slots_compatible(struct boot_loader_state *state)
 
 #ifndef MCUBOOT_OVERWRITE_ONLY
     scratch_sz = boot_scratch_area_size(state);
+    /* The trailer must be counted as it will always be there
+     * to provide redundancy.
+     */
+    scratch_sz -= boot_trailer_sz(BOOT_WRITE_SZ(state));
 #endif
 
     /*
@@ -290,7 +294,7 @@ static const struct boot_status_table boot_status_tables[] = {
          * ----------------------------------------'
          */
         .bst_magic_primary_slot =     BOOT_MAGIC_GOOD,
-        .bst_magic_scratch =          BOOT_MAGIC_NOTGOOD,
+        .bst_magic_scratch =          BOOT_MAGIC_ANY,
         .bst_copy_done_primary_slot = BOOT_FLAG_SET,
         .bst_status_source =          BOOT_STATUS_SOURCE_NONE,
     },
@@ -450,6 +454,9 @@ boot_copy_sz(const struct boot_loader_state *state, int last_sector_idx,
     sz = 0;
 
     scratch_sz = boot_scratch_area_size(state);
+    /* A trailer will always be reserved for redundancy.
+     */
+    scratch_sz -= boot_trailer_sz(BOOT_WRITE_SZ(state));
     for (i = last_sector_idx; i >= 0; i--) {
         new_sz = sz + boot_img_sector_size(state, BOOT_PRIMARY_SLOT, i);
         /*
@@ -494,7 +501,6 @@ boot_swap_sectors(int idx, uint32_t sz, struct boot_loader_state *state,
     uint32_t scratch_trailer_off;
     struct boot_swap_state swap_state;
     size_t last_sector;
-    bool erase_scratch;
     uint8_t image_index;
     int rc;
 
@@ -536,14 +542,19 @@ boot_swap_sectors(int idx, uint32_t sz, struct boot_loader_state *state,
 
     if (bs->state == BOOT_STATUS_STATE_0) {
         BOOT_LOG_DBG("erasing scratch area");
-        rc = boot_erase_region(fap_scratch, 0, flash_area_get_size(fap_scratch));
+
+        /* The trailer must be retained to be able to enable recovery from Unexpected reset
+         * in the future.
+         */
+        rc = boot_erase_region(fap_scratch, 0, flash_area_get_size(fap_scratch) - trailer_sz);
         assert(rc == 0);
 
         if (bs->idx == BOOT_STATUS_IDX_0) {
-            /* Write a trailer to the scratch area, even if we don't need the
-             * scratch area for status.  We need a temporary place to store the
-             * `swap-type` while we erase the primary trailer.
+            /* Prepare the scratch status area.
              */
+            rc = swap_erase_trailer_sectors(state, fap_scratch);
+            assert(rc == 0);
+
             rc = swap_status_init(state, fap_scratch, bs);
             assert(rc == 0);
 
@@ -556,11 +567,6 @@ boot_swap_sectors(int idx, uint32_t sz, struct boot_loader_state *state,
                 assert(rc == 0);
 
                 rc = swap_status_init(state, fap_primary_slot, bs);
-                assert(rc == 0);
-
-                /* Erase the temporary trailer from the scratch area. */
-                rc = boot_erase_region(fap_scratch, 0,
-                        flash_area_get_size(fap_scratch));
                 assert(rc == 0);
             }
         }
@@ -643,23 +649,12 @@ boot_swap_sectors(int idx, uint32_t sz, struct boot_loader_state *state,
             assert(rc == 0);
         }
 
-        /* If we wrote a trailer to the scratch area, erase it after we persist
-         * a trailer to the primary slot.  We do this to prevent mcuboot from
-         * reading a stale status from the scratch area in case of immediate
-         * reset.
-         */
-        erase_scratch = bs->use_scratch;
         bs->use_scratch = 0;
 
         rc = boot_write_status(state, bs);
         bs->idx++;
         bs->state = BOOT_STATUS_STATE_0;
         BOOT_STATUS_ASSERT(rc == 0);
-
-        if (erase_scratch) {
-            rc = boot_erase_region(fap_scratch, 0, sz);
-            assert(rc == 0);
-        }
     }
 
     flash_area_close(fap_primary_slot);
@@ -678,6 +673,7 @@ swap_run(struct boot_loader_state *state, struct boot_status *bs,
     int last_idx_secondary_slot;
     uint32_t primary_slot_size;
     uint32_t secondary_slot_size;
+
     primary_slot_size = 0;
     secondary_slot_size = 0;
     last_sector_idx = 0;
@@ -713,7 +709,21 @@ swap_run(struct boot_loader_state *state, struct boot_status *bs,
 
 #ifdef CONFIG_SCM_MCUBOOT
     extern int boot_set_copy_size(uint32_t copy_sz);
-    boot_set_copy_size(copy_size);
+    do {
+        uint32_t pending_sz = copy_size;
+        int tmp_last = last_sector_idx;
+        int tmp_first;
+        swap_idx = 0;
+        while (tmp_last >= 0) {
+            sz = boot_copy_sz(state, tmp_last, &tmp_first);
+            if (swap_idx < (bs->idx - BOOT_STATUS_IDX_0)) {
+                pending_sz -= sz;
+            }
+            tmp_last = tmp_first - 1;
+            swap_idx++;
+        }
+        boot_set_copy_size(pending_sz);
+    } while (0);
 #endif
 
     swap_idx = 0;
@@ -722,7 +732,6 @@ swap_run(struct boot_loader_state *state, struct boot_status *bs,
         if (swap_idx >= (bs->idx - BOOT_STATUS_IDX_0)) {
             boot_swap_sectors(first_sector_idx, sz, state, bs);
         }
-
         last_sector_idx = first_sector_idx - 1;
         swap_idx++;
     }

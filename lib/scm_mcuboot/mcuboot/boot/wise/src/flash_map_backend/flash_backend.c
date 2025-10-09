@@ -112,6 +112,8 @@ __initcall__(subsystem, flash_init);
 #define WISE_BASE_ADDRESS               CONFIG_SCM2010_OTA_PRIMARY_SLOT_OFFSET
 #define WISE_OTA_ADDRESS                CONFIG_SCM2010_OTA_SECONDARY_SLOT_OFFSET
 #define WISE_SIZE                       CONFIG_SCM2010_OTA_SLOT_SIZE
+#define WISE_SCRATCH_ADDRESS            CONFIG_SCM2010_OTA_SCRATCH_OFFSET
+#define WISE_SCRATCH_SIZE               CONFIG_SCM2010_OTA_SCRATCH_SIZE
 #define XYZM_BUFSZ                      1024
 
 #include <cli.h>
@@ -156,6 +158,9 @@ static int do_flash_update(int argc, char *argv[])
     } else if (!strcmp(name, "ota")) {
         start = WISE_OTA_ADDRESS;
         slot_size = WISE_SIZE;
+    } else if (!strcmp(name, "scratch")) {
+        start = WISE_SCRATCH_ADDRESS;
+        slot_size = WISE_SCRATCH_SIZE;
     } else {
         return CMD_RET_USAGE;
     }
@@ -241,6 +246,9 @@ static int do_flash_erase(int argc, char *argv[])
     } else if (!strcmp(name, "ota")) {
         start = WISE_OTA_ADDRESS;
         slot_size = WISE_SIZE;
+    } else if (!strcmp(name, "scratch")) {
+        start = WISE_SCRATCH_ADDRESS;
+        slot_size = WISE_SCRATCH_SIZE;
     } else {
         return CMD_RET_USAGE;
     }
@@ -291,5 +299,6 @@ CMD(flash, do_flash,
         "\tboot (RAM build only)\n"
         "\twise\n"
         "\tota\n"
+        "\tscratch\n"
    );
 #endif
