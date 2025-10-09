@@ -3,7 +3,7 @@ menu "eFuse Support"
 config EFUSE
 	bool "Enable eFuse driver"
 	help
-	  Enable driver model for eFuse HW. 
+	  Enable driver model for eFuse HW.
 
 if EFUSE
 
@@ -23,7 +23,7 @@ if EFUSE_BUFFER_MODE
 
 config EFUSE_FLASH_BUFFER_ADDR
     hex "Buffer address in serial flash"
-    default 0x80013000
+    default 0x80015000
 
 endif
 

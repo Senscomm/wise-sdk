@@ -81,6 +81,14 @@ static struct flash_device_s *g_flash_devices[] = {
     &g_scratch_priv,
 };
 
+//KJW - test
+#if 0
+#include <stdbool.h>
+#include "hal/timer.h"
+static bool is_boot_status = false;
+extern uint32_t boot_status_off(const struct flash_area *fap);
+#endif
+
 static int aligned_write(const uint8_t *buf, uint32_t start_addr, int len)
 {
     uint32_t offset;
@@ -124,6 +132,18 @@ static int aligned_write(const uint8_t *buf, uint32_t start_addr, int len)
         unaligned_size = min(remain, esize - unaligned_offset);
 
         memcpy(eblock + unaligned_offset, buf, unaligned_size);
+
+//KJW - test
+#if 0
+if (is_boot_status) {
+    int i;
+    for (i = 0; i < 30; i++) {
+        printf(".");
+        udelay(10000);
+    }
+    printf("\n");
+}
+#endif
 
         if (flash_backend_write(rw_addr, eblock, esize) < 0) {
             ret = -1;
@@ -366,6 +386,15 @@ int flash_area_write(const struct flash_area *fa, uint32_t off,
     uint32_t addr;
     int ret;
 
+//KJW - test
+#if 0
+//    printf("[%s, %d] off: %d, status_off: %d\n", __func__, __LINE__, off, boot_status_off(fa));
+    if (off >= boot_status_off(fa)) {
+        is_boot_status = true;
+    } else {
+        is_boot_status = false;
+    }
+#endif
     addr = fa->fa_off + off;
 
     BOOT_LOG_INF("ID:%d offset:0x%08x length:0x%x",

@@ -442,42 +442,16 @@ boot_status_is_reset(const struct boot_status *bs)
             bs->state == BOOT_STATUS_STATE_0);
 }
 
-/**
- * Writes the supplied boot status to the flash file system.  The boot status
- * contains the current state of an in-progress image copy operation.
- *
- * @param bs                    The boot status to write.
- *
- * @return                      0 on success; nonzero on failure.
- */
-int
-boot_write_status(const struct boot_loader_state *state, struct boot_status *bs)
+static int
+boot_write_status_fa(int area_id, const struct boot_loader_state *state,
+        struct boot_status *bs)
 {
     const struct flash_area *fap;
     uint32_t off;
-    int area_id;
     int rc = 0;
     uint8_t buf[BOOT_MAX_ALIGN];
     uint8_t align;
     uint8_t erased_val;
-
-    /* NOTE: The first sector copied (that is the last sector on slot) contains
-     *       the trailer. Since in the last step the primary slot is erased, the
-     *       first two status writes go to the scratch which will be copied to
-     *       the primary slot!
-     */
-
-#if MCUBOOT_SWAP_USING_SCRATCH
-    if (bs->use_scratch) {
-        /* Write to scratch. */
-        area_id = FLASH_AREA_IMAGE_SCRATCH;
-    } else {
-#endif
-        /* Write to the primary slot. */
-        area_id = FLASH_AREA_IMAGE_PRIMARY(BOOT_CURR_IMG(state));
-#if MCUBOOT_SWAP_USING_SCRATCH
-    }
-#endif
 
     rc = flash_area_open(area_id, &fap);
     if (rc != 0) {
@@ -500,6 +474,40 @@ boot_write_status(const struct boot_loader_state *state, struct boot_status *bs)
 
     return rc;
 }
+
+/**
+ * Writes the supplied boot status to the flash file system.  The boot status
+ * contains the current state of an in-progress image copy operation.
+ *
+ * @param bs                    The boot status to write.
+ *
+ * @return                      0 on success; nonzero on failure.
+ */
+int
+boot_write_status(const struct boot_loader_state *state, struct boot_status *bs)
+{
+    int rc = 0;
+
+    /* NOTE: Write into both primary and scratch slots to achieve redundancy!
+     *       One area will still retain previous state even if power-on-reset happens
+     *       accidentally after one of them have been erased.
+     */
+
+    if (!bs->use_scratch) {
+        rc = boot_write_status_fa(FLASH_AREA_IMAGE_PRIMARY(BOOT_CURR_IMG(state)), state, bs);
+        if (rc != 0) {
+            return BOOT_EFLASH;
+        }
+    }
+
+    rc = boot_write_status_fa(FLASH_AREA_IMAGE_SCRATCH, state, bs);
+    if (rc != 0) {
+        return BOOT_EFLASH;
+    }
+
+    return rc;
+}
+
 #endif /* !MCUBOOT_RAM_LOAD */
 #endif /* !MCUBOOT_DIRECT_XIP */
 

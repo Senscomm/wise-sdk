@@ -122,15 +122,12 @@ boot_trailer_sz(uint32_t min_write_sz)
 int
 boot_status_entries(int image_index, const struct flash_area *fap)
 {
-#if MCUBOOT_SWAP_USING_SCRATCH
-    if (flash_area_get_id(fap) == FLASH_AREA_IMAGE_SCRATCH) {
-        return BOOT_STATUS_STATE_COUNT;
-    } else
-#endif
     if (flash_area_get_id(fap) == FLASH_AREA_IMAGE_PRIMARY(image_index) ||
-        flash_area_get_id(fap) == FLASH_AREA_IMAGE_SECONDARY(image_index)) {
+        flash_area_get_id(fap) == FLASH_AREA_IMAGE_SECONDARY(image_index) ||
+        flash_area_get_id(fap) == FLASH_AREA_IMAGE_SCRATCH) {
         return BOOT_STATUS_STATE_COUNT * BOOT_STATUS_MAX_ENTRIES;
     }
+
     return -1;
 }
 
