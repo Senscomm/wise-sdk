@@ -18,6 +18,12 @@
 #define DEMO_OEM_MODEL	        "" /* may be set to your OEM model name */
 #define DEMO_TEMPLATE_VERSION   "demo_matter 1.1" /* demo template version */
 
+/*
+ * Define the number of active schedules supported.
+ * These can have any valid name, and should be in the template.
+ */
+#define DEMO_SCHED_COUNT	5
+
 #define GPIO_BLUE_LED		19
 #define GPIO_GREEN_LED		18
 #define GPIO_LINK_LED		16
@@ -38,5 +44,7 @@ void demo_idle(void);
  * \brief Initialize the OTA.
  */
 void demo_ota_init(void);
+
+void sched_conf_load(void);
 
 #endif /* __AYLA_APP_H__ */
