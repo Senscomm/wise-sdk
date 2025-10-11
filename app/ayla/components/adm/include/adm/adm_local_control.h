@@ -98,7 +98,11 @@ void emberAfAylaLocalControlClusterInitCallback(EndpointId endpoint);
 void emberAfPluginAylaLocalControlClusterServerPostInitCallback(
     EndpointId endpoint);
 
+#ifndef AYLA_SCM_SUPPORT
 void MatterAylaLocalControlPluginServerInitCallback();
+#else
+extern "C" void MatterAylaLocalControlPluginServerInitCallback();
+#endif
 
 #endif /* __cplusplus */
 

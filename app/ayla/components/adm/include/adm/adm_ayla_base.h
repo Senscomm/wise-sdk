@@ -76,7 +76,11 @@ void emberAfAylaBaseClusterInitCallback(EndpointId endpoint);
 
 void emberAfPluginAylaBaseClusterServerPostInitCallback(EndpointId endpoint);
 
-void MatterAylaBasePluginServerInitCallback();
+#ifndef AYLA_SCM_SUPPORT
+extern void MatterAylaBasePluginServerInitCallback();
+#else
+extern "C" void MatterAylaBasePluginServerInitCallback();
+#endif
 
 #endif /* __cplusplus */
 

@@ -436,6 +436,15 @@ static const struct adm_attribute_change_callback demo_on_off_cb_entry =
 	DEMO_ENDPOINT_SWITCH, ADM_ON_OFF_CID, ADM_ON_OFF_AID,
 	demo_on_off_cb);
 
+extern void MatterAylaBasePluginServerInitCallback();
+extern void MatterAylaLocalControlPluginServerInitCallback();
+
+static void init_ayla_clusters(void)
+{
+    MatterAylaBasePluginServerInitCallback();
+    MatterAylaLocalControlPluginServerInitCallback();
+}
+
 void demo_init(void)
 {
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
@@ -447,6 +456,7 @@ void demo_init(void)
 	AYLA_ASSERT(demo_evt_queue != NULL);
 
 	adm_init();
+    init_ayla_clusters();
 	adm_event_cb_register(demo_matter_event_cb);
 	adm_start(demo_test_cert_declaration,
 	    sizeof(demo_test_cert_declaration));
