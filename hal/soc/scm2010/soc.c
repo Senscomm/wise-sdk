@@ -674,6 +674,53 @@ CMD(reset, do_reset,
 
 #endif
 
+#ifdef CONFIG_CMD_MFG
+
+#include "hal/spi-flash.h"
+
+/**
+  * MFG command for CLI
+  * Make Normal function back to MFG mode
+  * @param: NA
+  * @cmd: mfg
+  * @return
+  *    - CMD_RET_SUCCESS: succeed
+  *    - CMD_RET_USAGE: fail
+  */
+
+int do_mfg(int argc, char *argv[])
+{
+	#define IMAGE_MAGIC_ADDR	CONFIG_SCM2010_OTA_SECONDARY_SLOT_OFFSET
+	#define IMAGE_MAGIC_SIZE	4
+	#define IMAGE_MAGIC_VALUE	0x6d666774
+	#define FLASH_SECTOR_SIZE	4096
+
+	const uint8_t magic[] = {0x74, 0x67, 0x66, 0x6d};
+	uint8_t *eblock = NULL;
+
+	eblock = malloc(FLASH_SECTOR_SIZE);
+	if (eblock == NULL)
+		return CMD_RET_USAGE;
+
+	flash_read(IMAGE_MAGIC_ADDR, (void *)eblock, FLASH_SECTOR_SIZE);
+	flash_erase(IMAGE_MAGIC_ADDR, FLASH_SECTOR_SIZE, 0);
+
+	memcpy(eblock, magic, sizeof(magic));
+	flash_write(IMAGE_MAGIC_ADDR, (void *)eblock, FLASH_SECTOR_SIZE);
+
+	free(eblock);
+
+	return CMD_RET_SUCCESS;
+}
+
+CMD(mfg, do_mfg,
+	"mfg",
+	"mfg"
+);
+
+#endif
+
+
 #ifdef CONFIG_HOSTBOOT
 
 #include <version.h>

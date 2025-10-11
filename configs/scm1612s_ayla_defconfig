@@ -1492,6 +1492,11 @@ CONFIG_EXT_APP=y
 # CONFIG_TEST_VQUEUE is not set
 
 #
+# MFG
+#
+CONFIG_CMD_MFG=y
+
+#
 # Ext Applications
 #
 CONFIG_AYLA=y
