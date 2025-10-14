@@ -43,11 +43,11 @@ config FLASH_BASE_OFFSET
 
 config FLASH_IMAGE_OFFSET
     hex "Flash image offset"
-    default 0x80080000
+    default 0x80018000
 
 config FLASH_IMAGE_SIZE
     hex "Flash image size"
-    default 0x1A0000
+    default 0x1ec000
 
 config SCMBOOT_SECURE
     bool "Add secure scmboot signature"
@@ -120,21 +120,62 @@ config PM_SCM2010
 
 if PM_SCM2010
 
+config PM_ENABLE_HB
+    bool "Enable Hibernation (EXPERIMENTAL)"
+    default n
+	help
+     Must modify below configurations accordingly to build both wise and bootloader.
+     CONFIG_FLASH_IMAGE_OFFSET
+     CONFIG_FLASH_IMAGE_SIZE
+     CONFIG_SCM2010_OTA_PRIMARY_SLOT_OFFSET
+     CONFIG_SCM2010_OTA_SECONDARY_SLOT_OFFSET
+     CONFIG_SCM2010_OTA_SLOT_SIZE
+     CONFIG_SCM2010_OTA_SCRATCH_OFFSET
+     CONFIG_SCM2010_OTA_SCRATCH_SIZE
+
+if PM_ENABLE_HB
+
+menu "Hibernation"
+
 config PM_HIBERNATION_PARTITION_ADDR
 	hex "Hibernation partition address"
-	default 0x80018000
+	default 0
 
 config PM_HIBERNATION_LIMIT_DURATION
     int "Hibernation limit count clear duration (sec)"
-    default 86400
+    default 0
 
 config PM_HIBERNATION_LIMIT_MAX
     int "Hibernation limit count"
-    default 27
+    default 0
 
 config PM_HIBERNATION_VERIFY
     bool "Hibernation content verify"
-    default y
+    default n
+
+endmenu
+
+endif
+
+if !PM_ENABLE_HB
+
+config PM_HIBERNATION_PARTITION_ADDR
+	hex
+	default 0
+
+config PM_HIBERNATION_LIMIT_DURATION
+    int
+    default 0
+
+config PM_HIBERNATION_LIMIT_MAX
+    int
+    default 0
+
+config PM_HIBERNATION_VERIFY
+    bool
+    default n
+
+endif
 
 config PM_RTC_RATIO_INVALID_TIME
     int "Calculated RTC ratio valid time (s)"

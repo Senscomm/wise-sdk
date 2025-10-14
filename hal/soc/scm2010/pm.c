@@ -1544,8 +1544,10 @@ static void pm_para_init(void)
 	ctx->pm_mode_enabled =
 		(1 << PM_MODE_ACTIVE) | \
 		(1 << PM_MODE_LIGHT_SLEEP) | \
-		(1 << PM_MODE_DEEP_SLEEP) | \
-		(1 << PM_MODE_HIBERNATION);
+		(1 << PM_MODE_DEEP_SLEEP);
+#ifdef CONFIG_PM_ENABLE_HB
+    ctx->pm_mode_enabled |= (1 << PM_MODE_HIBERNATION);
+#endif
 	ctx->gpio_enabled = 0;
 
 #ifdef CONFIG_SUPPORT_EXT_RTC
@@ -1900,6 +1902,9 @@ uint8_t pm_query_mode(void)
 
 void pm_enable_mode(uint8_t mode)
 {
+#ifndef CONFIG_PM_ENABLE_HB
+    mode &= ~(1 << PM_MODE_HIBERNATION);
+#endif
 	ctx->pm_mode_enabled |= (1 << mode);
 }
 
