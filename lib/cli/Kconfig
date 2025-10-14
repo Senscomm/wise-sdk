@@ -247,6 +247,12 @@ config CMD_RESET
 	help
 	 Lightweight SW reset w/o Boot ROM or bootloader
 
+config CMD_MFG
+	bool "Re-enable MFG mode"
+	default y
+	help
+	 Re-enable MFG mode
+
 config CMD_PMU
 	bool "PMU command"
 	default n
