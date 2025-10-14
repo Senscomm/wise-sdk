@@ -2282,6 +2282,7 @@ static int scm_cli_help(int argc, char *argv[])
 
 SCM_CLI(help, scm_cli_help, "", NULL);
 
+
 const struct scm_cli *scm_cli_find_cmd(char *cmd, const struct scm_cli *table, int nr)
 {
 	const struct scm_cli *t;

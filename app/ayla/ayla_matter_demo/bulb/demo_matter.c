@@ -1,0 +1,361 @@
+/*
+ * Copyright 2023 Ayla Networks, Inc.  All rights reserved.
+ *
+ * Use of the accompanying software is permitted only in accordance
+ * with and subject to the terms of the Software License Agreement
+ * with Ayla Networks, Inc., a copy of which can be obtained from
+ * Ayla Networks, Inc.
+ */
+#include <string.h>
+#include <stdlib.h>
+#include <stdbool.h>
+
+#include <FreeRTOS.h>
+#include <queue.h>
+#include <task.h>
+
+/* XXX: cmsis_os2 doesn't support xQueuePeek yet. */
+
+#include <app-common/zap-generated/attribute-type.h>
+
+#include <ada/libada.h>
+#include <ada/server_req.h>
+#include <ada/sprop.h>
+#include <adm/adm_csa_numbers.h>
+#include <adm/adm.h>
+#include <ayla/log.h>
+#include <ayla/timer.h>
+
+#include "app_int.h"
+
+#include "bp5758d.h"
+
+#define DEMO_ENDPOINT_SWITCH	1
+
+#define DEMO_SYNC_RETRY_MAX	10
+
+static char version[] = APP_NAME " " BUILD_STRING;
+char template_version[] = DEMO_TEMPLATE_VERSION;
+static char factory_name[] = DEMO_FACTORY_NAME;
+static char purchase_order[] = DEMO_PURCHASE_ORDER;
+static char device_id[] = DEMO_DEVICE_ID;
+static char led_driver[] = DEMO_LED_DRIVER;
+static char device_rename[32];
+static char mode[32];
+static u8 alexa_enabled;
+static u8 google_enable;
+static u8 local_voice_enable;
+static u8 power;
+static int brightness;
+static int color_bright;
+static int color_saturation;
+static int color_select;
+static int color_temp;
+static int wifi_rssi;
+static char log[1024];
+
+static xQueueHandle demo_evt_queue;
+
+/*
+ * Matter Certification Declaration(s).
+ *
+ * TODO: This is current a test certification declaration from the Matter SDK.
+ *
+ * Before certification, this should be replace by provisional CDs issued by
+ * the CSA. There will likely be one for each model.
+ *
+ * After certification and before production release, the final CDs issued by
+ * the CSA must be used.
+ */
+static const uint8_t demo_test_cert_declaration[539] = {
+	0x30, 0x82, 0x02, 0x17, 0x06, 0x09, 0x2a, 0x86,
+	0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x02, 0xa0,
+	0x82, 0x02, 0x08, 0x30, 0x82, 0x02, 0x04, 0x02,
+	0x01, 0x03, 0x31, 0x0d, 0x30, 0x0b, 0x06, 0x09,
+	0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02,
+	0x01, 0x30, 0x82, 0x01, 0x70, 0x06, 0x09, 0x2a,
+	0x86, 0x48, 0x86, 0xf7, 0x0d, 0x01, 0x07, 0x01,
+	0xa0, 0x82, 0x01, 0x61, 0x04, 0x82, 0x01, 0x5d,
+	0x15, 0x24, 0x00, 0x01, 0x25, 0x01, 0xf1, 0xff,
+	0x36, 0x02, 0x05, 0x00, 0x80, 0x05, 0x01, 0x80,
+	0x05, 0x02, 0x80, 0x05, 0x03, 0x80, 0x05, 0x04,
+	0x80, 0x05, 0x05, 0x80, 0x05, 0x06, 0x80, 0x05,
+	0x07, 0x80, 0x05, 0x08, 0x80, 0x05, 0x09, 0x80,
+	0x05, 0x0a, 0x80, 0x05, 0x0b, 0x80, 0x05, 0x0c,
+	0x80, 0x05, 0x0d, 0x80, 0x05, 0x0e, 0x80, 0x05,
+	0x0f, 0x80, 0x05, 0x10, 0x80, 0x05, 0x11, 0x80,
+	0x05, 0x12, 0x80, 0x05, 0x13, 0x80, 0x05, 0x14,
+	0x80, 0x05, 0x15, 0x80, 0x05, 0x16, 0x80, 0x05,
+	0x17, 0x80, 0x05, 0x18, 0x80, 0x05, 0x19, 0x80,
+	0x05, 0x1a, 0x80, 0x05, 0x1b, 0x80, 0x05, 0x1c,
+	0x80, 0x05, 0x1d, 0x80, 0x05, 0x1e, 0x80, 0x05,
+	0x1f, 0x80, 0x05, 0x20, 0x80, 0x05, 0x21, 0x80,
+	0x05, 0x22, 0x80, 0x05, 0x23, 0x80, 0x05, 0x24,
+	0x80, 0x05, 0x25, 0x80, 0x05, 0x26, 0x80, 0x05,
+	0x27, 0x80, 0x05, 0x28, 0x80, 0x05, 0x29, 0x80,
+	0x05, 0x2a, 0x80, 0x05, 0x2b, 0x80, 0x05, 0x2c,
+	0x80, 0x05, 0x2d, 0x80, 0x05, 0x2e, 0x80, 0x05,
+	0x2f, 0x80, 0x05, 0x30, 0x80, 0x05, 0x31, 0x80,
+	0x05, 0x32, 0x80, 0x05, 0x33, 0x80, 0x05, 0x34,
+	0x80, 0x05, 0x35, 0x80, 0x05, 0x36, 0x80, 0x05,
+	0x37, 0x80, 0x05, 0x38, 0x80, 0x05, 0x39, 0x80,
+	0x05, 0x3a, 0x80, 0x05, 0x3b, 0x80, 0x05, 0x3c,
+	0x80, 0x05, 0x3d, 0x80, 0x05, 0x3e, 0x80, 0x05,
+	0x3f, 0x80, 0x05, 0x40, 0x80, 0x05, 0x41, 0x80,
+	0x05, 0x42, 0x80, 0x05, 0x43, 0x80, 0x05, 0x44,
+	0x80, 0x05, 0x45, 0x80, 0x05, 0x46, 0x80, 0x05,
+	0x47, 0x80, 0x05, 0x48, 0x80, 0x05, 0x49, 0x80,
+	0x05, 0x4a, 0x80, 0x05, 0x4b, 0x80, 0x05, 0x4c,
+	0x80, 0x05, 0x4d, 0x80, 0x05, 0x4e, 0x80, 0x05,
+	0x4f, 0x80, 0x05, 0x50, 0x80, 0x05, 0x51, 0x80,
+	0x05, 0x52, 0x80, 0x05, 0x53, 0x80, 0x05, 0x54,
+	0x80, 0x05, 0x55, 0x80, 0x05, 0x56, 0x80, 0x05,
+	0x57, 0x80, 0x05, 0x58, 0x80, 0x05, 0x59, 0x80,
+	0x05, 0x5a, 0x80, 0x05, 0x5b, 0x80, 0x05, 0x5c,
+	0x80, 0x05, 0x5d, 0x80, 0x05, 0x5e, 0x80, 0x05,
+	0x5f, 0x80, 0x05, 0x60, 0x80, 0x05, 0x61, 0x80,
+	0x05, 0x62, 0x80, 0x05, 0x63, 0x80, 0x18, 0x24,
+	0x03, 0x16, 0x2c, 0x04, 0x13, 0x43, 0x53, 0x41,
+	0x30, 0x30, 0x30, 0x30, 0x30, 0x53, 0x57, 0x43,
+	0x30, 0x30, 0x30, 0x30, 0x30, 0x2d, 0x30, 0x30,
+	0x24, 0x05, 0x00, 0x24, 0x06, 0x00, 0x24, 0x07,
+	0x01, 0x24, 0x08, 0x00, 0x18, 0x31, 0x7c, 0x30,
+	0x7a, 0x02, 0x01, 0x03, 0x80, 0x14, 0xfe, 0x34,
+	0x3f, 0x95, 0x99, 0x47, 0x76, 0x3b, 0x61, 0xee,
+	0x45, 0x39, 0x13, 0x13, 0x38, 0x49, 0x4f, 0xe6,
+	0x7d, 0x8e, 0x30, 0x0b, 0x06, 0x09, 0x60, 0x86,
+	0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01, 0x30,
+	0x0a, 0x06, 0x08, 0x2a, 0x86, 0x48, 0xce, 0x3d,
+	0x04, 0x03, 0x02, 0x04, 0x46, 0x30, 0x44, 0x02,
+	0x20, 0x4a, 0x12, 0xf8, 0xd4, 0x2f, 0x90, 0x23,
+	0x5c, 0x05, 0xa7, 0x71, 0x21, 0xcb, 0xeb, 0xae,
+	0x15, 0xd5, 0x90, 0x14, 0x65, 0x58, 0xe9, 0xc9,
+	0xb4, 0x7a, 0x1a, 0x38, 0xf7, 0xa3, 0x6a, 0x7d,
+	0xc5, 0x02, 0x20, 0x20, 0xa4, 0x74, 0x28, 0x97,
+	0xc3, 0x0a, 0xed, 0xa0, 0xa5, 0x6b, 0x36, 0xe1,
+	0x4e, 0xbb, 0xc8, 0x5b, 0xbd, 0xb7, 0x44, 0x93,
+	0xf9, 0x93, 0x58, 0x1e, 0xb0, 0x44, 0x4e, 0xd6,
+	0xca, 0x94, 0x0b
+};
+
+/*
+ * Demo set function for bool properties.
+ */
+static enum ada_err demo_bool_set(struct ada_sprop *sprop,
+		const void *buf, size_t len)
+{
+	enum ada_err ret;
+
+	ret = ada_sprop_set_bool(sprop, buf, len);
+	if (ret) {
+		return ret;
+	}
+
+	log_put(LOG_INFO "%s: %s %u", __func__, sprop->name, *(uint8_t *)sprop->val);
+
+	return AE_OK;
+}
+
+/*
+ * Demo set function for integer and decimal properties.
+ */
+static enum ada_err demo_int_set(struct ada_sprop *sprop,
+		const void *buf, size_t len)
+{
+	enum ada_err ret;
+    int val;
+
+	ret = ada_sprop_set_int(sprop, buf, len);
+	if (ret) {
+		return ret;
+	}
+
+	log_put(LOG_INFO "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
+
+	return AE_OK;
+}
+
+/*
+ * Demo set function for command property.
+ */
+static enum ada_err demo_cmd_set(struct ada_sprop *sprop, const void *buf,
+	size_t len)
+{
+	if (sprop->type != ATLV_UTF8) {
+		return AE_INVAL_TYPE;
+	}
+
+	if (len > sizeof(log) - 1) {
+		len = sizeof(log) - 1;
+	}
+	memcpy(log, buf, len);
+	log[len] = '\0';
+	ada_sprop_send_by_name("log");
+	return AE_OK;
+}
+
+static struct ada_sprop demo_props[] = {
+	/*
+	 * version properties
+	 * oem_host_version is the template version and must be sent first.
+	 */
+	{ "oem_host_version", ATLV_UTF8,
+		template_version, sizeof(template_version),
+		ada_sprop_get_string, NULL},
+	{ "version", ATLV_UTF8, &version[0], sizeof(version),
+		ada_sprop_get_string, NULL},
+	{ "factory_name", ATLV_UTF8,
+		factory_name, sizeof(factory_name),
+		ada_sprop_get_string, NULL},
+	{ "device_id", ATLV_UTF8, &device_id[0], sizeof(device_id),
+		ada_sprop_get_string, NULL},
+	{ "purchase_order", ATLV_UTF8,
+		purchase_order, sizeof(purchase_order),
+		ada_sprop_get_string, NULL},
+	{ "led_driver", ATLV_UTF8, &led_driver[0], sizeof(led_driver),
+		ada_sprop_get_string, NULL},
+	{ "mode", ATLV_UTF8, mode, sizeof(mode),
+		ada_sprop_get_string, NULL},
+	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),
+		ada_sprop_get_string, NULL},
+
+	/*
+	 * boolean properties.
+	 */
+	{ "alexa_enabled", ATLV_BOOL, &alexa_enabled, sizeof(alexa_enabled),
+		ada_sprop_get_bool, demo_bool_set},
+	{ "google_enable", ATLV_BOOL, &google_enable, sizeof(google_enable),
+		ada_sprop_get_bool, demo_bool_set },
+	{ "local_voice_enable", ATLV_BOOL, &local_voice_enable, sizeof(local_voice_enable),
+		ada_sprop_get_bool, demo_bool_set },
+	{ "power", ATLV_BOOL, &power, sizeof(power),
+		ada_sprop_get_bool, demo_bool_set },
+
+	/*
+	 * Integer properties.
+	 */
+	{ "brightness", ATLV_INT, &brightness, sizeof(brightness),
+		ada_sprop_get_int, demo_int_set },
+	{ "color_bright", ATLV_INT, &color_bright, sizeof(color_bright),
+		ada_sprop_get_int, demo_int_set },
+	{ "color_saturation", ATLV_INT, &color_saturation, sizeof(color_saturation),
+		ada_sprop_get_int, demo_int_set },
+	{ "color_select", ATLV_INT, &color_select, sizeof(color_select),
+		ada_sprop_get_int, demo_int_set },
+	{ "color_temp", ATLV_INT, &color_temp, sizeof(color_temp),
+		ada_sprop_get_int, demo_int_set },
+	{ "wifi_rssi", ATLV_INT, &wifi_rssi, sizeof(wifi_rssi),
+		ada_sprop_get_int, demo_int_set },
+
+	/*
+	 * String properties.
+	 */
+	{ "cmd", ATLV_UTF8, "", 0, ada_sprop_get_string, demo_cmd_set },
+	{ "log", ATLV_UTF8, log, sizeof(log), ada_sprop_get_string, NULL },
+};
+
+static void prop_send_by_name(const char *name)
+{
+	enum ada_err err;
+
+	err = ada_sprop_send_by_name(name);
+	if (err) {
+		log_put(LOG_ERR "demo: %s: send of %s: err %d",
+				__func__, name, err);
+	}
+}
+
+static void demo_matter_event_cb(enum adm_event_id id)
+{
+	log_put(LOG_DEBUG "%s %d", __func__, id);
+	switch (id) {
+	case ADM_EVENT_IPV4_UP:
+		ada_client_ip_up();
+		ada_client_health_check_en();
+		break;
+
+	case ADM_EVENT_IPV4_DOWN:
+		ada_client_ip_down();
+		break;
+	default:
+		break;
+	}
+}
+
+extern void MatterAylaBasePluginServerInitCallback();
+extern void MatterAylaLocalControlPluginServerInitCallback();
+
+static void init_ayla_clusters(void)
+{
+    MatterAylaBasePluginServerInitCallback();
+    MatterAylaLocalControlPluginServerInitCallback();
+}
+
+void demo_init(void)
+{
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT
+	int rc;
+#endif
+
+	/* create a queue to handle gpio event from isr */
+	demo_evt_queue = xQueueCreate(10, sizeof(uint32_t));
+	AYLA_ASSERT(demo_evt_queue != NULL);
+
+	adm_init();
+    init_ayla_clusters();
+	adm_event_cb_register(demo_matter_event_cb);
+	adm_start(demo_test_cert_declaration,
+	    sizeof(demo_test_cert_declaration));
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT
+	/*
+	 * Enable local control access.
+	 */
+	rc = ada_client_lc_up();
+	if (rc) {
+		log_put(LOG_ERR "ADA local control up failed");
+		return;
+	}
+#endif
+
+	ada_sprop_mgr_register("demo_matter",
+	    demo_props, ARRAY_LEN(demo_props));
+
+}
+
+void demo_idle(void)
+{
+	uint32_t event;
+	enum ada_err err;
+	uint32_t retry_count = 0;
+
+	prop_send_by_name("oem_host_version");
+	prop_send_by_name("version");
+
+	while (1) {
+		if (xQueuePeek(demo_evt_queue, &event, pdMS_TO_TICKS(10))) {
+			switch (event) {
+			default:
+				log_put(LOG_DEBUG "%s: Ignore event %lu",
+				    __func__, event);
+				err = AE_OK;
+				break;
+			}
+			if (err == AE_OK) {
+				retry_count = 0;
+				xQueueReceive(demo_evt_queue, &event,
+				    portMAX_DELAY);
+			} else if (retry_count >= DEMO_SYNC_RETRY_MAX) {
+				log_put(LOG_WARN "%s: Drop event %ld",
+				    __func__, event);
+				retry_count = 0;
+				xQueueReceive(demo_evt_queue, &event,
+				    portMAX_DELAY);
+			} else {
+				log_put(LOG_DEBUG "%s: handle event %lu error",
+				    __func__, event);
+				retry_count++;
+				vTaskDelay(pdMS_TO_TICKS(50));
+			}
+		}
+	}
+}

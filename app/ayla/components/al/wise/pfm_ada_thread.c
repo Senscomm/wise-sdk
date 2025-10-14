@@ -15,7 +15,7 @@
 
 #include "wise_task_wdt.h"
 
-#define PFM_ADA_MODEL	"AY008ESP1"		/* Integrated Agent model */
+#define PFM_ADA_MODEL	"AY018SNA1"		/* Integrated Agent model */
 
 #define PFM_TASK_WATCHDOG_TIMEOUT		15 /* 15s */
 

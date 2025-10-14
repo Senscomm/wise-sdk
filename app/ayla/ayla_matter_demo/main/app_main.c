@@ -18,7 +18,6 @@
 
 #include "app_common.h"
 #include "app_int.h"
-#include "bp5758d.h"
 
 #include <wise_event_loop.h>
 #include <wise_wifi_types.h>
@@ -82,10 +81,6 @@ void app_main()
     log_init();
 
     printf("\r\n\n%s\r\n", APP_NAME " " BUILD_STRING);
-
-	bp5758d_init();
-
-	bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
 
     ada_client_command_func_register(app_cmd_exec);
     AYLA_ASSERT(demo_client_start() == 0);
