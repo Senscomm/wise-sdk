@@ -58,19 +58,19 @@ menu "OTA partition on the flash"
 
 config SCM2010_OTA_PRIMARY_SLOT_OFFSET
 	hex "MCUboot application image primary slot offset"
-	default 0x80080000
+	default 0x80018000
 
 config SCM2010_OTA_SECONDARY_SLOT_OFFSET
 	hex "MCUboot application image secondary slot offset"
-	default 0x80220000
+	default 0x80204000
 
 config SCM2010_OTA_SLOT_SIZE
 	hex "MCUboot application image slot size (in bytes)"
-	default 0x1A0000
+	default 0x1ec000
 
 config SCM2010_OTA_SCRATCH_OFFSET
 	hex "MCUboot scratch partition offset"
-	default 0x80010000
+	default 0x80011000
 
 config SCM2010_OTA_SCRATCH_SIZE
 	hex "MCUboot scratch partition size (in bytes)"
