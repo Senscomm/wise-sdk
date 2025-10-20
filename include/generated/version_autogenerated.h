@@ -2,6 +2,6 @@
 #define WISE_VERSION "WISE " PLAIN_VERSION
 #define CC_VERSION_STRING "riscv32-elf-gcc.gnu (2022-02-07_nds32le-elf-mculib-v5-86807094a2f) 10.3.0"
 #define LD_VERSION_STRING "GNU ld (2022-02-07_nds32le-elf-mculib-v5-02f5c82e489) 2.32.0.20190522"
-#define GIT_VERSION_STRING "b91d5d85def3872c0479921f5c6a68e8e76a572c"
+#define GIT_VERSION_STRING "ee5b3f133fd87c4da0e7b1e266fa4e5fe0b5bd65"
 #define GIT_TAG_STRING "WISE-SDK-1.3.1"
 #define GIT_API_VERSION_STRING "cc717b5fc9bc33b0e4bdcc94c25cac144dd05f09"
