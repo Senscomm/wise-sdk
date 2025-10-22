@@ -47,7 +47,7 @@ config FLASH_IMAGE_OFFSET
 
 config FLASH_IMAGE_SIZE
     hex "Flash image size"
-    default 0x1ec000
+    default 0x1d4000
 
 config SCMBOOT_SECURE
     bool "Add secure scmboot signature"
