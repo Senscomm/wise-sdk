@@ -16,7 +16,7 @@
 
 #define DEMO_OEM_ID	        "0dfc7900" /* may be set to your Ayla OEM ID */
 #define DEMO_OEM_MODEL	        "" /* may be set to your OEM model name */
-#define DEMO_TEMPLATE_VERSION   "demo_matter 1.1" /* demo template version */
+#define DEMO_TEMPLATE_VERSION   "m color bulb 0.1" /* demo template version */
 
 /*
  * Define the number of active schedules supported.
@@ -26,6 +26,9 @@
 
 #define GPIO_BLUE_LED		19
 #define GPIO_GREEN_LED		18
+#define GPIO_RED_LED		17
+#define GPIO_WARM_LED		15
+#define GPIO_COOL_LED		14
 #define GPIO_LINK_LED		16
 #undef  GPIO_RGB_LED
 #define GPIO_BOOT_BUTTON	0

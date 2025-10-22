@@ -54,6 +54,9 @@ char template_version[] = DEMO_TEMPLATE_VERSION;
 static u8 boot_button;
 static u8 blue_led;
 static u8 green_led;
+static u8 red_led;
+static u8 warm_led;
+static u8 cool_led;
 static int input;
 static int output;
 static int decimal_in;
@@ -203,9 +206,19 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 		} else if (GPIO_GREEN_LED == gpio_num) {
 			printf("Green set ON\n");
 			bp5758d_set_channel(BP5758D_CHANNEL_G, 20);
+		} else if (GPIO_RED_LED == gpio_num) {
+			printf("Red set ON\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_R, 20);
+		} else if (GPIO_WARM_LED == gpio_num) {
+			printf("Warm set ON\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_W, 20);
+		} else if (GPIO_COOL_LED == gpio_num) {
+			printf("Cool set ON\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_C, 20);
 		}
 
-		gpio_set_level(gpio_num, 0);
+		/* use bp5758/bp5768 instead of gpio pins */
+		/* gpio_set_level(gpio_num, 0); */
 	} else {
 		if (GPIO_BLUE_LED == gpio_num) {
 			printf("Blue set OFF\n");
@@ -213,9 +226,19 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 		} else if (GPIO_GREEN_LED == gpio_num) {
 			printf("Green set OFF\n");
 			bp5758d_set_channel(BP5758D_CHANNEL_G, 0);
+		} else if (GPIO_RED_LED == gpio_num) {
+			printf("Red set OFF\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_R, 0);
+		} else if (GPIO_WARM_LED == gpio_num) {
+			printf("Warm set OFF\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_W, 0);
+		} else if (GPIO_COOL_LED == gpio_num) {
+			printf("Cool set OFF\n");
+			bp5758d_set_channel(BP5758D_CHANNEL_C, 0);
 		}
 
-		gpio_set_level(gpio_num, 1);
+		/* use bp5758/bp5768 instead of gpio pins */
+		/* gpio_set_level(gpio_num, 1); */
 	}
 }
 
@@ -277,8 +300,14 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 	}
     if (sprop->val == &blue_led) {
 		set_led(GPIO_BLUE_LED, blue_led);
-	} else {
+	} else if (sprop->val == &green_led) {
 		set_led(GPIO_GREEN_LED, green_led);
+	} else if (sprop->val == &red_led) {
+		set_led(GPIO_RED_LED, red_led);
+	} else if (sprop->val == &warm_led) {
+		set_led(GPIO_WARM_LED, warm_led);
+	} else if (sprop->val == &cool_led) {
+		set_led(GPIO_COOL_LED, cool_led);
 	}
 
 	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
@@ -347,6 +376,12 @@ static struct ada_sprop demo_props[] = {
 	{ "Blue_LED", ATLV_BOOL, &blue_led, sizeof(blue_led),
 		ada_sprop_get_bool, demo_led_set },
 	{ "Green_LED", ATLV_BOOL, &green_led, sizeof(green_led),
+		ada_sprop_get_bool, demo_led_set },
+	{ "Red_LED", ATLV_BOOL, &red_led, sizeof(red_led),
+		ada_sprop_get_bool, demo_led_set },
+	{ "WW_LED", ATLV_BOOL, &warm_led, sizeof(warm_led),
+		ada_sprop_get_bool, demo_led_set },
+	{ "CW_LED", ATLV_BOOL, &cool_led, sizeof(cool_led),
 		ada_sprop_get_bool, demo_led_set },
 	/*
 	 * Integer properties.
