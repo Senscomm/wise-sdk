@@ -51,3 +51,6 @@ privkey*
 pubkey*
 .vscode
 *.inc
+include/generated/autoksyms.h
+include/generated/kconfig2freertosopt.h
+include/generated/kconfig2lwipopt.h
