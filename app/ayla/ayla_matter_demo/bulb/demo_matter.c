@@ -9,15 +9,16 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <math.h>
 
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <task.h>
 
 /* XXX: cmsis_os2 doesn't support xQueuePeek yet. */
-
 #include <app-common/zap-generated/attribute-type.h>
 
+#include <al/al_os_thread.h>
 #include <ada/libada.h>
 #include <ada/server_req.h>
 #include <ada/sprop.h>
@@ -27,13 +28,37 @@
 #include <ayla/timer.h>
 
 #include "app_int.h"
+#include "app_event.h"
+
+#include "wise_task_wdt.h"
+
+#include "color_format.h"
+#include "led_widget.h"
+#include "lighting_mgr.h"
 
 #include "bp5758d.h"
 
-#define DEMO_ENDPOINT_SWITCH	1
+#define DEMO_ENDPOINT_LIGHTING	1
 
 #define DEMO_SYNC_RETRY_MAX	10
 
+/* XXX: turn on lights at boot-up to confirm that
+ *      the LED HW is working well.
+ *      Should be replaced by a better indicators for production.
+ */
+#define DEMO_LIGHT_ON_BOOT
+
+enum demo_light_action {
+	ACTION_LIGHT_ON,
+	ACTION_LIGHT_OFF,
+	ACTION_LIGHT_MODE,
+	ACTION_LIGHT_MODE2, /* MODE + set light bulb */
+	ACTION_LIGHT_LEVEL,
+	ACTION_LIGHT_TEMP,
+	ACTION_LIGHT_COLOR,
+};
+
+/* Attributes */
 static char version[] = APP_NAME " " BUILD_STRING;
 char template_version[] = DEMO_TEMPLATE_VERSION;
 static char factory_name[] = DEMO_FACTORY_NAME;
@@ -52,9 +77,12 @@ static int color_saturation;
 static int color_select;
 static int color_temp;
 static int wifi_rssi;
-static char log[1024];
+static char _log[1024];
 
-static xQueueHandle demo_evt_queue;
+/* Static local storage */
+static HsvColor_t hsv;
+static XyColor_t xy;
+
 
 /*
  * Matter Certification Declaration(s).
@@ -138,18 +166,188 @@ static const uint8_t demo_test_cert_declaration[539] = {
 	0xca, 0x94, 0x0b
 };
 
+/* Check if sprop is ready and connected.
+ *
+ * This is to prevent Matter attribute default values from being queued
+ * as echos to be sent to ADA server overriding stored values.
+ * There is no obvious solution to filter out default values incoming right after
+ * the Matter fabric is reconnected.
+ * For now, we assume that default attribute values come before ADS is connected.
+ */
+static bool demo_sprop_is_ready(void)
+{
+    return (ada_sprop_dest_mask & NODES_ADS) ? true : false;
+}
+
+/*
+ * Range converter
+ * To convert a value in [cmin, cmax] to [nmin, nmaz].
+ */
+static int demo_convert_range(int value, int cmin, int cmax, int nmin, int nmax)
+{
+    if (cmax == cmin || nmax == nmin) {
+        /* Conversion not possible */
+        return value;
+    }
+
+    return nmin + ((value - cmin) * (nmax - nmin)) / (cmax - cmin);
+}
+
+#define KWW    (2100.0)
+#define KCW    (7688.0)
+
+static u16 demo_convert_temp_to_mireds(int temp)
+{
+    double K, T;
+
+    T = (double)temp;
+    K = KWW + (T * (KCW - KWW)) / 100;
+
+    return (uint16_t)(1000000 / K);
+}
+
+static int demo_convert_mireds_to_temp(u16 mireds)
+{
+    double K, T;
+    int t;
+
+    K = (double)(1000000 / mireds);
+    T = ((K - KWW) * 100) / (KCW - KWW);
+    T = fmin(fmax(T, 0.0), 100.0);
+
+    return (int)T;
+}
+
+static void demo_light_bulb_do_action(Action_t action, uint8_t *value,
+        bool wait)
+{
+    bool initiated = lighting_mgr_initiate_action(LightMgr(), 0, action, value);
+    while (initiated && wait && !lighting_mgr_is_light_on(LightMgr())) {
+        al_os_thread_sleep(1);
+    }
+}
+
+static void demo_set_light_bulb(void)
+{
+    u8 color = -1;
+    u8 level, temp;
+    RgbColor_t rgb;
+    if (!strcmp(mode, "white")) {
+        color = 0;
+    } else if (!strcmp(mode, "color")) {
+        color = 1;
+    } else {
+        log_put(LOG_ERR "invalid mode: %s", mode);
+        return;
+    }
+    demo_light_bulb_do_action(MODE_ACTION, &color, true);
+    if (!color) {
+        level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
+        temp = color_temp; /* no conversion needed */
+        demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
+        demo_light_bulb_do_action(TEMP_ACTION, &temp, true);
+    } else {
+        rgb.r = (((u32)color_select) >> 16) & 0xff;
+        rgb.g = (((u32)color_select) >>  8) & 0xff;
+        rgb.b = (((u32)color_select) >>  0) & 0xff;
+        demo_light_bulb_do_action(COLOR_ACTION, (u8 *)&rgb, true);
+    }
+}
+
+static void demo_light_evt_handler(struct app_event *evt)
+{
+    bool need_set = false;
+
+    if (evt->type != kEventType_Light)
+        return;
+
+    switch(evt->light_event.action) {
+    case ACTION_LIGHT_ON:
+        demo_light_bulb_do_action(ON_ACTION, 0, true);
+        need_set = true;
+        break;
+    case ACTION_LIGHT_MODE2:
+        need_set = true;
+        break;
+    case ACTION_LIGHT_MODE:
+    {
+        u8 value = (u8)evt->light_event.value;
+        demo_light_bulb_do_action(MODE_ACTION, &value, true);
+        break;
+    }
+    case ACTION_LIGHT_OFF:
+        demo_light_bulb_do_action(OFF_ACTION, 0, false);
+        break;
+	case ACTION_LIGHT_LEVEL:
+    {
+        u8 value = (u8)evt->light_event.value;
+        demo_light_bulb_do_action(LEVEL_ACTION, &value, value ? true : false);
+        break;
+    }
+	case ACTION_LIGHT_TEMP:
+    {
+        u8 value = (u8)evt->light_event.value;
+        demo_light_bulb_do_action(TEMP_ACTION, &value, true);
+        break;
+    }
+	case ACTION_LIGHT_COLOR:
+    {
+        u32 value = evt->light_event.value;
+        RgbColor_t rgb;
+        rgb.r = (value >> 16) & 0xff;
+        rgb.g = (value >>  8) & 0xff;
+        rgb.b = (value >>  0) & 0xff;
+        demo_light_bulb_do_action(COLOR_ACTION, (u8 *)&rgb, true);
+        break;
+    }
+    default:
+        break;
+    }
+
+    if (need_set) {
+        demo_set_light_bulb();
+    }
+}
+
+static void demo_post_light_event(uint8_t action, uint32_t value)
+{
+    struct app_event evt;
+
+    evt.type = kEventType_Light;
+    evt.handler = demo_light_evt_handler;
+    evt.light_event.action = action;
+    evt.light_event.actor = 0;
+    evt.light_event.value = value;
+
+    app_post_event(&evt);
+}
+
 /*
  * Demo set function for bool properties.
  */
-static enum ada_err demo_bool_set(struct ada_sprop *sprop,
-		const void *buf, size_t len)
+static enum ada_err demo_bool_set(struct ada_sprop *sprop, const void *buf,
+        size_t len)
 {
-	enum ada_err ret;
+	enum ada_err err;
 
-	ret = ada_sprop_set_bool(sprop, buf, len);
-	if (ret) {
-		return ret;
+	err = ada_sprop_set_bool(sprop, buf, len);
+	if (err) {
+		return err;
 	}
+
+    if (!strcmp(sprop->name, "power")) {
+
+        demo_post_light_event(*(uint8_t *)sprop->val ? ACTION_LIGHT_ON
+                : ACTION_LIGHT_OFF, 0);
+
+        err = adm_write_boolean(DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID,
+                ADM_ON_OFF_AID, power);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: %s to matter %d OK", __func__, sprop->name, power);
+        }
+    }
 
 	log_put(LOG_INFO "%s: %s %u", __func__, sprop->name, *(uint8_t *)sprop->val);
 
@@ -159,18 +357,133 @@ static enum ada_err demo_bool_set(struct ada_sprop *sprop,
 /*
  * Demo set function for integer and decimal properties.
  */
-static enum ada_err demo_int_set(struct ada_sprop *sprop,
-		const void *buf, size_t len)
+static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
+        size_t len)
 {
-	enum ada_err ret;
-    int val;
+	enum ada_err err;
 
-	ret = ada_sprop_set_int(sprop, buf, len);
-	if (ret) {
-		return ret;
+	err = ada_sprop_set_int(sprop, buf, len);
+	if (err) {
+		return err;
 	}
 
+    if (!strcmp(sprop->name, "brightness")) {
+        u8 level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
+
+        demo_post_light_event(ACTION_LIGHT_LEVEL, (uint32_t)brightness);
+
+        err = adm_write_u8(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
+            ADM_CURRENT_LEVEL_AID, level);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: %s to matter %d OK", __func__, sprop->name, level);
+        }
+    } else if (!strcmp(sprop->name, "color_temp")) {
+        u16 mireds = demo_convert_temp_to_mireds(color_temp);
+
+        demo_post_light_event(ACTION_LIGHT_TEMP, (uint32_t)color_temp);
+
+        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+            ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID, mireds);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: %s to matter %d OK", __func__, sprop->name, color_temp);
+        }
+    } else if (!strcmp(sprop->name, "color_select")) {
+        u8 r = color_select >> 16;
+        u8 g = color_select >> 8;
+        u8 b = color_select >> 0;
+
+        demo_post_light_event(ACTION_LIGHT_COLOR, (uint32_t)color_select);
+
+        hsv = RgbToHsv(r, g, b);
+        xy = RgbToXy(r, g, b);
+
+        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+            ADM_COLOR_CONTROL_CURRENT_HUE_AID, hsv.h);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: CurrentHue to matter %d OK", __func__, hsv.h);
+        }
+
+        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+            ADM_COLOR_CONTROL_CURRENT_SATURATION_AID, hsv.s);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: CurrentSaturation to matter %d OK", __func__, hsv.s);
+        }
+
+        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+            ADM_COLOR_CONTROL_CURRENT_X_AID, xy.x);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: CurrentX to matter %d OK", __func__, xy.x);
+        }
+
+        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+            ADM_COLOR_CONTROL_CURRENT_Y_AID, xy.y);
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: CurrentY to matter %d OK", __func__, xy.y);
+        }
+
+        if (!strncmp(mode, "color", sizeof(mode))) {
+            err = adm_write_u8(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
+                ADM_CURRENT_LEVEL_AID, hsv.v);
+            if (err) {
+                log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+            } else {
+                log_put(LOG_INFO "%s: CurrentLevel to matter %d OK", __func__, hsv.v);
+            }
+        }
+    }
+
 	log_put(LOG_INFO "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
+
+	return AE_OK;
+}
+
+/*
+ * Demo set function for string properties.
+ */
+static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
+        size_t len)
+{
+	enum ada_err err;
+    u8 color;
+
+	err = ada_sprop_set_string(sprop, buf, len);
+	if (err) {
+		return err;
+	}
+
+    if (!strcmp(sprop->name, "mode")) {
+        if (!strncmp(buf, "white", len)) {
+            color = 0;
+        } else if (!strncmp(buf, "color", len)) {
+            color = 1;
+        } else {
+            return AE_INVAL_VAL;
+        }
+
+        err = adm_write_enum8(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
+                ADM_COLOR_CONTROL_COLOR_MODE_AID, color ? 0 : 2); /* XXX: XY ? */
+        if (err) {
+            log_put(LOG_ERR "%s: matter write err %d", __func__, err);
+        } else {
+            log_put(LOG_INFO "%s: %s to matter %d OK", __func__, sprop->name, color ? 0 : 2);
+        }
+
+        demo_post_light_event(ACTION_LIGHT_MODE2, (uint32_t)color);
+    }
+
+	log_put(LOG_INFO "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
 
 	return AE_OK;
 }
@@ -185,11 +498,11 @@ static enum ada_err demo_cmd_set(struct ada_sprop *sprop, const void *buf,
 		return AE_INVAL_TYPE;
 	}
 
-	if (len > sizeof(log) - 1) {
-		len = sizeof(log) - 1;
+	if (len > sizeof(_log) - 1) {
+		len = sizeof(_log) - 1;
 	}
-	memcpy(log, buf, len);
-	log[len] = '\0';
+	memcpy(_log, buf, len);
+	_log[len] = '\0';
 	ada_sprop_send_by_name("log");
 	return AE_OK;
 }
@@ -215,9 +528,9 @@ static struct ada_sprop demo_props[] = {
 	{ "led_driver", ATLV_UTF8, &led_driver[0], sizeof(led_driver),
 		ada_sprop_get_string, NULL},
 	{ "mode", ATLV_UTF8, mode, sizeof(mode),
-		ada_sprop_get_string, NULL},
+		ada_sprop_get_string, demo_string_set},
 	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),
-		ada_sprop_get_string, NULL},
+		ada_sprop_get_string, demo_string_set},
 
 	/*
 	 * boolean properties.
@@ -251,7 +564,7 @@ static struct ada_sprop demo_props[] = {
 	 * String properties.
 	 */
 	{ "cmd", ATLV_UTF8, "", 0, ada_sprop_get_string, demo_cmd_set },
-	{ "log", ATLV_UTF8, log, sizeof(log), ada_sprop_get_string, NULL },
+	{ "log", ATLV_UTF8, _log, sizeof(_log), ada_sprop_get_string, NULL },
 };
 
 static void prop_send_by_name(const char *name)
@@ -282,6 +595,249 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	}
 }
 
+static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
+    u32 cluster, u32 attribute, u8 type, u16 size, u8 *value)
+{
+	enum ada_err err;
+
+	if (type != ZCL_BOOLEAN_ATTRIBUTE_TYPE) {
+		log_put(LOG_ERR "%s: invalid type %u", __func__, type);
+		return AE_INVAL_TYPE;
+	}
+
+	if ((size != 1) || (value == NULL)) {
+		log_put(LOG_ERR "%s: invalid size %u or value data %p",
+		    __func__, size, value);
+		return AE_INVAL_VAL;
+	}
+
+    power = *value;
+
+    if (demo_sprop_is_ready()) {
+        err = ada_sprop_send_by_name("power");
+        if (err) {
+            log_put(LOG_ERR "%s: send power: err %d",
+                __func__, err);
+        }
+    }
+
+    demo_post_light_event(*value ? ACTION_LIGHT_ON : ACTION_LIGHT_OFF, 0);
+
+	log_put(LOG_INFO "%s on_off %u", __func__, *value);
+
+	return AE_OK;
+}
+
+static struct adm_attribute_change_callback demo_on_off_cb_entry =
+    ADM_ACCE_INIT(ADM_ACCE_POST_CHANGE,
+	DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID, ADM_ON_OFF_AID,
+	demo_on_off_cb);
+
+static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
+    u32 cluster, u32 attribute, u8 type, u16 size, u8 *value)
+{
+    enum ada_err err;
+
+	if (type != ZCL_INT8U_ATTRIBUTE_TYPE) {
+		log_put(LOG_ERR "%s: invalid type %u", __func__, type);
+		return AE_INVAL_TYPE;
+	}
+
+	if ((size != 1) || (value == NULL)) {
+		log_put(LOG_ERR "%s: invalid size %u or value data %p",
+		    __func__, size, value);
+		return AE_INVAL_VAL;
+	}
+
+    /* XXX: why do they have to differ? */
+    brightness = color_bright = (int)demo_convert_range(*value, 0, 254, 0, 100);
+
+    if (demo_sprop_is_ready()) {
+        err = ada_sprop_send_by_name("brightness");
+        if (err) {
+            log_put(LOG_ERR "%s: send brightness: err %d",
+                __func__, err);
+        }
+        err = ada_sprop_send_by_name("color_bright");
+        if (err) {
+            log_put(LOG_ERR "%s: send color_bright: err %d",
+                __func__, err);
+        }
+    }
+
+    demo_post_light_event(ACTION_LIGHT_LEVEL, *value);
+
+	log_put(LOG_INFO "%s level_control %u", __func__, *value);
+
+	return AE_OK;
+}
+
+static struct adm_attribute_change_callback demo_level_control_cb_entry =
+    ADM_ACCE_INIT(ADM_ACCE_POST_CHANGE,
+    DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID, ADM_CURRENT_LEVEL_AID,
+	demo_level_control_cb);
+
+static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
+    u32 cluster, u32 attribute, u8 type, u16 size, u8 *value)
+{
+    enum ada_err err;
+    RgbColor_t rgb;
+    u32 val;
+
+	if (value == NULL) {
+		log_put(LOG_ERR "%s: invalid value data %p",
+		    __func__, value);
+		return AE_INVAL_VAL;
+	}
+
+    /* XY color space */
+    if (attribute == ADM_COLOR_CONTROL_CURRENT_X_AID
+            || attribute == ADM_COLOR_CONTROL_CURRENT_Y_AID) {
+        uint8_t level;
+        if (size != sizeof(uint16_t)) {
+            log_put(LOG_ERR "Wrong length for ColorControl value: %d", size);
+		    return AE_INVAL_VAL;
+        }
+
+        if (attribute == ADM_COLOR_CONTROL_CURRENT_X_AID) {
+            xy.x = *(uint16_t *)(value);
+        } else if (attribute == ADM_COLOR_CONTROL_CURRENT_Y_AID) {
+            xy.y = *(uint16_t *)(value);
+        }
+
+        err = adm_read_attribute(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
+                ADM_CURRENT_LEVEL_AID, &level, 1, 0);
+        if (err) {
+            log_put(LOG_ERR "%s: read attribute: err %d",
+                __func__, err);
+        }
+
+        rgb = XYToRgb(level, xy.x, xy.y);
+        val = (0 << 24 | rgb.r << 16 | rgb.g << 8 | rgb.b);
+
+        color_select = (int)val;
+        if (demo_sprop_is_ready()) {
+            err = ada_sprop_send_by_name("color_select");
+            if (err) {
+                log_put(LOG_ERR "%s: send color_select: err %d",
+                    __func__, err);
+            }
+            /* XXX: update color_saturation ? */
+        }
+
+        demo_post_light_event(ACTION_LIGHT_COLOR, val);
+
+        log_put(LOG_INFO "New XY color: %u|%u", xy.x, xy.y);
+    }
+    /* HSV color space */
+    else if (attribute == ADM_COLOR_CONTROL_CURRENT_HUE_AID ||
+             attribute == ADM_COLOR_CONTROL_CURRENT_SATURATION_AID)
+    {
+        if (size != sizeof(uint8_t)) {
+            log_put(LOG_ERR "Wrong length for ColorControl value: %d", size);
+            return AE_INVAL_VAL;
+        }
+
+        if (attribute == ADM_COLOR_CONTROL_CURRENT_HUE_AID) {
+            hsv.h = *value;
+        } else if (attribute == ADM_COLOR_CONTROL_CURRENT_SATURATION_AID) {
+            hsv.s = *value;
+        }
+
+        err = adm_read_attribute(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
+                ADM_CURRENT_LEVEL_AID, &hsv.v, 1, 0);
+        if (err) {
+            log_put(LOG_ERR "%s: read attribute: err %d",
+                __func__, err);
+        }
+
+        rgb = HsvToRgb(hsv);
+        val = (0 << 24 | rgb.r << 16 | rgb.g << 8 | rgb.b);
+
+        color_select = (int)val;
+        if (attribute == ADM_COLOR_CONTROL_CURRENT_SATURATION_AID) {
+            color_saturation = demo_convert_range(hsv.s, 0, 254, 0, 100);
+        }
+
+        if (demo_sprop_is_ready()) {
+            err = ada_sprop_send_by_name("color_select");
+            if (err) {
+                log_put(LOG_ERR "%s: send color_select: err %d",
+                    __func__, err);
+            }
+            if (attribute == ADM_COLOR_CONTROL_CURRENT_SATURATION_AID) {
+                err = ada_sprop_send_by_name("color_saturation");
+                if (err) {
+                    log_put(LOG_ERR "%s: send color_saturation: err %d",
+                        __func__, err);
+                }
+            }
+        }
+
+        demo_post_light_event(ACTION_LIGHT_COLOR, val);
+
+        log_put(LOG_INFO "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
+    }
+    /* Color temperature */
+    else if (attribute == ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID)
+    {
+        /* XXX: treat it as a (tunable-)white */
+        u16 mireds;
+        int temp;
+        if (size != sizeof(uint16_t)) {
+            log_put(LOG_ERR "Wrong length for ColorControl value: %d", size);
+		    return AE_INVAL_VAL;
+        }
+        mireds = *(u16 *)(value);
+        temp = demo_convert_mireds_to_temp(mireds);
+
+        color_temp = temp;
+
+        if (demo_sprop_is_ready()) {
+            err = ada_sprop_send_by_name("color_temp");
+            if (err) {
+                log_put(LOG_ERR "%s: send color_temp: err %d",
+                    __func__, err);
+            }
+        }
+
+        demo_post_light_event(ACTION_LIGHT_TEMP, (uint32_t)temp);
+
+        log_put(LOG_INFO "%s: mireds %u, temp %d", __func__, mireds, temp);
+    }
+    /* Color mode */
+    else if (attribute == ADM_COLOR_CONTROL_COLOR_MODE_AID)
+    {
+        if (((*value == 0 || *value == 1) && strcmp(mode, "color"))
+                || (*value == 2 && strcmp(mode, "white"))) {
+            strncpy(mode, *value == 2 ? "white" : "color", sizeof(mode));
+            if (demo_sprop_is_ready()) {
+                err = ada_sprop_send_by_name("mode");
+                if (err) {
+                    log_put(LOG_ERR "%s: send mode: err %d",
+                        __func__, err);
+                }
+            }
+        }
+
+        demo_post_light_event(ACTION_LIGHT_MODE2, 1);
+
+        log_put(LOG_INFO "color mode: %u", *value);
+    }
+    else
+    {
+        log_put(LOG_WARN "%s: unhandled attritbute 0x%lx", __func__, attribute);
+        return AE_NOT_FOUND;
+    }
+
+	return AE_OK;
+}
+
+static struct adm_attribute_change_callback demo_color_control_cb_entry =
+    ADM_ACCE_INIT(ADM_ACCE_POST_CHANGE | ADM_ACCE_ANY_ATTRIBUTE,
+    DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID, 0,
+	demo_color_control_cb);
+
 extern void MatterAylaBasePluginServerInitCallback();
 extern void MatterAylaLocalControlPluginServerInitCallback();
 
@@ -297,15 +853,23 @@ void demo_init(void)
 	int rc;
 #endif
 
-	/* create a queue to handle gpio event from isr */
-	demo_evt_queue = xQueueCreate(10, sizeof(uint32_t));
-	AYLA_ASSERT(demo_evt_queue != NULL);
+	bp5758d_init();
+#ifdef DEMO_LIGHT_ON_BOOT
+	bp5758d_set_rgbcw_channel(956, 522, 956, 516, 516);
+#else
+	bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
+#endif
+
+    app_init_event();
+
+    lighting_mgr_init(LightMgr());
 
 	adm_init();
     init_ayla_clusters();
 	adm_event_cb_register(demo_matter_event_cb);
 	adm_start(demo_test_cert_declaration,
 	    sizeof(demo_test_cert_declaration));
+
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.
@@ -317,6 +881,10 @@ void demo_init(void)
 	}
 #endif
 
+	adm_attribute_change_cb_register(&demo_on_off_cb_entry);
+	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
+	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
+
 	ada_sprop_mgr_register("demo_matter",
 	    demo_props, ARRAY_LEN(demo_props));
 
@@ -324,38 +892,20 @@ void demo_init(void)
 
 void demo_idle(void)
 {
-	uint32_t event;
-	enum ada_err err;
+	struct app_event event;
 	uint32_t retry_count = 0;
 
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
 
+	wise_task_wdt_add(NULL);
+
 	while (1) {
-		if (xQueuePeek(demo_evt_queue, &event, pdMS_TO_TICKS(10))) {
-			switch (event) {
-			default:
-				log_put(LOG_DEBUG "%s: Ignore event %lu",
-				    __func__, event);
-				err = AE_OK;
-				break;
-			}
-			if (err == AE_OK) {
-				retry_count = 0;
-				xQueueReceive(demo_evt_queue, &event,
-				    portMAX_DELAY);
-			} else if (retry_count >= DEMO_SYNC_RETRY_MAX) {
-				log_put(LOG_WARN "%s: Drop event %ld",
-				    __func__, event);
-				retry_count = 0;
-				xQueueReceive(demo_evt_queue, &event,
-				    portMAX_DELAY);
-			} else {
-				log_put(LOG_DEBUG "%s: handle event %lu error",
-				    __func__, event);
-				retry_count++;
-				vTaskDelay(pdMS_TO_TICKS(50));
-			}
-		}
+        BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
+        while (eventReceived == pdTRUE) {
+            app_dispatch_event(&event);
+            eventReceived = xQueueReceive(g_app_event_queue, &event, 0);
+        }
+	    wise_task_wdt_reset(NULL);
 	}
 }
