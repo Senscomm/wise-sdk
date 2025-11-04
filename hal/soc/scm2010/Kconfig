@@ -53,6 +53,18 @@ config SCMBOOT_SECURE
     bool "Add secure scmboot signature"
     default n
 
+config BOOTLOADER_IMAGE_SIZE
+	hex "MCUboot image size"
+	default 0x11000
+
+config FACTORY_PARTITION_OFFSET
+	hex "Factory data section address"
+	default 0x80014000
+
+config FACTORY_PARTITION_SIZE
+	hex "Factory data size"
+	default 0x1000
+
 if XIP
 
 config SYNC_FLASH_ACCESS

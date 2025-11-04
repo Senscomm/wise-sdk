@@ -22,6 +22,8 @@
 #include <al/al_persist.h>
 #include <al/al_os_mem.h>
 
+#include "scm_flash.h"
+
 #define PERSIST_PATH_ROOT 		"/ayla"
 #define PERSIST_PATH_STARTUP	"startup"
 #define PERSIST_PATH_FACTORY	"factory"
@@ -31,8 +33,8 @@
 			)
 #define PERSIST_PATH_MAX_LEN	64
 
-#define AYLA_FACTORY_INFO_PART_ADDR  CONFIG_AYLA_SYSTEM_PARTITION_ADDR
-#define AYLA_FACTORY_INFO_PART_SIZE  CONFIG_AYLA_SYSTEM_PARTITION_SIZE
+#define AYLA_FACTORY_INFO_PART_ADDR  CONFIG_FACTORY_PARTITION_OFFSET
+#define AYLA_FACTORY_INFO_PART_SIZE  CONFIG_FACTORY_PARTITION_SIZE
 
 struct al_persist_factory_info {
     uint8_t dsn[20];            /* factory/id/dev_id */
@@ -42,11 +44,6 @@ struct al_persist_factory_info {
     uint8_t oem_key[256];       /* factory/oem/key */
     uint8_t serial[32];
 } __packed;
-
-/* XXX: Alas! Can't include <hal/spi-flash.h> because of type conflicts. */
-extern int flash_erase(off_t addr, size_t size, unsigned how);
-extern int flash_write(off_t addr, void *buf, size_t size);
-extern int flash_read(off_t addr, void *buf, size_t size);
 
 static int al_persist_read_system_partition(enum al_persist_section section,
         const char *name, struct al_persist_factory_info **info,
@@ -70,7 +67,7 @@ static int al_persist_read_system_partition(enum al_persist_section section,
         return -1;
     }
 
-    if (flash_read(AYLA_FACTORY_INFO_PART_ADDR, *info, sizeof(**info)) < 0) {
+    if (scm_partition_read(FLASH_PARTITION_FACTORY, 0, *info, sizeof(**info)) < 0) {
 		log_put(LOG_ERR "flash_read failed\n");
         al_os_mem_free(*info);
         return -1;
@@ -129,12 +126,12 @@ static int al_persist_data_write_to_system_partition(enum al_persist_section sec
     sz = (sz > len) ? len : sz;
     memcpy(data, buf, sz);
 
-    if (flash_erase(AYLA_FACTORY_INFO_PART_ADDR, AYLA_FACTORY_INFO_PART_SIZE, 0) < 0) {
+    if (scm_partition_erase(FLASH_PARTITION_FACTORY, 0, AYLA_FACTORY_INFO_PART_SIZE) < 0) {
         al_os_mem_free(info);
         return -1;
     }
 
-    if (flash_write(AYLA_FACTORY_INFO_PART_ADDR, info, sizeof(*info)) < 0) {
+    if (scm_partition_write(FLASH_PARTITION_FACTORY, 0, info, sizeof(*info)) < 0) {
         al_os_mem_free(info);
         return -1;
     }

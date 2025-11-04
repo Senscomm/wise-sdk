@@ -45,6 +45,7 @@ obj-$(CONFIG_CLI_I2S) += scm_cli_i2s.o
 obj-$(CONFIG_API_AUDIO) += scm_audio.o
 obj-$(CONFIG_CLI_AUDIO) += scm_cli_audio.o
 obj-$(CONFIG_CLI_ADC) += scm_cli_adc.o
+obj-$(CONFIG_API_FLASH) += scm_flash.o
 
 
 obj-y += examples/

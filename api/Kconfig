@@ -330,6 +330,12 @@ config CLI_AUDIO
 	help
 	 Include Audio CLIs in SDK
 
+config API_FLASH
+	bool "Include Flash APIs"
+	default y
+	help
+	 Include Flash APIs in SDK
+
 endif # SDK
 
 source "api/wise/Kconfig"
