@@ -27,9 +27,15 @@
 #define BP5758D_ENABLE_ALL_OUT 	0x1F
 #define BP5758D_DISABLE_ALL_OUT	0x00
 
+#if 0
+#define SKIP_STNDBY /* Debug only */
+#endif
+
 struct bp5758d_ctx {
 	uint8_t rgb_current;
 	uint8_t cw_current;
+	uint8_t rgb_set_current;
+	uint8_t cw_set_current;
 	uint8_t mapping_addr[BP5758D_MAX_PIN];
 	bool sleep_mode;
 };
@@ -59,7 +65,7 @@ static uint8_t get_mapping_addr(enum bp5758d_channel channel)
 	return addr[g_ctx->mapping_addr[channel]];
 }
 
-static int convert_currnet_value(uint8_t *dst, uint8_t src)
+static int convert_current_value(uint8_t *dst, uint8_t src)
 {
 	if (src > 90) {
 		return -1;
@@ -131,6 +137,9 @@ int bp5758d_init(void)
 	value[5] = 14;
 	value[6] = 14;
 
+    g_ctx->rgb_set_current = 14;
+    g_ctx->cw_set_current = 14;
+
 #ifdef CONFIG_API_I2C
 	scm_i2c_init(SCM_I2C_IDX_GPIO);
     cfg.skip_address = 1;
@@ -174,6 +183,7 @@ int bp5758d_set_standby(bool enable)
 		return -1;
 	}
 
+#ifndef SKIP_STNDBY
 	if (enable) {
         value[0] = BP5758D_ADDR_SETUP;
 		value[1] = BP5758D_DISABLE_ALL_OUT;
@@ -183,24 +193,48 @@ int bp5758d_set_standby(bool enable)
             value[0] = BP5758D_ADDR_SLEEP;
 			ret = send_i2c(value, 1);
 		}
-
 		if (!ret) {
 			g_ctx->sleep_mode = true;
 		}
 	} else {
         value[0] = BP5758D_ADDR_SETUP;
 		value[1] = BP5758D_ENABLE_ALL_OUT;
+
 		ret = send_i2c(value, 2);
 		if (!ret) {
 			g_ctx->sleep_mode = false;
 		}
 	}
+#else
+    (void)value;
+    ret = 0;
+#endif
 
 	if (ret) {
 		printf("%s/ standby fail\n", enable ? "Enable" : "Disable");
 	}
 
 	return ret;
+}
+
+int bp5758d_get_max_level()
+{
+    return 1023;
+}
+
+int bp5758d_get_min_level()
+{
+    return 0;
+}
+
+int bp5758d_get_current_rgb_current()
+{
+    return g_ctx->rgb_set_current;
+}
+
+int bp5758d_get_current_cw_current()
+{
+    return g_ctx->cw_set_current;
 }
 
 int bp5758d_set_current(uint8_t rgb_current, uint8_t cw_current)
@@ -220,19 +254,21 @@ int bp5758d_set_current(uint8_t rgb_current, uint8_t cw_current)
 	}
 
 	if (g_ctx->rgb_current != rgb_current) {
-		ret = convert_currnet_value(&g_ctx->rgb_current, rgb_current);
+		ret = convert_current_value(&g_ctx->rgb_current, rgb_current);
 		if (ret) {
 			printf("Invalid RGB current\n");
 			return -1;
 		}
+        g_ctx->rgb_set_current = rgb_current;
 	}
 
 	if (g_ctx->cw_current != cw_current) {
-		ret = convert_currnet_value(&g_ctx->cw_current, cw_current);
+		ret = convert_current_value(&g_ctx->cw_current, cw_current);
 		if (ret) {
 			printf("Invalid CW current\n");
 			return -1;
 		}
+        g_ctx->cw_set_current = cw_current;
 	}
 
 	value[0] = BP5758D_ADDR_OUT1_CR;
@@ -346,6 +382,11 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 		}
 	}
 
+#if 1
+	printf("[%s, %d] r: %d, g: %d, b: %d, c: %d, w: %d\n", __func__, __LINE__,
+            value_r, value_g, value_b, value_c, value_w);
+#endif
+
     value[0] = BP5758D_ADDR_OUT1_GL;
 
 	value[1 + g_ctx->mapping_addr[BP5758D_CHANNEL_R] * 2 + 0] = value_r & 0x1F;
@@ -376,9 +417,8 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 	return ret;
 }
 
-#if 0
+#if 1
 #include <cli.h>
-#include <hal/timer.h>
 
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE( x ) ( sizeof( x ) / sizeof( x[ 0 ] ) )
@@ -459,7 +499,7 @@ static int do_led_cur(int argc, char *argv[])
 	return CMD_RET_SUCCESS;
 }
 
-static int do_led_rgv(int argc, char *argv[])
+static int do_led_rgb(int argc, char *argv[])
 {
 	int value_r;
 	int value_g;
@@ -537,7 +577,7 @@ static const struct cli_cmd led_cmd[] = {
 	CMDENTRY(sleep, do_led_sleep, "", ""),
 	CMDENTRY(set, do_led_set, "", ""),
 	CMDENTRY(cur, do_led_cur, "", ""),
-	CMDENTRY(rgb, do_led_rgv, "", ""),
+	CMDENTRY(rgb, do_led_rgb, "", ""),
 	CMDENTRY(cw, do_led_cw, "", ""),
 	CMDENTRY(all, do_led_all, "", ""),
 };

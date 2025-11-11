@@ -73,6 +73,9 @@ struct adm_attribute_change_callback {
 	u32 attribute;	/**< specific attribute to limit callbacks to */
 	u16 endpoint;	/**< specific endpoint to limit callbacks to */
 	u8 flags;	/**< additional flags to control filtering */
+#ifdef AYLA_SCM_SUPPORT
+	u8 oflags;	/**< backup for flags */
+#endif
 	enum ada_err (*callback)(u8 post_change, u16 endpoint,
 	    u32 cluster, u32 attribute, u8 type, u16 size, u8 *value);
 };
@@ -257,8 +260,13 @@ enum ada_err adm_event_cb_register(void (*cb)(enum adm_event_id id));
  * to register.
  * \returns AE_OK if successful, otherwise, an error.
  */
+#ifndef AYLA_SCM_SUPPORT
 enum ada_err adm_attribute_change_cb_register(
     const struct adm_attribute_change_callback *entry);
+#else
+enum ada_err adm_attribute_change_cb_register(
+    struct adm_attribute_change_callback *entry);
+#endif
 
 /**
  * Write an update to an attribute value to the Matter stack.
@@ -354,6 +362,22 @@ enum ada_err adm_write_s16(u16 endpoint, u32 cluster, u32 attribute, s16 value);
  */
 enum ada_err adm_write_s32(u16 endpoint, u32 cluster, u32 attribute, s32 value);
 
+#ifdef AYLA_SCM_SUPPORT
+
+/**
+ * Write a enum8 Matter attribute.
+ *
+ * \param endpoint is the endpoint the write applies to.
+ * \param cluster is the cluster containing the attribute.
+ * \param attribute is the attribute the write applies to.
+ * \param value is the value to write.
+ * \returns AE_OK if successful, otherwise, an error.
+ */
+
+enum ada_err adm_write_enum8(u16 endpoint, u32 cluster, u32 attribute, u8 value);
+
+#endif
+
 /**
  * Write a string Matter attribute.
  *
@@ -365,6 +389,23 @@ enum ada_err adm_write_s32(u16 endpoint, u32 cluster, u32 attribute, s32 value);
  */
 enum ada_err adm_write_string(u16 endpoint, u32 cluster,
     u32 attribute, char *value);
+
+#ifdef AYLA_SCM_SUPPORT
+
+/**
+ * Read a Matter attribute.
+ *
+ * \param endpoint is the endpoint the read applies to.
+ * \param cluster is the cluster containing the attribute.
+ * \param attribute is the attribute the read applies to.
+ * \param value is the buffer to read into.
+ * \param length is the length to read.
+ * \returns AE_OK if successful, otherwise, an error.
+ */
+enum ada_err adm_read_attribute(u16 endpoint, u32 cluster,
+    u32 attribute, u8 *value, u16 length, u8 locking);
+
+#endif
 
 /**
  * Get a Boolean value from Matter data buffer.

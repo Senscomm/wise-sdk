@@ -100,8 +100,13 @@ using namespace chip::Protocols::InteractionModel;
 static const char *adm_qrgen_secret = AYLA_MATTER_QRGEN_SECRET;
 
 static u8 adm_matter_initialized;
+#ifndef AYLA_SCM_SUPPORT
 static const struct adm_attribute_change_callback
     *attr_change_cbs[ADM_ATTR_CHANGE_CB_MAX];
+#else
+static struct adm_attribute_change_callback
+    *attr_change_cbs[ADM_ATTR_CHANGE_CB_MAX];
+#endif
 static void (*adm_event_cbs[ADM_ATTR_CHANGE_CB_MAX])(enum adm_event_id id);
 
 static const char *matter_log_mods[] = {
@@ -492,18 +497,107 @@ extern "C" void adm_log(const char *fmt, ...)
 	ADA_VA_END(args);
 }
 
+#ifdef AYLA_SCM_SUPPORT
+
+/* When an attribute is written into by an upper layer, it means necessary
+ * actions have already been performed, e.g., updating Ayla properties.
+ * We don't want to have a loop of updating Matter attributes and updating
+ * Ayla properties although it may not an infinite one.
+ */
+extern "C" void adm_attr_change_callback_block(u16 endpoint, u32 cluster, u32 attribute)
+{
+	int i;
+	struct adm_attribute_change_callback *entry;
+
+	for (i = 0; i < ADM_ATTR_CHANGE_CB_MAX; ++i) {
+		entry = attr_change_cbs[i];
+		if (!entry) {
+			return;
+		}
+        if (!entry->callback) {
+            continue;
+        }
+        if (!(entry->flags & ADM_ACCE_POST_CHANGE)
+                && !(entry->flags & ADM_ACCE_PRE_CHANGE)) {
+            continue;
+        }
+		if (!(entry->flags & ADM_ACCE_ANY_ENDPOINT) &&
+		    endpoint != entry->endpoint) {
+			continue;
+		}
+		if (!(entry->flags & ADM_ACCE_ANY_CLUSTER) &&
+		    cluster != entry->cluster) {
+			continue;
+		}
+		if (!(entry->flags & ADM_ACCE_ANY_ATTRIBUTE) &&
+		    attribute != entry->attribute) {
+			continue;
+		}
+
+        entry->oflags = entry->flags;
+        entry->flags &= ~(ADM_ACCE_PRE_CHANGE | ADM_ACCE_POST_CHANGE);
+	}
+}
+
+extern "C" void adm_attr_change_callback_unblock(u16 endpoint, u32 cluster, u32 attribute)
+{
+	int i;
+	struct adm_attribute_change_callback *entry;
+
+	for (i = 0; i < ADM_ATTR_CHANGE_CB_MAX; ++i) {
+		entry = attr_change_cbs[i];
+		if (!entry) {
+			return;
+		}
+        if (!entry->callback) {
+            continue;
+        }
+		if (!(entry->flags & ADM_ACCE_ANY_ENDPOINT) &&
+		    endpoint != entry->endpoint) {
+			continue;
+		}
+		if (!(entry->flags & ADM_ACCE_ANY_CLUSTER) &&
+		    cluster != entry->cluster) {
+			continue;
+		}
+		if (!(entry->flags & ADM_ACCE_ANY_ATTRIBUTE) &&
+		    attribute != entry->attribute) {
+			continue;
+		}
+
+        entry->flags = entry->oflags;
+	}
+}
+
+#endif
+
 extern "C" enum ada_err adm_write_attribute(u16 endpoint, u32 cluster,
     u32 attribute, u8 *value, u8 type)
 {
 	Protocols::InteractionModel::Status status;
-
+#ifdef AYLA_SCM_SUPPORT
+    struct adm_attribute_change_callback *cb;
+#endif
+#ifndef AYLA_SCM_SUPPORT
+    /* XXX: don't allow faiing here. */
 	if (!PlatformMgr().TryLockChipStack()) {
 		adm_log(LOG_DEBUG "%s could not get lock", __func__);
 		return AE_BUSY;
 	}
+#else
+	PlatformMgr().LockChipStack();
+#endif
 
-	status = emberAfWriteAttribute(endpoint, cluster,
-	    attribute, value, type);
+#ifdef AYLA_SCM_SUPPORT
+    adm_attr_change_callback_block(endpoint, cluster, attribute);
+#endif
+
+    status = emberAfWriteAttribute(endpoint, cluster,
+            attribute, value, type);
+
+#ifdef AYLA_SCM_SUPPORT
+    adm_attr_change_callback_unblock(endpoint, cluster, attribute);
+#endif
 
 	PlatformMgr().UnlockChipStack();
 
@@ -564,6 +658,17 @@ extern "C" enum ada_err adm_write_s32(u16 endpoint, u32 cluster,
 	    ZCL_INT32S_ATTRIBUTE_TYPE);
 }
 
+#ifdef AYLA_SCM_SUPPORT
+
+extern "C" enum ada_err adm_write_enum8(u16 endpoint, u32 cluster,
+    u32 attribute, u8 value)
+{
+	return adm_write_attribute(endpoint, cluster, attribute, &value,
+	    ZCL_ENUM8_ATTRIBUTE_TYPE);
+}
+
+#endif
+
 extern "C" enum ada_err adm_write_string(u16 endpoint, u32 cluster,
     u32 attribute, char *value)
 {
@@ -585,6 +690,34 @@ extern "C" enum ada_err adm_write_string(u16 endpoint, u32 cluster,
 	al_os_mem_free(buf);
 	return err;
 }
+
+#ifdef AYLA_SCM_SUPPORT
+
+enum ada_err adm_read_attribute(u16 endpoint, u32 cluster,
+    u32 attribute, u8 *value, u16 length, u8 locking)
+{
+	Protocols::InteractionModel::Status status;
+
+	if (locking) {
+        PlatformMgr().LockChipStack();
+	}
+
+	status = emberAfReadAttribute(endpoint, cluster,
+	    attribute, value, length);
+
+    if (locking) {
+	    PlatformMgr().UnlockChipStack();
+    }
+
+	if (status != Status::Success) {        
+		adm_log(LOG_ERR "Read Attribute %u %#X %#X status %d",
+		    endpoint, cluster, attribute, status);
+		return AE_ERR;
+	}
+	return AE_OK;
+}
+
+#endif
 
 extern "C" enum ada_err adm_get_boolean(u8 type, u16 size, u8 *data,
     u8 *value)
@@ -1108,8 +1241,13 @@ enum ada_err adm_identify_init(u16 endpoint_id,
 	return AE_OK;
 }
 
+#ifndef AYLA_SCM_SUPPORT
 enum ada_err adm_attribute_change_cb_register(
     const struct adm_attribute_change_callback *entry)
+#else
+enum ada_err adm_attribute_change_cb_register(
+    struct adm_attribute_change_callback *entry)
+#endif
 {
 	int i;
 

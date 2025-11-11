@@ -18,17 +18,16 @@ enum bp5758d_out_pin {
 };
 
 int bp5758d_init(void);
-
 int bp5758d_deinit(void);
-
 int bp5758d_set_standby(bool enable);
-
+int bp5758d_get_max_level();
+int bp5758d_get_min_level();
+int bp5758d_get_current_rgb_current();
+int bp5758d_get_current_cw_current();
+int bp5758d_set_current(uint8_t rgb_current, uint8_t cw_current);
 int bp5758d_set_channel(enum bp5758d_channel channel, uint16_t ch_value);
-
 int bp5758d_set_rgb_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b);
-
 int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w);
-
 int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b, uint16_t value_c, uint16_t value_w);
 
 #endif //_BP5758D_H_
