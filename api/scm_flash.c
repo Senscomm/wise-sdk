@@ -53,6 +53,12 @@ static const flash_partition_info_t partition_table[FLASH_PARTITION_MAX] = {
         .size = CONFIG_SPIFFS_SYSTEM_PART_SIZE,
         .read_only = true
     },
+    [FLASH_PARTITION_LOG] = {
+        .type = FLASH_PARTITION_LOG,
+        .start_addr = CONFIG_LOG_PARTITION_OFFSET,
+        .size = CONFIG_LOG_PARTITION_SIZE,
+        .read_only = false
+    },
 };
 
 /* Get partition information by partition type */
