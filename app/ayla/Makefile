@@ -5,6 +5,7 @@ ccflags-y += -I$(src)/components/al/include
 ccflags-y += -I$(src)/components/al/lwip/include
 ccflags-y += -I$(src)/components/al/wise/include
 ccflags-y += -I$(src)/components/al/mbedtls/include
+ccflags-y += -I$(src)/components/ada
 ccflags-y += -I$(src)/components/adw
 ccflags-y += -I$(src)/components/adw/include
 ccflags-y += -I$(src)/components/adb/include
