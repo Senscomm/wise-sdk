@@ -23,6 +23,7 @@
 
 #include "app_common.h"
 #include "app_int.h"
+#include "build.h"
 
 #include <sys/time.h>
 #include <cmsis_os.h>
@@ -31,13 +32,15 @@
 
 #define APP_SETUP_ENABLE_KEY	"secretkey"
 
+const char ada_wise_version_build[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
+
 /*
  * client_conf_sw_build() returns the string to be reported to the cloud as the
  * module image version.
  */
 const char *adap_conf_sw_build(void)
 {
-	return ada_version_build;
+	return ada_wise_version_build;
 }
 
 /*

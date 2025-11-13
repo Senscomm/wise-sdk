@@ -28,8 +28,11 @@
 #include "conf.h"
 #include "conf_wifi.h"
 #include "demo.h"
+#include "build.h"
 
 u8 conf_connected;	/* 1 if ever connected to ADS */
+
+const char ada_wise_version_build[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
 
 /*
  * Reset the module, optionally to the factory configuration.
@@ -98,7 +101,7 @@ void adap_conf_reg_changed(void)
  */
 const char *adap_conf_sw_build(void)
 {
-	return ada_version_build;
+	return ada_wise_version_build;
 }
 
 /*

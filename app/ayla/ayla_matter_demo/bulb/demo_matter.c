@@ -37,6 +37,7 @@
 #include "lighting_mgr.h"
 
 #include "bp5758d.h"
+#include "build.h"
 
 #define DEMO_ENDPOINT_LIGHTING	1
 
@@ -59,7 +60,7 @@ enum demo_light_action {
 };
 
 /* Attributes */
-static char version[] = APP_NAME " " BUILD_STRING;
+static char version[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
 char template_version[] = DEMO_TEMPLATE_VERSION;
 static char factory_name[] = DEMO_FACTORY_NAME;
 static char purchase_order[] = DEMO_PURCHASE_ORDER;
