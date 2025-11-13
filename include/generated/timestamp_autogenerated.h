@@ -1,5 +1,5 @@
-#define WISE_DATE "Nov 21 2025"
-#define WISE_TIME "16:12:41"
-#define WISE_TZ "+0800"
-#define WISE_DMI_DATE "11/21/2025"
-#define WISE_BUILD_DATE 0x20251121
+#define WISE_DATE "Nov 22 2025"
+#define WISE_TIME "14:31:16"
+#define WISE_TZ "-0800"
+#define WISE_DMI_DATE "11/22/2025"
+#define WISE_BUILD_DATE 0x20251122

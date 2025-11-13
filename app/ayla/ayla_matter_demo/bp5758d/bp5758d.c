@@ -382,7 +382,7 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 		}
 	}
 
-#if 1
+#if 0
 	printf("[%s, %d] r: %d, g: %d, b: %d, c: %d, w: %d\n", __func__, __LINE__,
             value_r, value_g, value_b, value_c, value_w);
 #endif
@@ -417,7 +417,7 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 	return ret;
 }
 
-#if 1
+#if 0
 #include <cli.h>
 
 #ifndef ARRAY_SIZE

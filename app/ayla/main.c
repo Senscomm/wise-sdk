@@ -30,7 +30,7 @@
 
 #include <cmsis_os.h>
 
-#define AYLA_DEMO_STACK_SIZE		1024 * 4
+#define AYLA_DEMO_STACK_SIZE		1024 * 8
 
 void ayla_demo_task(void *arg)
 {
@@ -44,8 +44,8 @@ void ayla_demo_run(void)
 	static int g_demo_start;
 	osThreadAttr_t attr = {
 		.name 		= "ayla-main",
-		.stack_size = 1024 * 4,
-		.priority 	= osPriorityLow,
+		.stack_size = AYLA_DEMO_STACK_SIZE,
+		.priority 	= osPriorityNormal,
 	};
 
 

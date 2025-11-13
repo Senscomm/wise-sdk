@@ -34,7 +34,37 @@ enum app_event_types
     kEventType_Light,
     kEventType_Install,
     kEventType_Occupancy,
+    kEventType_Max,
 };
+
+typedef struct
+{
+    bool pressed;
+} button_event_t;
+
+typedef struct
+{
+    void *context;
+    uint32_t value;
+} timer_event_t;
+
+typedef struct
+{
+    uint8_t action;
+    int32_t actor;
+    uint32_t value;
+} light_event_t;
+
+typedef struct
+{
+    void (*callback)(uint32_t);
+    uint32_t arg;
+} install_event_t;
+
+typedef struct
+{
+    bool present;
+} occupancy_event_t;
 
 struct app_event
 {
@@ -42,33 +72,19 @@ struct app_event
 
     union
     {
-        struct
-        {
-            bool pressed;
-        } button_event;
-        struct
-        {
-            void * context;
-        } timer_event;
-        struct
-        {
-            uint8_t action;
-            int32_t actor;
-            uint32_t value;
-        } light_event;
-        struct
-        {
-            bool present;
-        } occupancy_event;
+        button_event_t button_event;
+        timer_event_t timer_event;
+        light_event_t light_event;
+        install_event_t install_event;
+        occupancy_event_t occupancy_event;
     };
-
-    event_handler handler;
 };
 
 extern xQueueHandle g_app_event_queue;
 
-extern void app_init_event(void);
-extern void app_post_event(const struct app_event * event);
-extern void app_dispatch_event(struct app_event * event);
+extern void app_event_init(void);
+extern void app_event_install_handler(enum app_event_types type, event_handler fn);
+extern void app_event_post(const struct app_event * event);
+extern void app_event_dispatch(struct app_event * event);
 
 #endif

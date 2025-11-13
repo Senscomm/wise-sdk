@@ -112,7 +112,7 @@ void led_widget_set(struct led_widget *lw, bool state)
 {
     led_widget_cancel_timer(lw);
     led_widget_do_set(lw, state);
-    log_put(LOG_INFO "%s %s\n", led_widget_name(lw), state ? "on" : "off");
+    log_put(LOG_DEBUG "%s %s\n", led_widget_name(lw), state ? "on" : "off");
 }
 
 bool led_widget_get(struct led_widget *lw)
@@ -126,7 +126,7 @@ void led_widget_blink_on_off(struct led_widget *lw, int on, int off)
     {
         lw->on  = on;
         lw->off = off;
-        log_put(LOG_INFO "%s blink: on %d off %d\n", led_widget_name(lw), lw->on, lw->off);
+        log_put(LOG_DEBUG "%s blink: on %d off %d\n", led_widget_name(lw), lw->on, lw->off);
         led_widget_do_blink(lw);
     }
 }
@@ -139,12 +139,16 @@ void led_widget_blink(struct led_widget *lw, int duration)
 void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
 {
     uint32_t r, g, b;
+    HsvColor_t hsv;
 
     lw->rgb = rgb;
 
     if (lw->color == false) {
         return;
     }
+
+    hsv = RgbToHsv(rgb.r, rgb.g, rgb.b);
+    lw->level = hsv.v;
 
     r = (rgb.r * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     g = (rgb.g * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
