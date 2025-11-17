@@ -17,17 +17,9 @@
  *    limitations under the License.
  */
 
-#ifndef CHIP_BUILD_EXAMPLE_CREDS
-#define CHIP_BUILD_EXAMPLE_CREDS 1
-#endif
-
 #include <crypto/CHIPCryptoPAL.h>
-#if CHIP_BUILD_EXAMPLE_CREDS
 #include <credentials/examples/ExampleDACs.h>
 #include <credentials/examples/ExamplePAI.h>
-#else
-#include <platform/senscomm/scm1612s/FactoryDataProvider.h>
-#endif
 #include <lib/core/CHIPError.h>
 #include <lib/support/Span.h>
 #include <lib/support/Base64.h>
@@ -50,7 +42,6 @@ namespace chip {
 namespace DeviceLayer {
 namespace Ayla {
 
-#if CHIP_BUILD_EXAMPLE_CREDS
 /*
  * Example Certification Declaration from Matter SDK used for test devices
  * that haven't been fully factory configured with production Matter
@@ -152,9 +143,6 @@ static const uint8_t test_cert_declaration[539] = {
     0xf9, 0x93, 0x58, 0x1e, 0xb0, 0x44, 0x4e, 0xd6,
     0xca, 0x94, 0x0b
 };
-#else
-static FactoryDataProvider FactoryProvider;
-#endif
 
 /*
  * Load a key pair from private key and public key raw byte buffers.
@@ -189,46 +177,6 @@ static CHIP_ERROR CopyStringToBuffer(char * buf, size_t bufSize,
 	memcpy(buf, str, len);
 
 	return CHIP_NO_ERROR;
-}
-
-extern "C" int adm_spake2p_config_check(int log)
-{
-	int rc = 1;
-
-	if (!AlMatterConfig::ConfigValueExists(
-	    AlMatterConfig::kConfigKey_SetupDiscriminator)) {
-		if (log) {
-			adm_log(LOG_DEBUG "discriminator not configured");
-		}
-		rc = 0;
-	}
-
-	if (!AlMatterConfig::ConfigValueExists(
-	    AlMatterConfig::kConfigKey_Spake2pIterationCount)) {
-		if (log) {
-			adm_log(LOG_DEBUG
-			    "SPAKE2+ iteration count not configured");
-		}
-		rc = 0;
-	}
-
-	if (!AlMatterConfig::ConfigValueExists(
-	    AlMatterConfig::kConfigKey_Spake2pSalt)) {
-		if (log) {
-			adm_log(LOG_DEBUG "SPAKE2+ salt not configured");
-		}
-		rc = 0;
-	}
-
-	if (!AlMatterConfig::ConfigValueExists(
-	    AlMatterConfig::kConfigKey_Spake2pVerifier)) {
-		if (log) {
-			adm_log(LOG_DEBUG "SPAKE2+ verifier not configured");
-		}
-		rc = 0;
-	}
-
-	return rc;
 }
 
 extern "C" int adm_cert_config_check(void)
@@ -366,38 +314,12 @@ void AdmDataProvider::AdmCredentialsLoad(void)
 validation_done:
 
 	if (!dp->factory_config_valid) {
-#if CHIP_BUILD_EXAMPLE_CREDS
 		dp->dac = DevelopmentCerts::kDacCert;
 		dp->dac_pub_key = DevelopmentCerts::kDacPublicKey;
-#else
-		/* invalid factory config */
-		uint8_t* dacBuf = new uint8_t[1024];
-		MutableByteSpan dacSpan(dacBuf, 1024);
-		chip_err = FactoryProvider.GetDeviceAttestationCert(dacSpan);
-		if (chip_err == CHIP_NO_ERROR)
-		{
-			dp->dac = ByteSpan(dacBuf, dacSpan.size());
-		}
-		ExtractPubkeyFromX509Cert(dp->dac, pub_key);
-
-		ASSERT(pub_key.Length() <= sizeof(dp->dac_pub_key_buf));
-		memcpy(dp->dac_pub_key_buf, pub_key.Bytes(), pub_key.Length());
-		dp->dac_pub_key = ByteSpan(dp->dac_pub_key_buf, pub_key.Length());
-#endif
 		ExtractVIDPIDFromX509Cert(dp->dac, dac_vid_pid);
 
-#if CHIP_BUILD_EXAMPLE_CREDS
 		dp->certification_declaration =
 		    ByteSpan{ test_cert_declaration };
-#else
-		uint8_t* cdBuf = new uint8_t[1024];
-		MutableByteSpan cdSpan(cdBuf, 1024);
-		chip_err = FactoryProvider.GetCertificationDeclaration(cdSpan);
-		if (chip_err == CHIP_NO_ERROR)
-		{
-			dp->certification_declaration = ByteSpan(cdBuf, cdSpan.size());
-		}
-#endif
 	}
 
 	dp->vendor_id = dac_vid_pid.mVendorId.Value();
@@ -438,12 +360,8 @@ CHIP_ERROR AdmDataProvider::GetDeviceAttestationCert(
 	size_t dac_size;
 
 	if (!factory_config_valid) {
-#if CHIP_BUILD_EXAMPLE_CREDS
 		return CopySpanToMutableSpan(DevelopmentCerts::kDacCert,
 			out_buffer);
-#else
-		return FactoryProvider.GetDeviceAttestationCert(out_buffer);
-#endif
 	}
 
 	ReturnErrorOnFailure(AlMatterConfig::ReadConfigValueBin(
@@ -460,12 +378,8 @@ CHIP_ERROR AdmDataProvider::GetProductAttestationIntermediateCert(
 	size_t pai_cert_size;
 
 	if (!factory_config_valid) {
-#if CHIP_BUILD_EXAMPLE_CREDS
 		return CopySpanToMutableSpan(
 		    ByteSpan(DevelopmentCerts::kPaiCert), out_buffer);
-#else
-		return FactoryProvider.GetProductAttestationIntermediateCert(out_buffer);
-#endif
 	}
 
 	ReturnErrorOnFailure(AlMatterConfig::ReadConfigValueBin(
@@ -507,21 +421,10 @@ CHIP_ERROR AdmDataProvider::SignWithDeviceAttestationKey(
 	    CHIP_ERROR_BUFFER_TOO_SMALL);
 
 	if (!factory_config_valid) {
-#if CHIP_BUILD_EXAMPLE_CREDS
 		ReturnErrorOnFailure(InitP256KeypairFromRawKeys(
 		    DevelopmentCerts::kDacPrivateKey,
 		    dac_pub_key,
 		    keypair));
-#else
-		static const uint8_t Dac_PrivateKey_Array[] = { 0x03, 0xff, 0x59, 0xb9, 0x11, 0xdf, 0xe6, 0xc9, 0x7b, 0x17, 0x29, 0x71,
-                                                    0x17, 0x40, 0xec, 0x00, 0x36, 0x39, 0xd9, 0x06, 0xdd, 0xe5, 0x6b, 0x6e,
-                                                    0x59, 0x2c, 0x61, 0xeb, 0x43, 0x87, 0x40, 0x3c};
-		memcpy(priv_key, Dac_PrivateKey_Array, sizeof(Dac_PrivateKey_Array));
-		ReturnErrorOnFailure(InitP256KeypairFromRawKeys(
-		    ByteSpan(priv_key, priv_key_len),
-		    dac_pub_key,
-		    keypair));
-#endif
 	} else {
 		ReturnErrorOnFailure(AlMatterConfig::ReadConfigValueBin(
 		    AlMatterConfig::kConfigKey_DACPrivateKey, priv_key,
@@ -855,4 +758,3 @@ DeviceInstanceInfoProvider *GetAdmDeviceInstanceInfoProvider()
 } /* namespace Ayla */
 } /* namespace DeviceLayer */
 } /* namespace chip */
-

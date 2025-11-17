@@ -34,7 +34,7 @@
 #define PERSIST_PATH_MAX_LEN	64
 
 #define AYLA_FACTORY_INFO_PART_ADDR  CONFIG_FACTORY_PARTITION_OFFSET
-#define AYLA_FACTORY_INFO_PART_SIZE  CONFIG_FACTORY_PARTITION_SIZE
+#define AYLA_FACTORY_INFO_PART_SIZE 0x0400
 
 struct al_persist_factory_info {
     uint8_t dsn[20];            /* factory/id/dev_id */
@@ -259,4 +259,3 @@ void al_persist_data_load_done(void)
 void al_persist_data_save_done(void)
 {
 }
-
