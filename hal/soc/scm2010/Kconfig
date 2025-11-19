@@ -65,6 +65,14 @@ config FACTORY_PARTITION_SIZE
 	hex "Factory data size"
 	default 0x1000
 
+config LOG_PARTITION_OFFSET
+	hex "Log section address"
+	default 0x80017000
+
+config LOG_PARTITION_SIZE
+	hex "Log section size"
+	default 0x1000
+
 if XIP
 
 config SYNC_FLASH_ACCESS
