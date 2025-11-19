@@ -603,7 +603,7 @@ CONFIG_MCUBOOT_BL=y
 # CONFIG_TEST_MEMSLAB is not set
 # CONFIG_TEST_VQUEUE is not set
 CONFIG_BOOT_BIN="wise.scmboot.bin"
-CONFIG_BOOT_TIMEOUT=5
+CONFIG_BOOT_TIMEOUT=0
 
 #
 # MCUBoot related configuration
