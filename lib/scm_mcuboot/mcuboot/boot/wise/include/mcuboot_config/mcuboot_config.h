@@ -118,7 +118,7 @@
  * time penalty is acceptable.
  */
 
-#define MCUBOOT_VALIDATE_PRIMARY_SLOT
+/* #define MCUBOOT_VALIDATE_PRIMARY_SLOT */
 
 /* Flash abstraction */
 

@@ -32,7 +32,6 @@ BOOT_LOG_MODULE_DECLARE(mcuboot);
 
 #if !defined(MCUBOOT_SWAP_USING_MOVE)
 
-#if defined(MCUBOOT_VALIDATE_PRIMARY_SLOT)
 /*
  * FIXME: this might have to be updated for threaded sim
  */
@@ -43,9 +42,6 @@ int boot_status_fails = 0;
             boot_status_fails++;             \
         }                                    \
     } while (0)
-#else
-#define BOOT_STATUS_ASSERT(x) ASSERT(x)
-#endif
 
 int
 boot_read_image_header(struct boot_loader_state *state, int slot,
