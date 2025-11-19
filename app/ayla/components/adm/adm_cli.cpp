@@ -20,15 +20,18 @@
 #include <platform/pfm_matter.h>
 #include <adm/adm.h>
 #include "adm_int.h"
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 #include "adm_data_provider.h"
-
+#endif
 #define PAIRING_CODE_LEN	11	/* manual pairing code string chars */
 #define QR_PAYLOAD_LEN		22	/* QR code payload string chars */
 
 using namespace chip;
 using namespace chip::DeviceLayer;
 using namespace chip::Credentials;
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 using namespace chip::DeviceLayer::Ayla;
+#endif
 
 extern "C" {
 
@@ -129,8 +132,9 @@ static int adm_cli_qr_payload_show(int argc, char **argv)
 	 * product ID will be extracted from the DAC if the certs were written
 	 * to the config since the last reset.
 	 */
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	adm_credentials_load();
-
+#endif
 	err = adm_onboarding_config_get(secret, &passcode, &vendor, &product,
 	    &discovery_mask, &discriminator, pairing_str, sizeof(pairing_str),
 	    qr_str, sizeof(qr_str));
@@ -193,7 +197,11 @@ static int adm_cli_info_show(void)
 	CommissionableDataProvider *cdp = GetCommissionableDataProvider();
 	ConfigurationManager &cm =
 	    ConfigurationManagerImpl::GetDefaultInstance();
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	AdmDataProvider *admp = AdmDataProvider::GetAdmDataProvider();
+#else
+	DeviceInstanceInfoProvider *admp = GetDeviceInstanceInfoProvider();
+#endif
 	uint8_t temp8;
 	uint16_t temp16;
 	uint32_t temp32;

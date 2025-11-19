@@ -38,11 +38,17 @@
 #include <al/al_matter.h>
 #include <adm/adm.h>
 #include "adm_int.h"
-#include "adm_data_provider.h"
 #include <al/al_os_mem.h>
 
 #ifndef AYLA_MATTER_DISCOVERY_MASK
 #error "AYLA_MATTER_DISCOVERY_MASK not defined"
+#endif
+
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
+#include "adm_data_provider.h"
+#else
+#include <platform/senscomm/scm1612s/FactoryDataProvider.h>
+chip::DeviceLayer::FactoryDataProvider& mFactoryDataProvider = chip::DeviceLayer::FactoryDataProvider::GetInstance();
 #endif
 
 using namespace chip;
@@ -51,7 +57,9 @@ using namespace chip::DeviceLayer;
 using namespace chip::DeviceLayer::Internal;
 using namespace chip::Inet;
 using namespace chip::Credentials;
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
 using namespace chip::DeviceLayer::Ayla;
+#endif
 using namespace chip::Protocols::InteractionModel;
 
 #ifndef ADM_ATTR_CHANGE_CB_MAX
@@ -497,6 +505,46 @@ extern "C" void adm_log(const char *fmt, ...)
 	ADA_VA_END(args);
 }
 
+extern "C" int adm_spake2p_config_check(int log)
+{
+	int rc = 1;
+
+	if (!AlMatterConfig::ConfigValueExists(
+	    AlMatterConfig::kConfigKey_SetupDiscriminator)) {
+		if (log) {
+			adm_log(LOG_DEBUG "discriminator not configured");
+		}
+		rc = 0;
+	}
+
+	if (!AlMatterConfig::ConfigValueExists(
+	    AlMatterConfig::kConfigKey_Spake2pIterationCount)) {
+		if (log) {
+			adm_log(LOG_DEBUG
+			    "SPAKE2+ iteration count not configured");
+		}
+		rc = 0;
+	}
+
+	if (!AlMatterConfig::ConfigValueExists(
+	    AlMatterConfig::kConfigKey_Spake2pSalt)) {
+		if (log) {
+			adm_log(LOG_DEBUG "SPAKE2+ salt not configured");
+		}
+		rc = 0;
+	}
+
+	if (!AlMatterConfig::ConfigValueExists(
+	    AlMatterConfig::kConfigKey_Spake2pVerifier)) {
+		if (log) {
+			adm_log(LOG_DEBUG "SPAKE2+ verifier not configured");
+		}
+		rc = 0;
+	}
+
+	return rc;
+}
+
 #ifdef AYLA_SCM_SUPPORT
 
 /* When an attribute is written into by an upper layer, it means necessary
@@ -934,6 +982,7 @@ static void adm_init_server(intptr_t context)
 	initParams.appDelegate = &adm_app_delegate;
 
 	chip_err = Server::GetInstance().Init(initParams);
+	log_put(LOG_INFO "%s matter server init %lu", __func__, chip_err.Format());
 	ASSERT(chip_err == CHIP_NO_ERROR);
 
 	ret = al_matter_server_init();
@@ -1029,8 +1078,13 @@ enum ada_err adm_onboarding_config_get(const char *secret, u32 *passcode,
 	uint16_t discr;
 	MutableCharSpan ps_span(pairing_str, ps_len);
 	MutableCharSpan qr_span(qr_str, qr_len);
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	DeviceInstanceInfoProvider *diip = GetDeviceInstanceInfoProvider();
 	CommissionableDataProvider *cdp = GetCommissionableDataProvider();
+#else
+	auto* diip =  &chip::DeviceLayer::FactoryDataProvider::GetInstance();
+	auto* cdp =  &chip::DeviceLayer::FactoryDataProvider::GetInstance();
+#endif
 	uint8_t salt[kSpake2p_Max_PBKDF_Salt_Length] = { 0 };
 	u8 salt2[ADM_HASH_SALT_LEN];
 	MutableByteSpan saltSpan{ salt };
@@ -1067,8 +1121,12 @@ enum ada_err adm_onboarding_config_get(const char *secret, u32 *passcode,
 	*discriminator = discr;
 
 	if (!adm_spake2p_config_check(0)) {
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
 		/* Test mode */
 		pc.setUpPINCode = CHIP_DEVICE_CONFIG_USE_TEST_SETUP_PIN_CODE;
+#else
+		chip_err = diip->GetSetupPasscode(pc.setUpPINCode);
+#endif
 	} else {
 		if (!secret) {
 			/* Use compiled in secret if none supplied */
@@ -1309,12 +1367,23 @@ void adm_start(const u8 *cert_declaration, size_t cd_len)
 	RendezvousInformationFlags flags =
 	    RendezvousInformationFlags(AYLA_MATTER_DISCOVERY_MASK);
 
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	AdmDataProvider::AdmDataProviderInit(ByteSpan(cert_declaration, cd_len));
 
 	SetCommissionableDataProvider(GetAdmCommissionableDataProvider());
 	SetDeviceAttestationCredentialsProvider(GetAdmDACProvider());
 	SetDeviceInstanceInfoProvider(GetAdmDeviceInstanceInfoProvider());
-
+#else
+	error = mFactoryDataProvider.Init();
+    if (error != CHIP_NO_ERROR)
+    {
+        ChipLogError(DeviceLayer, "Error initializing FactoryData!");
+        ChipLogError(DeviceLayer, "Check if you have flashed it correctly!");
+    }
+    SetCommissionableDataProvider(&mFactoryDataProvider);
+    SetDeviceAttestationCredentialsProvider(&mFactoryDataProvider);
+    SetDeviceInstanceInfoProvider(&mFactoryDataProvider);
+#endif
 	if (flags.Has(RendezvousInformationFlag::kBLE)) {
 		ConnectivityMgr().SetBLEAdvertisingEnabled(true);
 	} else if (flags.Has(RendezvousInformationFlag::kSoftAP)) {
@@ -1368,12 +1437,17 @@ enum ada_err adm_endpoint_type_set(u16 endpoint, u16 device_id, u8 version)
 
 void adm_cd_set(const u8 *cert_declaration, size_t cd_len)
 {
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	AdmDataProvider *dp = AdmDataProvider::GetAdmDataProvider();
 	dp->SetCertificationDeclaration(ByteSpan(cert_declaration, cd_len));
+#else
+	// do nothing now
+#endif
 }
 
 int adm_cd_get(u8 *cert_declaration, size_t cd_len)
 {
+#if AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	AdmDataProvider *dp = AdmDataProvider::GetAdmDataProvider();
 	MutableByteSpan mutable_span;
 	CHIP_ERROR ret;
@@ -1386,6 +1460,9 @@ int adm_cd_get(u8 *cert_declaration, size_t cd_len)
 	} else {
 		return -1;
 	}
+#else
+	return -1;
+#endif
 }
 
 } /* extern "C" */
