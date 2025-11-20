@@ -117,8 +117,9 @@
  * booting, even if no upgrade was performed. This is recommended if the boot
  * time penalty is acceptable.
  */
-
-/* #define MCUBOOT_VALIDATE_PRIMARY_SLOT */
+#ifdef CONFIG_SCM_VALIDATE_PRIMARY_SLOT
+#  define MCUBOOT_VALIDATE_PRIMARY_SLOT
+#endif
 
 /* Flash abstraction */
 

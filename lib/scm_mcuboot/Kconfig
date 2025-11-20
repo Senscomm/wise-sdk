@@ -27,9 +27,14 @@ config SCM_MCUBOOT_USE_HW_CRYPTO
 
 endchoice # Cryptographic backend
 
+config SCM_VALIDATE_PRIMARY_SLOT
+	bool "MCUboot validate primary slot every boot up"
+	default n
+
 menuconfig SCM_MCUBOOT_SIGN_AUTH
 	bool "Signature authentication enable"
 	depends on SCM_MCUBOOT_BOOTLOADER
+	select SCM_VALIDATE_PRIMARY_SLOT
 	default n
 
 if SCM_MCUBOOT_SIGN_AUTH
