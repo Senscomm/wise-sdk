@@ -34,7 +34,10 @@
 #define PERSIST_PATH_MAX_LEN	64
 
 #define AYLA_FACTORY_INFO_PART_ADDR  CONFIG_FACTORY_PARTITION_OFFSET
-#define AYLA_FACTORY_INFO_PART_SIZE 0x0400
+/* Total size = 4K, ayla oem info = 1K, matter section = 2K, optional for future use = 1k */
+#define AYLA_FACTORY_INFO_PART_SIZE CONFIG_FACTORY_PARTITION_SIZE
+#define AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET      0x0400
+#define AYLA_FACTORY_INFO_PART_MATTER_SECTION_SIZE  0x0800
 
 struct al_persist_factory_info {
     uint8_t dsn[20];            /* factory/id/dev_id */
@@ -117,6 +120,10 @@ static int al_persist_data_write_to_system_partition(enum al_persist_section sec
     struct al_persist_factory_info *info;
     uint8_t *data;
     int sz;
+    uint8_t magic[4];
+    bool has_matter = false;
+    /* Now, we only care about 2K matter data, for 1K optional part, need additional logic for future use */
+    uint8_t *matter_section;
 
     if (al_persist_read_system_partition(section, name, &info, &data, &sz) < 0) {
         return -1;
@@ -126,17 +133,56 @@ static int al_persist_data_write_to_system_partition(enum al_persist_section sec
     sz = (sz > len) ? len : sz;
     memcpy(data, buf, sz);
 
+    if (scm_partition_read(FLASH_PARTITION_FACTORY, AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET, magic, sizeof(magic)) >= 0) {
+        /* Check Magic, Matter magic: "MATT" */
+        if (magic[3] == 0x4d && magic[2] == 0x41 && magic[1] == 0x54 && magic[0] == 0x54) {
+            has_matter = true;
+        }
+    } 
+
+    if (has_matter) {
+        matter_section = (uint8_t *)al_os_mem_alloc(AYLA_FACTORY_INFO_PART_MATTER_SECTION_SIZE);
+        if (matter_section == NULL) {
+            log_put(LOG_ERR "al_os_mem_alloc failed\n");
+            al_os_mem_free(info);
+            return -1;
+        }
+
+        if (scm_partition_read(FLASH_PARTITION_FACTORY, AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET, matter_section, AYLA_FACTORY_INFO_PART_MATTER_SECTION_SIZE) < 0) {
+            log_put(LOG_ERR "flash_read failed\n");
+            al_os_mem_free(info);
+            al_os_mem_free(matter_section);
+            return -1;
+        }
+    }
+
     if (scm_partition_erase(FLASH_PARTITION_FACTORY, 0, AYLA_FACTORY_INFO_PART_SIZE) < 0) {
         al_os_mem_free(info);
+        if (has_matter) {
+            al_os_mem_free(matter_section);
+        }
         return -1;
     }
 
     if (scm_partition_write(FLASH_PARTITION_FACTORY, 0, info, sizeof(*info)) < 0) {
         al_os_mem_free(info);
+        if (has_matter) {
+            al_os_mem_free(matter_section);
+        }
         return -1;
     }
 
     al_os_mem_free(info);
+
+    if (has_matter) {
+        if (scm_partition_write(FLASH_PARTITION_FACTORY, AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET, matter_section, AYLA_FACTORY_INFO_PART_MATTER_SECTION_SIZE) < 0) {
+            al_os_mem_free(matter_section);
+            return -1;
+        }
+
+        al_os_mem_free(matter_section);
+    }
+
     return 0;
 }
 
