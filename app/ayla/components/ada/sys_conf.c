@@ -33,6 +33,7 @@ char conf_sys_model[CONF_MODEL_MAX];		/* Ayla module model */
 char conf_sys_mfg_model[CONF_MODEL_MAX];
 char conf_sys_mfg_serial[CONF_MFG_SN_MAX];
 char conf_sys_serial[CONF_DEV_SN_MAX];
+u8 conf_sys_mac_addr[6];
 u32 conf_mfg_test_time;
 u8 conf_test_mode;	/* 1 if test service ticket applied */
 u8 conf_setup_mode_test; /* allow setup_mode enable without factory reset */
@@ -351,6 +352,7 @@ static int conf_sys_path_check(enum conf_token *token, size_t len)
 	case CT_dst_active:
 	case CT_dst_change:
 	case CT_dst_valid:
+	case CT_mac_addr:
 		return 0;
 	default:
 		break;
@@ -461,6 +463,10 @@ static enum conf_error conf_sys_get(int src, enum conf_token *token, size_t len)
 		break;
 	case CT_reset:
 		conf_resp_bool(conf_was_reset);
+		break;
+	case CT_mac_addr:
+		conf_resp(ATLV_BIN, conf_sys_mac_addr,
+		    sizeof(conf_sys_mac_addr));
 		break;
 	case CT_time:
 		if (len == 2) {

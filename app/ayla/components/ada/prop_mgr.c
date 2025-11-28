@@ -296,9 +296,10 @@ static enum ada_err prop_mgr_cb_done(enum prop_cb_status stat,
 				u8 dests)
 {
 	struct prop *prop = prop_mgr_sending;
-
 	prop_mgr_sending = NULL;
-	prop_mgr_report_status(prop, stat, dests, prop->send_done_arg);
+	if (prop) {
+		prop_mgr_report_status(prop, stat, dests, prop->send_done_arg);
+	}
 	client_callback_pend(&prop_mgr_send_callback);
 	return AE_OK;
 }

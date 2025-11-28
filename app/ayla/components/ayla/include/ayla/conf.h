@@ -271,6 +271,7 @@ extern char conf_sys_dev_id[];
 extern char conf_sys_serial[];
 extern char conf_sys_mfg_model[];
 extern char conf_sys_mfg_serial[];
+extern u8 conf_sys_mac_addr[6];
 extern char oem_host_version[];		/* GPIO mode only */
 extern u8 oem_host_version_sent;	/* GPIO mode only */
 extern u8 oem_key[];

@@ -362,8 +362,8 @@ static void pfm_net_stream_init(void)
 	pfm_net_stream_ca_certs = &pfm_net_stream_ca_cert_list;
 	mbedtls_x509_crt_init(pfm_net_stream_ca_certs);
 	rc = mbedtls_x509_crt_parse(pfm_net_stream_ca_certs,
-	    (unsigned char *)LINKER_TEXT_START(ca_certs_der_txt),
-	   LINKER_TEXT_SIZE(ca_certs_der_txt));
+	    (unsigned char *)LINKER_TEXT_START(ca_certs_pem_txt),
+	   LINKER_TEXT_SIZE(ca_certs_pem_txt));
 	ASSERT(!rc);
 
 	/*

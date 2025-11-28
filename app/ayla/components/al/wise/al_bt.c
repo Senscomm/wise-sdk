@@ -1909,4 +1909,14 @@ int al_bt_register_service(const struct adb_attr *service)
 	return 0;
 }
 
+int al_bt_tx_power_set(int tx_power)
+{
+	return 0;
+}
+
+int al_bt_tx_power_get(int *tx_power)
+{
+	return 0;
+}
+
 #endif /* AYLA_BLUETOOTH_SUPPORT */

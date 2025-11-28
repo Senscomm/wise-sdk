@@ -16,7 +16,6 @@
  *    See the License for the specific language governing permissions and
  *    limitations under the License.
  */
-
 #include <crypto/CHIPCryptoPAL.h>
 #include <credentials/examples/ExampleDACs.h>
 #include <credentials/examples/ExamplePAI.h>
@@ -314,10 +313,10 @@ void AdmDataProvider::AdmCredentialsLoad(void)
 validation_done:
 
 	if (!dp->factory_config_valid) {
+		/* invalid factory config */
 		dp->dac = DevelopmentCerts::kDacCert;
 		dp->dac_pub_key = DevelopmentCerts::kDacPublicKey;
 		ExtractVIDPIDFromX509Cert(dp->dac, dac_vid_pid);
-
 		dp->certification_declaration =
 		    ByteSpan{ test_cert_declaration };
 	}
@@ -570,6 +569,10 @@ CHIP_ERROR AdmDataProvider::GetProductName(char *buf, size_t bufSize)
 		return CHIP_NO_ERROR;
 	}
 
+#ifdef CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME
+	chip_err = CopyStringToBuffer(buf, bufSize,
+	    CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME);
+#endif
 	return chip_err;
 }
 
@@ -758,3 +761,4 @@ DeviceInstanceInfoProvider *GetAdmDeviceInstanceInfoProvider()
 } /* namespace Ayla */
 } /* namespace DeviceLayer */
 } /* namespace chip */
+

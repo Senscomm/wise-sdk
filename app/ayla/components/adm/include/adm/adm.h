@@ -94,6 +94,11 @@ enum adm_event_id {
 	ADM_EVENT_COMMISSIONING_WINDOW_OPENED,
 	ADM_EVENT_COMMISSIONING_WINDOW_CLOSED,
 	ADM_EVENT_COMMISSIONING_COMPLETE,
+	ADM_EVENT_COMMISSIONING_ESTABLISH_STARTED,
+	ADM_EVENT_COMMISSIONING_ESTABLISH_ERROR,
+	ADM_EVENT_BLE_ADVERTISING_START,
+	ADM_EVENT_BLE_ADVERTISING_STOP,
+	ADM_EVENT_ALL_FABRIC_REMOVED,
 };
 
 /**
@@ -224,7 +229,7 @@ enum ada_err adm_onboarding_config_get(const char *secret, u32 *passcode,
     char *pairing_str, size_t ps_len, char *qr_str, size_t qr_len);
 
 
-#ifndef AYLA_WIFI_SUPPORT
+#ifndef KEEP_USE_AYLA_WIFI_SUPPORT
 /**
  * Indicates whether the Wi-Fi network has been provisioned.
  *

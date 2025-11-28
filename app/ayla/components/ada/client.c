@@ -4739,6 +4739,9 @@ static void client_commit_server(struct client_state *state)
 				    oem_model, oem, host_entry->domain);
 				hc->host_port = HTTP_CLIENT_SERVER_PORT_SSL;
 			}
+		} else if (cf->conf_serv_override && cf->conf_server[0]) {
+			snprintf(hc->host, sizeof(hc->host), "%s",
+			    cf->conf_server);
 		} else if (hc->is_mqtt) {
 			snprintf(hc->host, sizeof(hc->host),
 			    CLIENT_SERVER_HOST_DEF_FMT, host_entry->domain);

@@ -91,7 +91,7 @@ int adw_wifi_scan_find(const u8 *ssid_in, u8 ssid_len, enum conf_token sec,
 	ssid.len = ssid_len;
 	wmi_sec = adw_wifi_sec_export(sec);
 	adw_lock();
-	scan = adw_wifi_scan_lookup_ssid(&adw_state, &ssid, wmi_sec);
+	scan = adw_wifi_scan_lookup_ssid(p_adw_state, &ssid, wmi_sec);
 	rc = 0;
 	if (!scan) {
 		rc = -1;
@@ -188,7 +188,7 @@ static void adw_wifi_scan_wait_dequeue(struct server_req *req)
 struct al_wifi_scan_result *adw_wifi_get_scan(u8 index, u32 *token,
     struct al_wifi_scan_result *scan_ret)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct al_wifi_scan_result *scan;
 	struct al_wifi_scan_result *ret = NULL;
 	u8 i;
@@ -292,7 +292,7 @@ static void adw_wifi_page_scan_get_cb(void *arg)
 
 enum ada_err adw_wifi_start_scan4(u32 min_interval, struct al_wifi_ssid *ssid)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	u32 now;
 	enum ada_err rc;
 
@@ -407,7 +407,7 @@ adw_wifi_add_prof(struct adw_state *wifi, const struct al_wifi_ssid *ssid,
 static struct adw_profile *
 adw_wifi_get_prof(struct server_req *req, struct al_wifi_ssid *ssid)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	char *arg;
 	char ssid_buf[33];
@@ -473,7 +473,7 @@ int adw_wifi_del_prof(struct adw_state *wifi, const struct al_wifi_ssid *ssid)
 static int adw_wifi_delete(struct server_req *req)
 {
 	struct al_wifi_ssid ssid;
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	int rc;
 
 	if (!adw_wifi_get_prof(req, &ssid)) {
@@ -492,7 +492,7 @@ static int adw_wifi_delete(struct server_req *req)
  */
 static void adw_wifi_json_scan_get(struct server_req *req)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct al_wifi_scan_result *scan;
 	u8 *bp;
 	char ssid_buf[ADW_WIFI_SSID_JSON_MAX];
@@ -576,7 +576,7 @@ static void adw_wifi_json_scan_get(struct server_req *req)
  */
 static void adw_wifi_json_prof_get(struct server_req *req)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	char ssid_buf[32 * 6 + 1];	/* room for SSID with escapes */
 	int indx;
@@ -642,7 +642,7 @@ const char *adw_format_ssid(const struct al_wifi_ssid *ssid,
  */
 static void adw_wifi_json_stat_get(struct server_req *req)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_wifi_history *hist;
 	struct adw_profile *prof;
 	u8 *mac;
@@ -748,7 +748,7 @@ static void adw_wifi_json_stat_get(struct server_req *req)
 enum wifi_error adw_wifi_connect(struct al_wifi_ssid *ssid, const char *key,
     size_t key_len, enum conf_token sec_token, u8 hidden)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	enum wifi_error error;
 	char ssid_buf[33];
 
@@ -800,7 +800,7 @@ enum wifi_error adw_wifi_join_net(const u8 *ssid_in, u8 ssid_len,
  */
 static void adw_wifi_json_connect_post(struct server_req *req)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_wifi_history *hist;
 	enum conf_token sec_token = CT_INVALID_TOKEN;
 	enum wifi_error error;
@@ -962,7 +962,7 @@ err:
 static void adw_wifi_json_stop_ap_put(struct server_req *req)
 {
 #ifdef WIFI_CONCURRENT_AP_STA_MODE
-	struct adw_state *state = &adw_state;
+	struct adw_state *state = p_adw_state;
 
 	if (state->state == WS_UP) {
 		adw_lock();
@@ -1007,10 +1007,12 @@ int adw_wifi_show_hist_log(void *arg, const char *msg)
 	return 0;
 }
 
+#ifndef AYLA_MATTER_SUPPORT
 void adap_wifi_show_hist(int to_log)
 {
 	adw_wifi_show_hist(to_log);
 }
+#endif
 
 /*
  * Show Wi-Fi history.
@@ -1018,7 +1020,7 @@ void adap_wifi_show_hist(int to_log)
  */
 void adw_wifi_show_hist(int to_log)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_wifi_history *hist;
 	const char *label = "    ";
 	char ip[46];
@@ -1170,7 +1172,7 @@ static void adw_wifi_show_net_info(enum al_net_if_type type)
 
 static void adw_wifi_show_settings(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	int rssi = adw_wifi_avg_rssi();
 	char country_code[ADW_COUNTRY_CODE_LEN + 1];
 	const char *cc = country_code;
@@ -1192,7 +1194,7 @@ static void adw_wifi_show_settings(void)
 
 void adw_wifi_show(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	struct al_wifi_scan_result *scan;
 	char *cp;
@@ -1337,13 +1339,14 @@ void adw_wifi_show(void)
 }
 #endif /* AYLA_NO_CLI */
 
+#ifndef AYLA_MATTER_SUPPORT
 /*
  * Fill in the buffer with the currently-connected network SSID.
  * Returns the length, or 0 or negative number if no SSID.
  */
 int adap_wifi_get_ssid(void *buf, size_t len)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	int rc = 0;
 
@@ -1366,10 +1369,11 @@ int adap_wifi_get_ssid(void *buf, size_t len)
 	adw_unlock();
 	return rc;
 }
+#endif
 
 enum adw_wifi_conn_state adw_wifi_get_state(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	return wifi->state;
 }
@@ -1402,6 +1406,6 @@ void adw_wifi_page_init(int enable_redirect)
 {
 	server_add_urls(adw_wifi_url_list);
 	callback_init(&adw_wifi_page_scan_callback,
-	    adw_wifi_page_scan_get_cb, &adw_state);
+	    adw_wifi_page_scan_get_cb, p_adw_state);
 	adw_wifi_event_register(adw_wifi_page_event, NULL);
 }

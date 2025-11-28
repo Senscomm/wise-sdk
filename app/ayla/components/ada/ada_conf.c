@@ -43,6 +43,9 @@
 #include <adb/adb.h>
 #include <al/al_bt.h>
 #endif
+#ifdef AYLA_WIFI_SUPPORT
+#include <adw/wifi.h>
+#endif
 
 #define CONFIG_JSON_PUT_TOKENS	40
 #define CONFIG_TOK_LEN 10
@@ -393,6 +396,31 @@ static void ada_conf_reset_callback(void *arg)
 	ada_conf_reset(ada_conf_reset_factory);
 }
 
+#ifdef AYLA_WIFI_SUPPORT
+static void ada_conf_load_mac_addr(void)
+{
+	struct al_net_if *nif;
+	u8 mac[6];
+	char buf[46];
+
+	nif = al_net_if_get(AL_NET_IF_STA);
+	if (!nif) {
+		conf_log(LOG_ERR "conf get STA net if failed");
+		return;
+	}
+
+	if (al_net_if_get_mac_addr(nif, mac)) {
+		conf_log(LOG_ERR "conf get mac addr failed");
+		return;
+	}
+
+	memcpy(conf_sys_mac_addr, mac, 6);
+
+	conf_log(LOG_INFO "STA MAC address %s",
+	    format_mac(conf_sys_mac_addr, buf, sizeof(buf)));
+}
+#endif
+
 /*
  * Load configuration for client and associated systems.
  */
@@ -405,6 +433,9 @@ void ada_conf_load(void)
 		ada_conf_get_item(item);
 	}
 	client_set_region(region_code);
+#ifdef AYLA_WIFI_SUPPORT
+	ada_conf_load_mac_addr();
+#endif
 }
 
 void conf_lock(void)

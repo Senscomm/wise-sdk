@@ -16,17 +16,21 @@ pem:	ca_certs_pem.txt
 .PHONY: der_c
 der_c:	$(CERTS_DEST)/ca_certs_der_txt.c
 
+.PHONY: pem_c
+pem_c:	$(CERTS_DEST)/ca_certs_pem_txt.c
+
 .PHONY: der_t
 der_t:	$(CERTS_DEST)/ca_certs_der.txt
+
+.PHONY: pem_t
+pem_t:	$(CERTS_DEST)/ca_certs_pem.txt
 
 #
 # The checked-in files are the .pem certs.
 #
 CERTS_PEM = \
+	DigiCert_Global_Root_G2.pem \
 	entrust-ca-g2-sha256-2048.pem \
-	entrust-ca-sha1-2048-sn-0x456b5054.pem \
-	valicert-cl2-sha1-1024.pem \
-	Baltimore_CyberTrust_Root.pem \
 	$(NULL)
 
 CERTS_DER = $(CERTS_PEM:%.pem=%.der)

@@ -3,7 +3,7 @@
 #define BUILD_NAME ""
 #define BUILD_DATE WISE_DATE
 #define BUILD_TIME WISE_TIME
-#define ADA_VERSION "3.2.3"
+#define ADA_VERSION "3.2.4"
 #define BUILD_SDK "wise-sdk"
 #define BUILD_VERSION GIT_VERSION_STRING
 #define SDK_VERSION GIT_TAG_STRING
