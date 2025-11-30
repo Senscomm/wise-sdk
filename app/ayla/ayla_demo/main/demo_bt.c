@@ -8,6 +8,7 @@
 
 #include <ayla/utypes.h>
 #include <ayla/timer.h>
+#include <ayla/log.h>
 #include <ada/libada.h>
 #include <adb/adb.h>
 #include <adb/al_bt.h>
@@ -28,6 +29,8 @@ int demo_bt_is_provisioning(void)
 
 static void demo_bt_adb_event_handler(enum adb_event event)
 {
+	log_put(LOG_INFO "%s: event %d\n", __func__, event);
+
 	switch (event) {
 	case ADB_EV_WIFI_PROVISION_START:
 		demo_bt_provisioning = 1;

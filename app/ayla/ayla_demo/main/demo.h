@@ -17,31 +17,11 @@
  */
 
 #define DEMO_SETUP_ENABLE_KEY "secretkey"
-/*
- * Nvs NameSpace For application
- */
-#define AYLA_STORAGE "ayla_namespace"
-
-#define GPIO_BLUE_LED		19
-#define GPIO_GREEN_LED		18
-#define GPIO_LINK_LED		16
-#undef  GPIO_RGB_LED
-#define GPIO_BOOT_BUTTON	0
-
-/*
- * Start demo main entry.
- */
-void demo_start(void);
 
 /*
  * Initialize demo.
  */
 void demo_init(void);
-
-/*
- * Application thread idle-loop function.
- */
-void demo_idle(void);
 
 /*
  * CLI save command - to save config
@@ -97,8 +77,5 @@ struct ayla_cli_cmd {
 #define ayla_cmd_end()      ll_entry_end(struct ayla_cli_cmd, _ayla_)
 
 int run_ayla_cmd(int argc, char *argv[]);
-
-extern const char mod_sw_build[];
-extern const char mod_sw_version[];
 
 #endif /* __AYLA_DEMO_H__ */

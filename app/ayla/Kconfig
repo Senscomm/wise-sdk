@@ -17,4 +17,24 @@ config AYLA_LOCAL_CONTROL_SUPPORT
 	bool "Ayla Local Control support"
 	default y
 
+choice
+    prompt "Product class"
+    default AYLA_BULB
+
+config AYLA_BULB
+    bool "Bulb"
+
+config AYLA_PLUG
+    bool "Plug"
+
+config AYLA_STRIP
+    bool "Strip"
+
+config AYLA_LEDEVB
+    bool "LEDEVB"
+    help
+      Obsoleted
+
+endchoice
+
 endmenu

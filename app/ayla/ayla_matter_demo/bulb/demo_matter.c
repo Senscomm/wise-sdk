@@ -1136,7 +1136,6 @@ void demo_init(void)
 void demo_idle(void)
 {
 	struct app_event event;
-	uint32_t retry_count = 0;
 
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");

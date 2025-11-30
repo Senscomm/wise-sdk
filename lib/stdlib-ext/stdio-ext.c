@@ -571,6 +571,36 @@ patch_std_kvprintf(const char *format, void (*fn)(int c, void *arg),
 extern int (*std_kvprintf)(const char *format, void(*fn)(int c, void *arg), void *arg, va_list ap);
 PATCH(std_kvprintf, &std_kvprintf, &patch_std_kvprintf);
 
+int patch_os_sprintf(char *str, const char *format, ...)
+{
+    int ret;
+    va_list ap;
+
+    va_start(ap, format);
+    ret = _vsprintf(str, format, ap);
+    if (str)
+        str[ret] = '\0';
+    va_end(ap);
+    return ret;
+}
+
+extern int (*os_sprintf)(char *str, const char *format, ...);
+PATCH(os_sprintf, &os_sprintf, &patch_os_sprintf);
+
+int patch_os_snprintf(char *str, size_t size, const char *format, ...)
+{
+    int ret;
+    va_list ap;
+
+    va_start(ap, format);
+    ret = _vsnprintf(str, size, format, ap);
+    va_end(ap);
+    return ret;
+}
+
+extern int (*os_snprintf)(char *str, size_t size, const char *format, ...);
+PATCH(os_snprintf, &os_snprintf, &patch_os_snprintf);
+
 #endif
 
 
@@ -594,7 +624,11 @@ int os_vasprintf(char **ptr, const char *fmt, va_list ap)
 
 	va_copy(ap2, ap);
 
+#ifdef CONFIG_USE_SIMPLE_PRINTF
+	size = _vsnprintf(NULL, 0, fmt, ap2);
+#else
 	size = vsnprintf(NULL, 0, fmt, ap2);
+#endif
 
 	va_end(ap2);
 
@@ -609,7 +643,11 @@ int os_vasprintf(char **ptr, const char *fmt, va_list ap)
 
 	buf[size] = 0;
 
+#ifdef CONFIG_USE_SIMPLE_PRINTF
+	size = _vsprintf(buf, fmt, ap);
+#else
 	size = vsprintf(buf, fmt, ap);
+#endif
 
 	*ptr = buf;
 

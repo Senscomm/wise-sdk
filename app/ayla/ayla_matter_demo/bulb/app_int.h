@@ -9,7 +9,7 @@
 #ifndef __AYLA_APP_H__
 #define __AYLA_APP_H__
 
-#define APP_VER         "1.3.1"
+#define APP_VER         "1.3.2"
 #define APP_NAME        "ayla_matter_demo"
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__

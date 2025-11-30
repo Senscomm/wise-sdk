@@ -70,6 +70,7 @@ static int pfm_al_os_thread_valid(struct al_thread *thread)
 static void al_os_thread_wrapper(void *arg)
 {
 	struct al_thread *thread = (struct al_thread *)arg;
+    osThreadId_t tid = thread->task_handle;
 
 	ASSERT(thread);
 	vTaskSetThreadLocalStoragePointer(NULL, PFM_THREAD_TLS, thread);
@@ -78,7 +79,7 @@ static void al_os_thread_wrapper(void *arg)
 	thread->thread_main(thread, thread->arg);
 
 	al_os_mem_free(thread);
-	osThreadTerminate(thread->task_handle);
+	osThreadTerminate(tid);
 }
 
 struct al_thread *al_os_thread_create(const char *name,
