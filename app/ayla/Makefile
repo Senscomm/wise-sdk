@@ -12,6 +12,21 @@ ccflags-y += -I$(src)/components/adb/include
 ccflags-y += -I$(src)/components/jsmn
 ccflags-y += -I$(src)/components/paho/MQTTPacket/src
 ccflags-y += -I$(src)/ayla_demo/main
+ccflags-y += -I$(src)/common/driver/bp5758d
+ccflags-y += -I$(src)/common/event
+ccflags-y += -I$(src)/common/lighting
+ifdef CONFIG_AYLA_BULB
+ccflags-y += -I$(src)/ayla_demo/bulb
+endif
+ifdef CONFIG_AYLA_PLUG
+ccflags-y += -I$(src)/ayla_demo/plug
+endif
+ifdef CONFIG_AYLA_STRIP
+ccflags-y += -I$(src)/ayla_demo/strip
+endif
+ifdef CONFIG_AYLA_LEDEVB
+ccflags-y += -I$(src)/ayla_demo/led_demo
+endif
 
 # path for platform
 ccflags-y += -I$(srctree)/api/include
@@ -263,11 +278,23 @@ obj-$(CONFIG_AYLA) += \
 	ayla_demo/main/sched_conf.o \
 	ayla_demo/main/demo_bt.o \
 	ayla_demo/main/demo_wifi.o \
-	ayla_demo/main/demo_ledevb.o \
 	ayla_demo/main/demo_common.o \
 	ayla_demo/main/ota.o \
-	ayla_demo/main/bp5758d.o \
 
 # main for alya test
 obj-$(CONFIG_AYLA) += \
 	main.o
+
+# product class specific
+obj-$(CONFIG_AYLA_BULB) += \
+	ayla_demo/bulb/demo.o \
+	common/driver/bp5758d/bp5758d.o \
+	common/lighting/color_format.o \
+	common/lighting/led_widget.o \
+	common/lighting/lighting_ctrl.o \
+	common/lighting/lighting_mgr.o \
+	common/event/app_event.o \
+
+obj-$(CONFIG_AYLA_LEDEVB) += \
+	ayla_demo/led_demo/demo.o \
+	common/driver/bp5758d/bp5758d.o \

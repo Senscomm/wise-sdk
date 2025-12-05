@@ -26,6 +26,10 @@
 
 #include "vfs.h"
 
+/*
+#define DEBUG
+*/
+
 #define AUXADC_CFG_INPUT_MASK	(0x07)
 #define AUXADC_CFG_INPUT_CH(v)	(v & 0x7)
 #define AUXADC_CFG_CLK_EN		(1 << 3)
@@ -122,12 +126,16 @@ static int auxadc_data_read_linearized(struct device *dev, enum adc_channel ch)
 	else
 		v = v & 0xFFF;
 
+#ifdef DEBUG
 	printk("AUXADC: read value (%d -->", v);
+#endif
 
 	// read Efuse calibration parameter, if any
 	ret = auxadc_get_linear_parameter(is_odd, &m, &n);
 	if (ret < 0) {
+#ifdef DEBUG
 		printk("%d)\n", v);
+#endif
 		return v;
 	}
 	// if efuse data not empty, perform linear regression
@@ -143,9 +151,11 @@ static int auxadc_data_read_linearized(struct device *dev, enum adc_channel ch)
 		if (v > 4095)
 			v = 4095; // avoid rounding to over 4095
 	}
+#ifdef DEBUG
 	printk("%d)\n", v);
 	printk("AUXADC: read ch(%d): (m,n)=(%d, %d)-->(%d/10000, %d/10)\n", ch, m, n,
 		(int)(dm*10000), (int)(dn*10));
+#endif
 
 	return v;
 }
@@ -442,7 +452,9 @@ static int auxadc_probe(struct device *dev)
 	}
 
 	auxadc_enable(dev);
+#ifdef DEBUG
 	printk("open : %p\n", priv->devfs_ops.open);
+#endif
 
     v = auxadc_cfg_read();
 	v |= AUXADC_CFG_VOBUF_EN | AUXADC_CFG_BGR_EN;
@@ -456,7 +468,9 @@ static int auxadc_probe(struct device *dev)
 		priv->offset = 0;
 	}
 
+#ifdef DEBUG
 	printk("ADC: value offset = 0x%02x\n", priv->offset);
+#endif
 
 	v = auxadc_cfg_read();
 	v |= AUXADC_CFG_OFFSET(priv->offset);

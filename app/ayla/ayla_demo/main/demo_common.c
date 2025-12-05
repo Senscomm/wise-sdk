@@ -72,7 +72,6 @@ static void demo_client_start(void)
 #ifdef AYLA_WIFI_SUPPORT
 	demo_wifi_init();
 #endif
-	demo_init();
 }
 
 u8 demo_cloud_has_started(void)
@@ -125,10 +124,11 @@ static void demo_cmd_exec(const char *command)
 #endif
 }
 
-void demo_start()
+void demo_init()
 {
 	log_init();
-	printf("\r\n\n%s\r\n", mod_sw_version);
+
+    printf("\r\n\n%s\r\n", APP_NAME " " BUILD_STRING);
 
 	ada_client_command_func_register(demo_cmd_exec);
 #ifdef AYLA_WIFI_SUPPORT
