@@ -29,17 +29,21 @@
 #include "app_int.h"
 
 #include "scm_gpio.h"
-#include "bp5758d.h"
 #include "gpio_types.h"
+#include "build.h"
 
 #define GPIO_OUTPUT_PIN_SEL	\
-    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_GREEN_LED) | BIT64(GPIO_LINK_LED))
+    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_GREEN_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
 
 #define GPIO_INPUT_PIN_SEL	BIT64(GPIO_BOOT_BUTTON)
 
 #define DEMO_ENDPOINT_SWITCH	1
 
 #define DEMO_SYNC_RETRY_MAX	10
+
+#define BUTTON_SHORT_PRESSED_PERIOD_MIN 200
+#define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
+#define BUTTON_LONG_PRESSED_PERIOD 5000
 
 enum demo_queue_event {
 	DEMO_FROM_MATTER_ON,
@@ -49,15 +53,19 @@ enum demo_queue_event {
 	DEMO_NONE
 };
 
-static char version[] = APP_NAME " " BUILD_STRING;
+static char version[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
 char template_version[] = DEMO_TEMPLATE_VERSION;
-static u8 boot_button;
 static u8 blue_led;
 static u8 green_led;
-static int input;
-static int output;
-static int decimal_in;
-static int decimal_out;
+static u8 outlet;
+static char factory_name[] = DEMO_FACTORY_NAME;
+static char purchase_order[] = DEMO_PURCHASE_ORDER;
+static char device_id[] = DEMO_DEVICE_ID;
+static char device_rename[32];
+static u8 alexa_enabled;
+static u8 google_enable;
+static u8 local_voice_enable;
+static int wifi_rssi;
 static char log[1024];
 
 static xQueueHandle demo_evt_queue;
@@ -199,23 +207,30 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 	if (on) {
 		if (GPIO_BLUE_LED == gpio_num) {
 			printf("Blue set ON\n");
-			bp5758d_set_channel(BP5758D_CHANNEL_B, 20);
 		} else if (GPIO_GREEN_LED == gpio_num) {
 			printf("Green set ON\n");
-			bp5758d_set_channel(BP5758D_CHANNEL_G, 20);
 		}
 
 		gpio_set_level(gpio_num, 0);
 	} else {
 		if (GPIO_BLUE_LED == gpio_num) {
 			printf("Blue set OFF\n");
-			bp5758d_set_channel(BP5758D_CHANNEL_B, 0);
 		} else if (GPIO_GREEN_LED == gpio_num) {
 			printf("Green set OFF\n");
-			bp5758d_set_channel(BP5758D_CHANNEL_G, 0);
 		}
 
 		gpio_set_level(gpio_num, 1);
+	}
+}
+
+static void set_outlet(gpio_num_t gpio_num, u8 on)
+{
+	if (on) {
+		gpio_set_level(gpio_num, 1);
+		printf("Outlet ON\n");
+	} else {
+		gpio_set_level(gpio_num, 0);
+		printf("Outlet OFF\n");
 	}
 }
 
@@ -237,15 +252,13 @@ static enum ada_err demo_sync_to_cloud(u8 on_off)
 {
 	enum ada_err err = AE_OK;
 	log_put(LOG_DEBUG "%s: From matter %d", __func__, on_off);
-	if (blue_led != on_off) {
-		log_put(LOG_INFO "%s: Set Blue LED to %d",
+	if (outlet != on_off) {
+		log_put(LOG_INFO "%s: Set outlet to %d",
 		    __func__, on_off);
-		blue_led = on_off;
-		gpio_set_level(GPIO_LED, on_off);
-		bp5758d_set_channel(BP5758D_CHANNEL_B, on_off ? 20 : 0);
-		err = ada_sprop_send_by_name("Blue_LED");
+		outlet = on_off;
+		err = ada_sprop_send_by_name("outlet1");
 		if (err) {
-			log_put(LOG_ERR "%s: send blue_led: err %d",
+			log_put(LOG_ERR "%s: send outlet1: err %d",
 			    __func__, err);
 		}
 	}
@@ -288,25 +301,60 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 	return AE_OK;
 }
 
-/*
- * Demo set function for integer and decimal properties.
- */
-static enum ada_err demo_int_set(struct ada_sprop *sprop,
+static enum ada_err demo_outlet_set(struct ada_sprop *sprop,
 		const void *buf, size_t len)
 {
 	enum ada_err ret;
 
-	ret = ada_sprop_set_int(sprop, buf, len);
+	ret = ada_sprop_set_bool(sprop, buf, len);
 	if (ret) {
 		return ret;
 	}
-	if (sprop->val == &input) {
-		output = input;
-		ada_sprop_send_by_name("output");
-	} else if (sprop->val == &decimal_in) {
-		decimal_out = decimal_in;
-		ada_sprop_send_by_name("decimal_out");
+    if (sprop->val == &outlet) {
+		set_outlet(GPIO_RELAY_OUT, outlet);
 	}
+
+	log_put(LOG_INFO "%s on_off %u", __func__, outlet);
+
+	demo_write_notify_event(outlet);
+
+	return AE_OK;
+}
+
+/*
+ * Demo set function for bool properties.
+ */
+static enum ada_err demo_bool_set(struct ada_sprop *sprop, const void *buf,
+        size_t len)
+{
+	enum ada_err err;
+
+	err = ada_sprop_set_bool(sprop, buf, len);
+	if (err) {
+		return err;
+	}
+
+	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(uint8_t *)sprop->val);
+
+	return AE_OK;
+}
+
+/*
+ * Demo set function for string properties.
+ */
+static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
+        size_t len)
+{
+	enum ada_err err;
+    u8 color;
+
+	err = ada_sprop_set_string(sprop, buf, len);
+	if (err) {
+		return err;
+	}
+
+	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
+
 	return AE_OK;
 }
 
@@ -339,28 +387,34 @@ static struct ada_sprop demo_props[] = {
 		ada_sprop_get_string, NULL},
 	{ "version", ATLV_UTF8, &version[0], sizeof(version),
 		ada_sprop_get_string, NULL},
+	{ "factory_name", ATLV_UTF8,
+		factory_name, sizeof(factory_name),
+		ada_sprop_get_string, NULL},
+	{ "device_id", ATLV_UTF8, &device_id[0], sizeof(device_id),
+		ada_sprop_get_string, NULL},
+	{ "purchase_order", ATLV_UTF8,
+		purchase_order, sizeof(purchase_order),
+		ada_sprop_get_string, NULL},
+	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),
+		ada_sprop_get_string, demo_string_set},
 	/*
 	 * boolean properties. It associates with a LED and a button.
 	 */
-	{ "Blue_button", ATLV_BOOL, &boot_button, sizeof(boot_button),
-		ada_sprop_get_bool, NULL},
-	{ "Blue_LED", ATLV_BOOL, &blue_led, sizeof(blue_led),
+	{ "alexa_enabled", ATLV_BOOL, &alexa_enabled, sizeof(alexa_enabled),
+		ada_sprop_get_bool, demo_bool_set},
+	{ "google_enable", ATLV_BOOL, &google_enable, sizeof(google_enable),
+		ada_sprop_get_bool, demo_bool_set },
+	{ "local_voice_enable", ATLV_BOOL, &local_voice_enable, sizeof(local_voice_enable),
+		ada_sprop_get_bool, demo_bool_set },
+	{ "night_mode", ATLV_BOOL, &blue_led, sizeof(blue_led),
 		ada_sprop_get_bool, demo_led_set },
-	{ "Green_LED", ATLV_BOOL, &green_led, sizeof(green_led),
-		ada_sprop_get_bool, demo_led_set },
+	{ "outlet1", ATLV_BOOL, &outlet, sizeof(outlet),
+		ada_sprop_get_bool, demo_outlet_set },
+
 	/*
 	 * Integer properties.
 	 */
-	{ "input", ATLV_INT, &input, sizeof(input),
-		ada_sprop_get_int, demo_int_set },
-	{ "output", ATLV_INT, &output, sizeof(output),
-		ada_sprop_get_int, NULL },
-	/*
-	 * Decimal properties.
-	 */
-	{ "decimal_in", ATLV_CENTS, &decimal_in, sizeof(decimal_in),
-		ada_sprop_get_int, demo_int_set },
-	{ "decimal_out", ATLV_CENTS, &decimal_out, sizeof(decimal_out),
+	{ "wifi_rssi", ATLV_INT, &wifi_rssi, sizeof(wifi_rssi),
 		ada_sprop_get_int, NULL },
 	/*
 	 * String properties.
@@ -419,7 +473,9 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 		return AE_INVAL_VAL;
 	}
 
-	log_put(LOG_DEBUG "%s on_off %u", __func__, *value);
+	outlet = *value;
+	set_outlet(GPIO_RELAY_OUT, outlet);
+	log_put(LOG_INFO "%s on_off %u", __func__, *value);
 
 	if (*value) {
 		event = DEMO_FROM_MATTER_ON;
@@ -431,7 +487,7 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 	return AE_OK;
 }
 
-static const struct adm_attribute_change_callback demo_on_off_cb_entry =
+static struct adm_attribute_change_callback demo_on_off_cb_entry =
     ADM_ACCE_INIT(ADM_ACCE_POST_CHANGE,
 	DEMO_ENDPOINT_SWITCH, ADM_ON_OFF_CID, ADM_ON_OFF_AID,
 	demo_on_off_cb);
@@ -481,9 +537,18 @@ void demo_init(void)
 
 static void demo_button_toggle(unsigned long pressed, unsigned long released)
 {
-	if (pressed && ((released - pressed) > 50)) {
-		log_put(LOG_INFO "Button pressed more than 50ms");
-		demo_write_notify_event(!blue_led);
+	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX)) {
+		log_put(LOG_INFO "Button short pressed");
+		outlet = !outlet;
+		set_outlet(GPIO_RELAY_OUT, outlet);
+		demo_write_notify_event(outlet);
+		prop_send_by_name("outlet1");
+	}
+
+	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) {
+		log_put(LOG_INFO "Button long pressed");
+		/* Trigger factory reset */
+		ada_conf_reset(1);
 	}
 }
 
@@ -512,12 +577,10 @@ void demo_idle(void)
 	set_led(GPIO_GREEN_LED, 0);
 	set_led(GPIO_LINK_LED, 0);
 
+	scm_gpio_configure(GPIO_BOOT_BUTTON, SCM_GPIO_PROP_INPUT);
+
 	while (1) {
-#ifdef __no_stub__
 		if (gpio_get_level(GPIO_BOOT_BUTTON) == 0) {
-#else /* __no_stub__ */
-		if (1) {
-#endif /* __no_stub__ */
 			if (button_pressed == 0) {
 				button_pressed = time_now();
 				log_put(LOG_DEBUG "Button pressed");
