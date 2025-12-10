@@ -1,3 +1,4 @@
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT
 /*
  * Copyright 2022 Ayla Networks, Inc.  All rights reserved.
  */
@@ -839,3 +840,10 @@ Protocols::InteractionModel::Status emberAfExternalAttributeWriteCallback(
 	return Status::Failure;
 }
 
+#else
+
+void MatterAylaLocalControlPluginServerInitCallback()
+{
+}
+
+#endif

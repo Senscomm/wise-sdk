@@ -839,7 +839,12 @@ static void mqtt_client_ping_req_send(struct mqtt_client *mc)
 	client_timer_set(&mc->mc_keepalive_timer, MQTT_CLIENT_PING_RESP_WAIT);
 	mqtt_client_send_buf(mc, mc->mqtt_header, len);
 	mqtt_client_send_complete(mc);
-	mc->ping_outstanding = 1;
+	mc->ping_outstanding += 1;
+
+	if (mc->ping_outstanding > 1) {
+		mqtt_client_log(mc, LOG_DEBUG, "miss pong cnt: %u",
+			mc->ping_outstanding - 1);
+	}
 }
 
 static size_t mqtt_client_ping_resp_handle(struct mqtt_client *mc)
@@ -1135,7 +1140,7 @@ static void mqtt_client_keepalive_timeout(struct timer *arg)
 		return;
 	}
 
-	if (mc->ping_outstanding) {
+	if (mc->ping_outstanding >= 3) {
 		MQTT_CLIENT_LOG(mc, LOG_ERR, "ping response timeout");
 		mqtt_client_abort_err(mc, AL_ERR_CLSD);
 	} else {

@@ -170,7 +170,7 @@ obj-$(CONFIG_AYLA) += \
 	components/ada/sprop.o \
 	components/ada/sys_conf.o \
 	components/ada/test_svc.o \
-	components/ada/certs/ca_certs_der_txt.o \
+	components/ada/certs/ca_certs_pem_txt.o \
 
 # ayla component ayla device wifi
 obj-$(CONFIG_AYLA_WIFI_SUPPORT) += \

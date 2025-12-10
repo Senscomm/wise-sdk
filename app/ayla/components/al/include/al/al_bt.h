@@ -268,4 +268,24 @@ void al_bt_keep_up_set(enum al_bt_function func_id);
  */
 void al_bt_keep_up_clear(enum al_bt_function func_id);
 
+/**
+ * Set transmit power.
+ *
+ * \param tx_power the transmit power.
+ * - The range is -13, 10 on esp32.
+ * - The range is -25, 22 on other SOC, such as esp32c3 and esp32s3.
+ *
+ * \return zero on success or if unsupported, -1 if out of range or other error.
+ */
+int al_bt_tx_power_set(int tx_power);
+
+/**
+ * Get transmit power setting.
+ *
+ * \param tx_powerp a pointer to the resulting transmit power setting, in dBm.
+ *
+ * \return zero on success, -1 if not supported or on failure.
+ */
+int al_bt_tx_power_get(int *tx_power);
+
 #endif

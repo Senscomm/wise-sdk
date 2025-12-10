@@ -44,10 +44,12 @@
 #define REJOIN_TIMES_MAX 1
 
 static int rejoin_times;
-static char adw_wifi_hostname[33];
+#define WIFI_HOSTNAME_SIZE    33
+static char *p_adw_wifi_hostname;
 const char * const adw_wifi_errors[] = WIFI_ERRORS;
+static u8 *wific_ram_ptr;
 
-struct adw_state adw_state;
+struct adw_state *p_adw_state;
 ADW_SIZE_INIT				/* for ADW_SIZE_DEBUG */
 
 static struct callback adw_wifi_cbmsg_join;
@@ -258,7 +260,7 @@ static void adw_wifi_status_notify(struct adw_state *wifi,
 
 int adw_wifi_status_get(struct adw_wifi_status *statusp)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_wifi_status *status = &wifi->status;
 
 	if (!status->seq) {
@@ -309,7 +311,7 @@ void adw_wifi_hist_clr_curr(struct adw_state *wifi)
 
 enum wifi_error adw_wifi_get_error(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_wifi_history *hist;
 
 	hist = &wifi->hist[wifi->hist_curr];
@@ -376,7 +378,7 @@ static void adw_wifi_step_cb_pend(struct adw_state *wifi)
 
 static void adw_wifi_step_timeout(void *arg)
 {
-	adw_wifi_step_cb_pend(&adw_state);
+	adw_wifi_step_cb_pend(p_adw_state);
 }
 
 static void adw_wifi_step_arm_timer(void *wifi_arg)
@@ -398,7 +400,7 @@ static void adw_wifi_commit_locked(struct adw_state *wifi)
 
 void adw_wifi_commit(int from_ui)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	adw_wifi_commit_locked(wifi);
@@ -407,7 +409,7 @@ void adw_wifi_commit(int from_ui)
 
 static void adw_wifi_enable_set(int enable)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	wifi->enable = enable;
@@ -427,14 +429,14 @@ void adw_wifi_disable(void)
 
 int adw_wifi_is_enabled(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	return wifi->enable;
 }
 
 void adw_check_wifi_enable_conf(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	if (wifi->enable) {
 		adw_wifi_commit(0);
 	}
@@ -442,7 +444,7 @@ void adw_check_wifi_enable_conf(void)
 
 void adw_wifi_force_ap_mode(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	wifi->pref_profile = ADW_WIFI_PROF_AP + 1;
@@ -453,7 +455,7 @@ void adw_wifi_force_ap_mode(void)
 
 void adw_wifi_unforce_ap_mode(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	if (wifi->pref_profile == ADW_WIFI_PROF_AP + 1) {
@@ -476,7 +478,7 @@ static void adw_wifi_clear_pref_profile(struct adw_state *wifi)
 
 void adw_wifi_save_profiles(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 
 	adw_lock();
@@ -595,7 +597,7 @@ static void adw_wifi_service_fail(struct adw_state *wifi)
  */
 static void adw_wifi_client_timeout(void *arg)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	adw_wifi_service_fail(wifi);
@@ -678,7 +680,7 @@ void adw_wifi_rejoin(struct adw_state *wifi)
 
 static void adw_wifi_rescan(void *arg)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	if (wifi->scan_state == SS_SCAN_WAIT) {
@@ -731,7 +733,7 @@ static void adw_wifi_scan2prof(struct adw_state *wifi, u8 scan_prof)
 
 static void adw_wifi_scan_callback(struct al_wifi_scan_result *rp)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct al_wifi_scan_result *best;
 	struct al_wifi_scan_result *scan;
 	int i;
@@ -882,17 +884,19 @@ static int adw_wifi_health_check(struct adw_state *wifi)
 
 void adw_wifi_stayup(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	wifi->fail_cnt = 0;
 	wifi->reset_cnt = 0;
 	wifi->use_time = al_clock_get_total_ms();
 }
 
+#ifndef AYLA_MATTER_SUPPORT
 void adap_wifi_stayup(void)
 {
 	adw_wifi_stayup();
 }
+#endif
 
 /*
  * Initialize RSSI samples.
@@ -943,7 +947,7 @@ static void adw_wifi_sample_rssi(struct adw_state *wifi)
 
 int adw_wifi_avg_rssi(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	int total = 0;
 	int count = 0;
 	int i;
@@ -966,7 +970,7 @@ int adw_wifi_avg_rssi(void)
 
 static void adw_wifi_rssi_timeout(void *arg)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	u8 tx_power;
 
 	adw_lock();
@@ -988,7 +992,7 @@ static void adw_wifi_rssi_timeout(void *arg)
  */
 void adw_wifi_show_rssi(int argc, char **argv)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 	if (wifi->started) {
@@ -1000,7 +1004,7 @@ void adw_wifi_show_rssi(int argc, char **argv)
 
 void adw_wifi_hostname_set(const char *name)
 {
-	snprintf(adw_wifi_hostname, sizeof(adw_wifi_hostname), "%s", name);
+	snprintf(p_adw_wifi_hostname, WIFI_HOSTNAME_SIZE, "%s", name);
 }
 
 /*
@@ -1153,7 +1157,7 @@ fail:
 
 static void adw_wifi_join_timeout(void *arg)
 {
-	adw_wifi_check_join(&adw_state);
+	adw_wifi_check_join(p_adw_state);
 }
 
 /*
@@ -1229,12 +1233,12 @@ static void adw_wifi_stop_ap(void *arg)
 
 static void adw_wifi_ap_mode_timeout(void *arg)
 {
-	adw_wifi_stop_ap(&adw_state);
+	adw_wifi_stop_ap(p_adw_state);
 }
 
 void adw_wifi_ap_mode_not_supported(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	wifi->ap_unsupported = 1;
 }
@@ -1329,7 +1333,7 @@ static int adw_wifi_join_profile(struct adw_state *wifi,
 		wifi_error = WIFI_ERR_NOT_FOUND;
 		goto fail;
 	}
-	al_wifi_hostname_set(adw_wifi_hostname);
+	al_wifi_hostname_set(p_adw_wifi_hostname);
 	wifi->state = WS_IDLE;
 	wifi->client_err = AE_IN_PROGRESS;
 
@@ -1593,7 +1597,7 @@ static int adw_wifi_al_event(enum al_wifi_event event, void *arg)
  */
 static int adw_wifi_start(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	static u8 done;
 
 	adw_log(LOG_DEBUG "wifi start");
@@ -1608,7 +1612,7 @@ static int adw_wifi_start(void)
 	 * Do not do this in adw_init() before ADA is initialized.
 	 */
 	if (!done) {
-		ada_client_event_register(adw_wifi_client_event, &adw_state);
+		ada_client_event_register(adw_wifi_client_event, p_adw_state);
 		done = 1;
 	}
 	al_mdns_server_up(NULL, conf_sys_dev_id);
@@ -1927,6 +1931,24 @@ static struct ada_timer *adw_wifi_timer_create(void (*handler)(void *))
 	return atimer;
 }
 
+static int adw_ram_mem_init(void)
+{
+	size_t wific_ram_size =
+	    + WIFI_HOSTNAME_SIZE
+	    + sizeof(struct adw_state);
+
+	wific_ram_ptr = al_os_mem_calloc(wific_ram_size);
+	if (!wific_ram_ptr) {
+		adw_log(LOG_ERR "calloc %u failed", wific_ram_size);
+		return -1;
+	}
+
+	p_adw_wifi_hostname = (char *)wific_ram_ptr;
+	p_adw_state = (struct adw_state *)(wific_ram_ptr + WIFI_HOSTNAME_SIZE);
+
+	return 0;
+}
+
 /*
  * initialize mon_wifi.
  * Called before adw_conf_load(), so wifi isn't enabled yet.
@@ -1935,7 +1957,7 @@ static struct ada_timer *adw_wifi_timer_create(void (*handler)(void *))
  */
 void adw_wifi_init(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi;
 	static u8 done;
 	int enable_redirect = 1;
 
@@ -1943,6 +1965,9 @@ void adw_wifi_init(void)
 		return;
 	}
 	done = 1;
+
+	ASSERT(!adw_ram_mem_init());
+	wifi = p_adw_state;
 
 	adw_wifi_lock = al_os_lock_create();
 	ASSERT(adw_wifi_lock);
@@ -1961,7 +1986,7 @@ void adw_wifi_init(void)
 	callback_init(&adw_wifi_cbmsg_event, adw_wifi_event_cb, wifi);
 	adw_wifi_page_init(enable_redirect);
 	al_wifi_init();
-	al_wifi_set_event_cb(&adw_state, adw_wifi_al_event);
+	al_wifi_set_event_cb(p_adw_state, adw_wifi_al_event);
 	conf_table_entry_add(&adw_wifi_conf_entry);
 	conf_table_entry_add(&adw_wifi_ip_conf_entry);
 }
@@ -1988,7 +2013,7 @@ u8 *adw_wifi_mac(struct adw_state *wifi)
  */
 void adw_wifi_powersave(enum adw_wifi_powersave_mode new_mode)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	if (new_mode > ADW_WIFI_PS_ON_LESS_BEACONS) {
 		ASSERT(0);
@@ -2010,7 +2035,7 @@ void adw_wifi_powersave(enum adw_wifi_powersave_mode new_mode)
  */
 static int adw_wifi_configured_nolock(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	int rc;
 
@@ -2038,7 +2063,7 @@ int adw_wifi_configured(void)
 
 int adw_wifi_in_ap_mode(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	return wifi->ap_up;
 }
@@ -2046,7 +2071,7 @@ int adw_wifi_in_ap_mode(void)
 int adw_wifi_get_ssid(void *buf, size_t len)
 {
 	int rc = 0;
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 
 	memset(buf, 0, len);
@@ -2071,7 +2096,7 @@ int adw_wifi_get_ssid(void *buf, size_t len)
 
 int adw_scan_result_count(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct al_wifi_scan_result *scan;
 	int count = 0;
 
@@ -2083,6 +2108,7 @@ int adw_scan_result_count(void)
 	return count;
 }
 
+#ifndef AYLA_MATTER_SUPPORT
 /* Required by ADA to allow it to use other Wi-FI stacks. */
 enum ada_wifi_features adap_wifi_features_get(void)
 {
@@ -2111,6 +2137,7 @@ int adap_net_get_signal(int *signalp)
 	*signalp = (int)rssi;
 	return 0;
 }
+#endif
 
 /*
  * Check station interface for DHCP status.

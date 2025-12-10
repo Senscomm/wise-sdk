@@ -10,7 +10,7 @@
 #define __AYLA_platform_certs_H__
 #include "pfm_linker_text.h"
 
-LINKER_TEXT_ARRAY_DECLARE(ca_certs_der_txt);
-LINKER_TEXT_SIZE_DECLARE(ca_certs_der_txt);
+LINKER_TEXT_ARRAY_DECLARE(ca_certs_pem_txt);
+LINKER_TEXT_SIZE_DECLARE(ca_certs_pem_txt);
 
 #endif /* __AYLA_platform_certs_H__ */

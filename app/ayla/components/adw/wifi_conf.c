@@ -118,7 +118,7 @@ static int adw_conf_get_conf_string(enum conf_token *tk, int tk_len,
 
 void adw_conf_load(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	struct ada_conf_item item;
 	enum conf_token tk[4] = {CT_wifi, CT_profile, 0x0, CT_ssid};
@@ -288,7 +288,7 @@ static void adw_profile_delete(enum conf_token tk)
 
 static void adw_wifi_export(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	adw_lock();
 
@@ -409,7 +409,7 @@ void adw_wifi_export_cur_prof(void *arg)
 static enum conf_error
 adw_wifi_set(int src, enum conf_token *token, size_t len, struct ayla_tlv *tlv)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	enum conf_error error = CONF_ERR_PATH;
 	struct al_wifi_ssid ssid;
@@ -706,7 +706,7 @@ void adw_wifi_scan_snapshot_reset(void)
 static enum conf_error
 adw_wifi_get(int src, enum conf_token *token, size_t len)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	struct al_wifi_scan_result *scan;
 	struct adw_wifi_history *hist;
@@ -1014,7 +1014,7 @@ const struct conf_entry adw_wifi_ip_conf_entry = {
  */
 static void adw_wifi_cli_join(void)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct al_wifi_ssid *ssid;
 	struct adw_profile *prof;
 	char ssid_buf[33];
@@ -1041,7 +1041,7 @@ static void adw_wifi_cli_join(void)
 
 static void adw_wifi_profiles_erase(unsigned int from, unsigned int to)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof;
 	unsigned int index;
 
@@ -1134,7 +1134,7 @@ void adw_wifi_cli_scan(const char *net)
  */
 void adw_wifi_cli(int argc, char **argv)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	enum conf_token token[3];
 	enum conf_token tk;
 	int ntokens;
@@ -1452,7 +1452,7 @@ int adw_wifi_join_rx(void *buf, int len)
 	struct adw_wifi_history *hist;
 	char ssid_buf[33];
 
-	wifi = &adw_state;
+	wifi = p_adw_state;
 	cmd = (struct ayla_cmd *)buf;
 	tlv = (struct ayla_tlv *)(cmd + 1);
 	rlen = len - sizeof(*cmd);
@@ -1565,7 +1565,7 @@ int adw_wifi_delete_rx(void *buf, int len)
 	u8 err = 0;
 	int rc;
 
-	wifi = &adw_state;
+	wifi = p_adw_state;
 	cmd = (struct ayla_cmd *)buf;
 	tlv = (struct ayla_tlv *)(cmd + 1);
 
@@ -1604,7 +1604,7 @@ error:
  */
 void adw_wifi_save_policy_set(int ap_connect, int serv_connect)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	wifi->save_on_ap_connect = ap_connect;
 	wifi->save_on_server_connect = serv_connect;
@@ -1615,7 +1615,7 @@ void adw_wifi_save_policy_set(int ap_connect, int serv_connect)
  */
 void adw_wifi_ap_conditional_set(int conditional)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 
 	wifi->conditional_ap = conditional;
 }
@@ -1626,7 +1626,7 @@ void adw_wifi_ap_conditional_set(int conditional)
  */
 void adw_wifi_ap_ssid_set(const char *ssid)
 {
-	struct adw_state *wifi = &adw_state;
+	struct adw_state *wifi = p_adw_state;
 	struct adw_profile *prof = &wifi->profile[ADW_WIFI_PROF_AP];
 	size_t len;
 
@@ -1646,7 +1646,7 @@ void adw_wifi_ap_ssid_set(const char *ssid)
  */
 const u8 *adw_wifi_ap_ssid_get(void)
 {
-	return adw_state.profile[ADW_WIFI_PROF_AP].ssid.id;
+	return p_adw_state->profile[ADW_WIFI_PROF_AP].ssid.id;
 }
 
 void adw_wifi_ios_setup_app_set(const char *app)

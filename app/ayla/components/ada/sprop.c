@@ -57,6 +57,9 @@ static enum ada_err sprop_send_opt(struct ada_sprop *, int echo, u8 dests,
 static u32 ada_sprop_allocs;
 static u32 ada_sprop_echos_pending;
 static struct callback ada_sprop_ready_callback;
+#ifdef AYLA_FILE_PROP_SUPPORT
+static struct callback sprop_file_abort_callback;
+#endif
 
 static struct ada_sprop *ada_sprop_lookup(const char *name)
 {
@@ -126,12 +129,14 @@ static enum ada_err ada_sprop_mgr_set(const char *name,
 static void ada_sprop_prop_free(struct prop *prop)
 {
 	if (prop) {
+		client_log(LOG_DEBUG2 "%s: name=%s, prop=%p, alloc_cnt=%lu",
+		    __func__, prop->name, prop, ada_sprop_allocs);
 		free(prop);
 		ada_sprop_allocs--;
 	}
 }
 
-static struct prop *ada_sprop_prop_alloc(size_t buf_len)
+static struct prop *ada_sprop_prop_alloc(size_t buf_len, const char *name)
 {
 	struct prop *prop;
 
@@ -142,6 +147,8 @@ static struct prop *ada_sprop_prop_alloc(size_t buf_len)
 		memset(prop, 0, sizeof(*prop));
 		prop->mgr = &ada_sprop_mgr;
 		prop->prop_mgr_done = ada_sprop_prop_free;
+		client_log(LOG_DEBUG2 "%s: name=%s, prop=%p, alloc_cnt=%lu",
+		    __func__, name, prop, ada_sprop_allocs);
 	}
 	return prop;
 }
@@ -164,7 +171,7 @@ static enum ada_err ada_sprop_mgr_get(const char *name,
 		return AE_ERR;
 	}
 	buf_len = sprop->val_len + sizeof(u32);
-	prop = ada_sprop_prop_alloc(buf_len);
+	prop = ada_sprop_prop_alloc(buf_len, name);
 	if (!prop) {
 		return AE_ALLOC;
 	}
@@ -290,7 +297,7 @@ static enum ada_err ada_sprop_file_send(struct file_dp *dp)
 	}
 	len = dp->file_get(dp->sprop, dp->next_off, dp->val_buf, chunk_size);
 	len += sizeof(u32);
-	prop = ada_sprop_prop_alloc(len);
+	prop = ada_sprop_prop_alloc(len, dp->loc);
 	if (!prop) {
 		return AE_ALLOC;
 	}
@@ -415,7 +422,7 @@ enum ada_err ada_sprop_file_fetched(const char *name)
 
 	dp = (struct file_dp *)sprop->val;
 	dp->state = FD_FETCHED;
-	prop = ada_sprop_prop_alloc(0);
+	prop = ada_sprop_prop_alloc(0, name);
 	if (!prop) {
 		return AE_ALLOC;
 	}
@@ -464,7 +471,7 @@ enum ada_err ada_sprop_file_start_recv(const char *name, const void *buf,
 	memcpy(dp->loc, buf, sizeof(dp->loc));
 	dp->loc[len] = '\0';
 
-	prop = ada_sprop_prop_alloc(dp->chunk_size);
+	prop = ada_sprop_prop_alloc(dp->chunk_size, dp->loc);
 	if (!prop) {
 		client_log(LOG_ERR "%s: prop %s alloc prop failed size %zu",
 		    __func__, name, sizeof(*prop) + dp->chunk_size);
@@ -531,6 +538,7 @@ static enum ada_err ada_sprop_file_step(struct file_dp *dp,
 			if (prop) {
 				memcpy(dp->loc, prop->val,
 				    strlen(prop->val) + 1);
+				ada_sprop_prop_free(prop);
 				dp->state = FD_SEND;
 			}
 			return ada_sprop_file_send(dp);
@@ -595,13 +603,18 @@ static enum ada_err ada_sprop_file_step(struct file_dp *dp,
 /*
  * Abort ongoing file transfer.
  */
-void ada_sprop_file_abort(void)
+static void sprop_file_abort(void *arg)
 {
 	if (sprop_file_dp_active) {
 		sprop_file_dp_active->state = FD_ABORT;
 		sprop_file_dp_active->aborted = 1;
 		ada_prop_mgr_dp_abort(sprop_file_dp_active->loc);
 	}
+}
+
+void ada_sprop_file_abort(void)
+{
+	client_callback_pend(&sprop_file_abort_callback);
 }
 #endif
 
@@ -980,7 +993,7 @@ enum ada_err ada_sprop_send_ack(struct ada_sprop *sprop, u8 status,
 		return AE_NOT_FOUND;
 	}
 
-	prop = ada_sprop_prop_alloc(sizeof(struct prop_ack));
+	prop = ada_sprop_prop_alloc(sizeof(struct prop_ack), sprop->name);
 	if (!prop) {
 		return AE_ALLOC;
 	}
@@ -1062,7 +1075,7 @@ static enum ada_err sprop_send_opt(struct ada_sprop *sprop, int echo, u8 dests,
 		}
 		len += sizeof(struct prop_dp_meta) * PROP_MAX_DPMETA;
 	}
-	prop = ada_sprop_prop_alloc(len);
+	prop = ada_sprop_prop_alloc(len, sprop->name);
 	if (!prop) {
 		return AE_ALLOC;
 	}
@@ -1251,6 +1264,10 @@ enum ada_err ada_sprop_mgr_register(char *name, struct ada_sprop *table,
 	if (i == 0) {
 		callback_init(&ada_sprop_ready_callback,
 		    ada_sprop_ready_cb, NULL);
+#ifdef AYLA_FILE_PROP_SUPPORT
+		callback_init(&sprop_file_abort_callback,
+		    sprop_file_abort, NULL);
+#endif
 		ada_prop_mgr_register(&ada_sprop_mgr);
 	}
 
@@ -1368,7 +1385,7 @@ int ada_batch_add_prop(struct batch_ctx *ctx, struct ada_sprop *sprop,
 	} else {
 		len = sprop->val_len + sizeof(u32);
 	}
-	prop = ada_sprop_prop_alloc(len);
+	prop = ada_sprop_prop_alloc(len, sprop->name);
 	if (!prop) {
 		return AE_ALLOC;
 	}

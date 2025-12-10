@@ -15,7 +15,7 @@
  * CA_CERT file is incorporated into the build by the linker.
  * objcopy provides these symbols.
  */
-#if defined(AYLA_ESP32_SUPPORT)
+#if defined(AYLA_ESP32_SUPPORT) || defined(AYLA_SCM_SUPPORT)
 #define CA_CERT_FILE	ca_certs_pem_txt
 #else
 #define CA_CERT_FILE	ca_certs_der_txt

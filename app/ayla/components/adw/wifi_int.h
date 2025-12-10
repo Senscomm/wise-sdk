@@ -199,7 +199,7 @@ struct adw_wifi_scan_persist {
 #define ADW_SIZE_DEBUG
 #ifdef ADW_SIZE_DEBUG
 extern size_t adw_state_size;
-#define ADW_SIZE_INIT size_t adw_state_size = sizeof(adw_state);
+#define ADW_SIZE_INIT size_t adw_state_size = sizeof(*p_adw_state);
 #define ADW_SIZE_CHECK							\
 	do {								\
 		ASSERT(adw_state_size == sizeof(struct adw_state));	\
@@ -209,7 +209,7 @@ extern size_t adw_state_size;
 #define ADW_SIZE_CHECK do { } while (0)
 #endif
 
-extern struct adw_state adw_state;
+extern struct adw_state *p_adw_state;
 extern const char * const adw_wifi_errors[];
 
 /*

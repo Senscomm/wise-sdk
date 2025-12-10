@@ -28,17 +28,22 @@
 #include <ada/err.h>
 #include <ada/ada_conf.h>
 #include <al/al_hmac_sha256.h>
-#ifdef AYLA_WIFI_SUPPORT
+#ifdef KEEP_USE_AYLA_WIFI_SUPPORT
 #include <ayla/conf_token.h>
 #include <adw/wifi.h>
 #else
 #include <ada/ada_wifi.h>
+#include <platform/DiagnosticDataProvider.h>
 #endif
 #include <platform/pfm_matter.h>
 #include <al/al_matter.h>
 #include <adm/adm.h>
 #include "adm_int.h"
 #include <al/al_os_mem.h>
+
+#if CONFIG_TEST_EVENT_TRIGGER_ENABLED
+#include <app/TestEventTriggerDelegate.h>
+#endif
 
 #ifndef AYLA_MATTER_DISCOVERY_MASK
 #error "AYLA_MATTER_DISCOVERY_MASK not defined"
@@ -103,6 +108,10 @@ using namespace chip::Protocols::InteractionModel;
  */
 #ifndef AYLA_MATTER_QRGEN_SECRET
 #define AYLA_MATTER_QRGEN_SECRET	"QXlsYS1NYXR0ZXItUVJDb2Rl"
+#endif
+
+#ifdef CONFIG_TEST_EVENT_TRIGGER_ENABLED
+static SimpleTestEventTriggerDelegate *adm_test_event_trigger_delegate;
 #endif
 
 static const char *adm_qrgen_secret = AYLA_MATTER_QRGEN_SECRET;
@@ -468,6 +477,17 @@ static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 		adm_log(LOG_DEBUG "CHIPoBLE disconnected");
 		break;
 
+	case DeviceEventType::kCHIPoBLEAdvertisingChange:
+		adm_log(LOG_DEBUG "CHIPoBLE Advertising Change");
+		if (event->CHIPoBLEAdvertisingChange.Result ==
+		    ActivityChange::kActivity_Started) {
+			adm_event_callback(ADM_EVENT_BLE_ADVERTISING_START);
+		} else if (event->CHIPoBLEAdvertisingChange.Result ==
+		    ActivityChange::kActivity_Stopped) {
+			adm_event_callback(ADM_EVENT_BLE_ADVERTISING_STOP);
+		}
+		break;
+
 	case DeviceEventType::kCommissioningComplete:
 		adm_log(LOG_DEBUG "Commissioning complete");
 		al_matter_fully_provisioned();
@@ -640,8 +660,8 @@ extern "C" enum ada_err adm_write_attribute(u16 endpoint, u32 cluster,
     adm_attr_change_callback_block(endpoint, cluster, attribute);
 #endif
 
-    status = emberAfWriteAttribute(endpoint, cluster,
-            attribute, value, type);
+	status = emberAfWriteAttribute(endpoint, cluster,
+	    attribute, value, type);
 
 #ifdef AYLA_SCM_SUPPORT
     adm_attr_change_callback_unblock(endpoint, cluster, attribute);
@@ -941,9 +961,19 @@ static enum ada_err adm_onboard_autogen_internal(const char *secret)
 class AdmAppDelegateImpl : public AppDelegate
 {
 public:
+	void OnCommissioningSessionEstablishmentStarted()
+	{
+		adm_event_callback(ADM_EVENT_COMMISSIONING_ESTABLISH_STARTED);
+	}
+
 	void OnCommissioningSessionStarted()
 	{
 		adm_event_callback(ADM_EVENT_COMMISSIONING_SESSION_STARTED);
+	}
+
+	void OnCommissioningSessionEstablishmentError(CHIP_ERROR err)
+	{
+		adm_event_callback(ADM_EVENT_COMMISSIONING_ESTABLISH_ERROR);
 	}
 
 	void OnCommissioningSessionStopped()
@@ -962,10 +992,28 @@ public:
 	}
 };
 
+class AdmFabricDelegate final : public chip::FabricTable::Delegate
+{
+public:
+	AdmFabricDelegate() {}
+
+	void OnFabricRemoved(const FabricTable & fabricTable,
+		FabricIndex fabricIndex) override
+	{
+		adm_log(LOG_INFO "%s FabricCount %u fabricIndex %d",
+		    __func__, fabricTable.FabricCount(), fabricIndex);
+		if (fabricTable.FabricCount() == 0) {
+			adm_event_callback(ADM_EVENT_ALL_FABRIC_REMOVED);
+		}
+	}
+};
+
 static void adm_init_server(intptr_t context)
 {
 	static CommonCaseDeviceServerInitParams initParams;
 	static AdmAppDelegateImpl adm_app_delegate;
+	static AdmFabricDelegate adm_fabric_delegate;
+	FabricTable *fabric_table;
 	CHIP_ERROR chip_err;
 	int ret;
 
@@ -981,6 +1029,10 @@ static void adm_init_server(intptr_t context)
 	ASSERT(chip_err == CHIP_NO_ERROR);
 	initParams.appDelegate = &adm_app_delegate;
 
+#ifdef CONFIG_TEST_EVENT_TRIGGER_ENABLED
+    initParams.testEventTriggerDelegate = adm_test_event_trigger_delegate;
+#endif
+
 	chip_err = Server::GetInstance().Init(initParams);
 	log_put(LOG_INFO "%s matter server init %lu", __func__, chip_err.Format());
 	ASSERT(chip_err == CHIP_NO_ERROR);
@@ -990,6 +1042,9 @@ static void adm_init_server(intptr_t context)
 
 	adm_matter_initialized = 1;
 	adm_event_callback(ADM_EVENT_INITIALIZED);
+
+	fabric_table = &chip::Server::GetInstance().GetFabricTable();
+	fabric_table->AddFabricDelegate(&adm_fabric_delegate);
 
 	if (chip::Server::GetInstance().GetFabricTable().FabricCount() > 0) {
 		al_matter_fully_provisioned();
@@ -1006,7 +1061,7 @@ enum ada_err adm_onboard_config_generate(const char *secret)
 	return adm_onboard_autogen_internal(secret);
 }
 
-#ifdef AYLA_WIFI_SUPPORT
+#ifdef KEEP_USE_AYLA_WIFI_SUPPORT
 static void adm_ip_up_send(void)
 {
 	IPAddress addr;
@@ -1046,7 +1101,7 @@ static void adm_ip_up_send(void)
  */
 extern "C" {
 
-#ifdef AYLA_WIFI_SUPPORT
+#ifdef KEEP_USE_AYLA_WIFI_SUPPORT
 /*
  * Event handler for various Wi-Fi events.
  */
@@ -1181,12 +1236,35 @@ int adap_wifi_in_ap_mode(void)
 
 int adap_wifi_get_ssid(void *buf, size_t len)
 {
-	return 0;
+	char ssid[33] = { 0 };	/* max SSID is 32 + 1 for nul */
+	int ret;
+
+	ret = al_matter_ssid_get(ssid, sizeof(ssid));
+	if (ret == 0) {
+		adm_log(LOG_DEBUG "%s: got ssid %s", __func__, ssid);
+		memset(buf, 0, len);
+		strncpy((char *)buf, ssid, len);
+		return strlen(ssid);
+	} else {
+		adm_log(LOG_ERR "%s: ret error when get ssid", __func__);
+		return -1;
+	}
 }
 
 int adap_net_get_signal(int *signal)
 {
-	return -1;
+	int8_t rssi = -128;
+	CHIP_ERROR chip_err;
+
+	chip_err = GetDiagnosticDataProvider().GetWiFiRssi(rssi);
+	if (chip_err == CHIP_NO_ERROR) {
+		adm_log(LOG_DEBUG "%s: got rssi %d", __func__, rssi);
+		*signal = rssi;
+		return 0;
+	} else {
+		adm_log(LOG_ERR "%s: ret error when get rssi", __func__);
+		return -1;
+	}
 }
 
 enum ada_wifi_features adap_wifi_features_get(void)
@@ -1384,6 +1462,7 @@ void adm_start(const u8 *cert_declaration, size_t cd_len)
     SetDeviceAttestationCredentialsProvider(&mFactoryDataProvider);
     SetDeviceInstanceInfoProvider(&mFactoryDataProvider);
 #endif
+
 	if (flags.Has(RendezvousInformationFlag::kBLE)) {
 		ConnectivityMgr().SetBLEAdvertisingEnabled(true);
 	} else if (flags.Has(RendezvousInformationFlag::kSoftAP)) {
@@ -1404,7 +1483,7 @@ void adm_start(const u8 *cert_declaration, size_t cd_len)
 		return;
 	}
 
-#ifdef AYLA_WIFI_SUPPORT
+#ifdef KEEP_USE_AYLA_WIFI_SUPPORT
 	adw_wifi_event_register(adm_wifi_event_handler, NULL);
 #endif
 
@@ -1464,6 +1543,14 @@ int adm_cd_get(u8 *cert_declaration, size_t cd_len)
 	return -1;
 #endif
 }
+
+#ifdef CONFIG_TEST_EVENT_TRIGGER_ENABLED
+void adm_set_test_event_trigger_delegate(
+	SimpleTestEventTriggerDelegate *pDelegate)
+{
+	adm_test_event_trigger_delegate = pDelegate;
+}
+#endif
 
 } /* extern "C" */
 
