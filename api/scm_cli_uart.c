@@ -42,6 +42,7 @@ static struct scm_uart_cfg scm_cli_uart_cfg = {
     .parity = SCM_UART_NO_PARITY,
     .stop_bits = SCM_UART_STOP_BIT_1,
     .dma_en = 0,
+    .ovf_en = 1,
 };
 
 static int scm_cli_uart_notify(enum scm_uart_idx idx, struct scm_uart_event *event, void *ctx)
@@ -84,6 +85,10 @@ static int scm_cli_uart_init(int argc, char *argv[])
     if (argc == 3) {
         scm_cli_uart_cfg.dma_en = atoi(argv[2]);
     }
+
+    /* Overflow buffer must only be used in PIO mode.
+     */
+    scm_cli_uart_cfg.ovf_en = 1 - scm_cli_uart_cfg.dma_en;
 
     idx = (enum scm_uart_idx)atoi(argv[1]);
     g_uart_ctx[idx].idx = idx;
@@ -372,6 +377,42 @@ static int scm_cli_uart_dump(int argc, char *argv[])
     return CMD_RET_SUCCESS;
 }
 
+static int scm_cli_uart_echo(int argc, char *argv[])
+{
+    enum scm_uart_idx idx;
+    uint32_t len;
+    int c = -1;
+    int err, ret;
+
+    if (!uart_rxbuf) {
+        return CMD_RET_FAILURE;
+    }
+
+    if (argc < 2) {
+        return CMD_RET_USAGE;
+    }
+
+    idx = atoi(argv[1]);
+
+    do {
+        len = SCM_UART_TRANSFER_MAX_LEN;
+        err = scm_uart_rx(idx, uart_rxbuf, &len, 100);
+        if (len > 0) {
+            scm_uart_tx(idx, uart_rxbuf, len, -1);
+        } else if (err != WISE_ERR_TIMEOUT) {
+            printf("scm_uart_rx: error %d\n", err);
+            ret = CMD_RET_FAILURE;
+            break;
+        }
+        if (len == 0 && (c = getchar_timeout(0)) >= 0) {
+            ret = CMD_RET_SUCCESS;
+            break;
+        }
+	} while (1);
+
+    return ret;
+}
+
 static const struct cli_cmd scm_cli_uart_cmd[] = {
     CMDENTRY(init, scm_cli_uart_init, "", ""),
     CMDENTRY(deinit, scm_cli_uart_deinit, "", ""),
@@ -380,6 +421,7 @@ static const struct cli_cmd scm_cli_uart_cmd[] = {
     CMDENTRY(reset, scm_cli_uart_reset, "", ""),
     CMDENTRY(txbuf, scm_cli_uart_set_tx_buf, "", ""),
     CMDENTRY(clrbuf, scm_cli_uart_clr_buf, "", ""),
+    CMDENTRY(echo, scm_cli_uart_echo, "", ""),
     CMDENTRY(dump, scm_cli_uart_dump, "", ""),
 };
 
@@ -417,6 +459,7 @@ CMD(uart, do_scm_cli_uart,
         "\tset data to tx buffer, argument max count =< 30.\n"
         "\tif txbuf is not set by user, txbuf is filled increment data from 0" OR
         "uart clrbuf" OR
+        "uart echo <idx>" OR
         "uart dump <len>\n"
 "\ttxbuf and rxbuf dump"
 );

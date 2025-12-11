@@ -73,7 +73,9 @@ int uart_test(int dma_en, enum scm_uart_idx tx_id, enum scm_uart_idx rx_id)
 			dma_en == 1 ? "DMA" : "PIO");
 
 	uart_tx_cfg.dma_en = dma_en;
+	uart_tx_cfg.ovf_en = 1 - dma_en;
 	uart_rx_cfg.dma_en = dma_en;
+	uart_rx_cfg.ovf_en = 1 - dma_en;
 
 	ret = scm_uart_init(tx_id, &uart_tx_cfg);
 	if (ret) {

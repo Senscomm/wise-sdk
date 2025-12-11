@@ -110,13 +110,9 @@ struct dma_ctx {
 };
 
 struct uart_tr {
-    uint8_t *tx_buf;
-    uint32_t tx_len;
-    uint32_t tx_oft;
-
-    uint8_t *rx_buf;
-    uint32_t rx_len;
-    uint32_t rx_oft;
+    uint8_t *buf;
+    uint32_t len;
+    uint32_t oft;
 };
 
 struct raw_access {
@@ -126,7 +122,9 @@ struct raw_access {
     void *cb_ctx;
 
     struct uart_event event;
-    struct uart_tr tr;
+    struct uart_tr tx;
+    struct uart_tr rx;
+    struct uart_tr rx_ovf; /* overflow buffer for Rx */
 
     uint8_t dma_en;
     struct device *dma_dev;
@@ -172,6 +170,12 @@ __iram__ int atcuart_shutdown(struct device *dev);
 #undef putc
 
 struct serial_port_ops atcuart_port_ops;
+
+#define RX_OVF_LEN    (256) /* Twice the largest possible fifo size */
+
+#ifndef CONFIG_USE_DMA_ALLOCATION
+static uint8_t g_ovf_buf[RX_OVF_LEN] __attribute__((section(".dma_buffer")));
+#endif
 
 #if 1
 #define warn(args...)
@@ -484,7 +488,7 @@ static int atcuart_irq_raw(int irq, void *data)
     if (intid == UART_ATCUART_IIR_INTRID_THR) {
         atport->fifo.fill = 0;
 
-        if (raw->tr.tx_oft == raw->tr.tx_len) {
+        if (raw->tx.oft == raw->tx.len) {
             atcuart_tx_enable(dev, false);
 
 #ifdef FULL_DUPLEX_DEBUG
@@ -497,10 +501,10 @@ static int atcuart_irq_raw(int irq, void *data)
                 raw->cb(&raw->event, raw->cb_ctx);
             }
         } else {
-            for (i = raw->tr.tx_oft; i < raw->tr.tx_len; i++) {
-                atcuart_writel(raw->tr.tx_buf[i], dev, OFT_ATCUART_THR);
+            for (i = raw->tx.oft; i < raw->tx.len; i++) {
+                atcuart_writel(raw->tx.buf[i], dev, OFT_ATCUART_THR);
                 atport->fifo.fill++;
-                raw->tr.tx_oft++;
+                raw->tx.oft++;
                 if (atcuart_fifo_is_full(atport)) {
                     break;
                 }
@@ -509,26 +513,43 @@ static int atcuart_irq_raw(int irq, void *data)
     }
 
     if (intid == UART_ATCUART_IIR_INTRID_RBR) {
-        for (i = raw->tr.rx_oft; i < raw->tr.rx_len; i++) {
-            ret = atcuart_getc(dev);
-            if (ret < 0) {
-                break;
+        if (raw->rx.len > 0 && raw->rx.oft == raw->rx.len) {
+             /* Store data in the overflow buffer
+              * for user buffer is not available.
+             */
+            for (i = raw->rx_ovf.oft; i < raw->rx_ovf.len; i++) {
+                ret = atcuart_getc(dev);
+                if (ret < 0) {
+                    break;
+                }
+                raw->rx_ovf.buf[i] = ret & 0xff;
+                raw->rx_ovf.oft++;
             }
-            raw->tr.rx_buf[i] = ret & 0xff;
-            raw->tr.rx_oft++;
-        }
+        } else {
+            for (i = raw->rx.oft; i < raw->rx.len; i++) {
+                ret = atcuart_getc(dev);
+                if (ret < 0) {
+                    break;
+                }
+                raw->rx.buf[i] = ret & 0xff;
+                raw->rx.oft++;
+            }
 
-        if (raw->tr.rx_oft == raw->tr.rx_len) {
-            atcuart_rx_enable(dev, false);
+            if (raw->rx.oft == raw->rx.len) {
+                /* Keep receiving data into the overflow buffer, if available. */
+                if (raw->rx_ovf.buf == NULL) {
+                    atcuart_rx_enable(dev, false);
+                }
 
 #ifdef FULL_DUPLEX_DEBUG
-            printk("R%d-", atport->port.id);
+                printk("R%d-", atport->port.id);
 #endif
 
-            if (raw->cb) {
-                raw->event.type = UART_EVENT_RX_CMPL;
-                raw->event.err = UART_ERR_NO;
-                raw->cb(&raw->event, raw->cb_ctx);
+                if (raw->cb) {
+                    raw->event.type = UART_EVENT_RX_CMPL;
+                    raw->event.err = UART_ERR_NO;
+                    raw->cb(&raw->event, raw->cb_ctx);
+                }
             }
         }
     }
@@ -918,6 +939,19 @@ static int atcuart_raw_init(struct device *dev, struct uart_cfg *cfg, uart_cb cb
         }
     }
 
+    if (cfg->ovf_en) {
+        if (cfg->dma_en) {
+            printk("[%s, %d] Overflow buffer cannot be used with DMA.\n", __func__, __LINE__);
+            assert(false);
+        }
+        raw->rx_ovf.len = RX_OVF_LEN;
+#ifndef CONFIG_USE_DMA_ALLOCATION
+        raw->rx_ovf.buf = g_ovf_buf;
+#else
+        raw->rx_ovf.buf = dma_malloc(raw->rx_ovf.len);
+#endif
+    }
+
     atcuart_writel(UART_ATCUART_IER_ELSI, dev, OFT_ATCUART_IER);
 
     printk("UART%d raw access enabled (%s mode)\n", dev_id(dev), raw->dma_en ? "DMA" : "PIO");
@@ -933,6 +967,13 @@ static int atcuart_raw_deinit(struct device *dev)
     struct raw_access *raw = &atport->raw;
 
     uart_reset(dev);
+
+    if (raw->rx_ovf.buf) {
+#ifdef CONFIG_USE_DMA_ALLOCATION
+        dma_free(raw->rx_ovf.buf);
+#endif
+        memset(&raw->rx_ovf, 0, sizeof(raw->rx_ovf));
+    }
 
     printk("UART%d raw access disabled\n", dev_id(dev));
 
@@ -958,6 +999,7 @@ static int atcuart_dma_done_handler(void *ctx, dma_isr_status status)
             raw->tx_dma_ctx.dma_ch = -1;
         } else {
             raw->rx_dma_ctx.dma_ch = -1;
+            raw->rx.oft = raw->rx.len;
         }
     }
 
@@ -1048,13 +1090,13 @@ static int atcuart_transmit(struct device *dev, uint8_t *tx_buf, uint32_t tx_len
         uint32_t i;
         uint8_t tx_isr_enable = 0;
 
-        if (raw->tr.tx_len != raw->tr.tx_oft) {
+        if (raw->tx.len != raw->tx.oft) {
             return -EINPROGRESS;
         }
 
-        raw->tr.tx_buf = tx_buf;
-        raw->tr.tx_len = tx_len;
-        raw->tr.tx_oft = 0;
+        raw->tx.buf = tx_buf;
+        raw->tx.len = tx_len;
+        raw->tx.oft = 0;
 
 #ifdef FULL_DUPLEX_DEBUG
         printk("T%d+", atport->port.id);
@@ -1062,10 +1104,10 @@ static int atcuart_transmit(struct device *dev, uint8_t *tx_buf, uint32_t tx_len
 
         local_irq_save(flags);
 
-        for (i = 0; i < raw->tr.tx_len; i++) {
-            atcuart_writel(raw->tr.tx_buf[i], dev, OFT_ATCUART_THR);
+        for (i = 0; i < raw->tx.len; i++) {
+            atcuart_writel(raw->tx.buf[i], dev, OFT_ATCUART_THR);
             atport->fifo.fill++;
-            raw->tr.tx_oft++;
+            raw->tx.oft++;
             if (atcuart_fifo_is_full(atport)) {
                 atcuart_tx_enable(dev, true);
                 tx_isr_enable = 1;
@@ -1089,10 +1131,38 @@ static int atcuart_recevie(struct device *dev, uint8_t *rx_buf, uint32_t rx_len)
 {
     struct atcuart_port *atport = dev->driver_data;
     struct raw_access *raw = &atport->raw;
+    uint32_t flags;
+    uint32_t oft = 0;
 
     if (!raw->enable) {
         return -EPERM;
     }
+
+    local_irq_save(flags);
+
+    if (raw->rx_ovf.oft) {
+        /* Grab what has been stored in the overflow buffer first.
+         */
+        if (rx_len > raw->rx_ovf.oft) {
+            memcpy(rx_buf, raw->rx_ovf.buf, raw->rx_ovf.oft);
+            oft = raw->rx_ovf.oft;
+            raw->rx_ovf.oft = 0;
+        } else {
+            memcpy(rx_buf, raw->rx_ovf.buf, rx_len);
+            memmove(&raw->rx_ovf.buf[0], &raw->rx_ovf.buf[rx_len], raw->rx_ovf.oft - rx_len);
+            raw->rx_ovf.oft -= rx_len;
+            raw->rx.oft = rx_len; /* return the correct amount */
+            local_irq_restore(flags);
+            if (raw->cb) {
+                raw->event.type = UART_EVENT_RX_CMPL;
+                raw->event.err = UART_ERR_NO;
+                raw->cb(&raw->event, raw->cb_ctx);
+            }
+            return 0;
+        }
+    }
+
+    local_irq_restore(flags);
 
     if (raw->dma_en) {
         int ret;
@@ -1104,15 +1174,15 @@ static int atcuart_recevie(struct device *dev, uint8_t *rx_buf, uint32_t rx_len)
         if (raw->rx_dma_ctx.dma_ch >= 0) {
             return -EINPROGRESS;
         }
-        ret =  atcuart_dma_configure(dev, rx_buf, rx_len, 0);
 
+        raw->rx.buf = rx_buf;
+        raw->rx.len = rx_len;
+        raw->rx.oft = oft;
+
+        ret =  atcuart_dma_configure(dev, rx_buf + oft, rx_len - oft, 0);
         if (ret) {
             return ret;
         }
-
-        raw->tr.rx_buf = rx_buf;
-        raw->tr.rx_len = rx_len;
-        raw->tr.rx_oft = 0;
 
     } else {
 
@@ -1120,12 +1190,12 @@ static int atcuart_recevie(struct device *dev, uint8_t *rx_buf, uint32_t rx_len)
         printk("R%d+", atport->port.id);
 #endif
 
-        if (raw->tr.rx_len != raw->tr.rx_oft) {
+        if (raw->rx.len != raw->rx.oft) {
             return -EINPROGRESS;
         }
-        raw->tr.rx_buf = rx_buf;
-        raw->tr.rx_len = rx_len;
-        raw->tr.rx_oft = 0;
+        raw->rx.buf = rx_buf;
+        raw->rx.len = rx_len;
+        raw->rx.oft = oft;
 
         atcuart_rx_enable(dev, true);
     }
@@ -1147,7 +1217,9 @@ static int atcuart_reset(struct device *dev)
     atcuart_rx_enable(dev, false);
     atcuart_tx_enable(dev, false);
 
-    memset(&raw->tr, 0, sizeof(struct uart_tr));
+    memset(&raw->tx, 0, sizeof(struct uart_tr));
+    memset(&raw->rx, 0, sizeof(struct uart_tr));
+    raw->rx_ovf.oft = 0;
 
     if (raw->dma_en) {
         if (raw->tx_dma_ctx.dma_ch >= 0) {
@@ -1184,9 +1256,9 @@ static int atcuart_get_rx_len(struct device *dev)
 
     if (raw->dma_en) {
         int yet_to_go = dma_ch_get_trans_size(raw->dma_dev, raw->rx_dma_ctx.dma_ch);
-        len = raw->tr.rx_len - yet_to_go;
+        len = raw->rx.len - yet_to_go;
     } else {
-        len = raw->tr.rx_oft;
+        len = raw->rx.oft;
     }
 
     return len;

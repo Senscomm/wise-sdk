@@ -81,6 +81,7 @@ struct scm_uart_cfg {
 	enum scm_uart_parity parity;
 	enum scm_uart_stop_bits stop_bits;
 	uint8_t dma_en;
+    uint8_t ovf_en; /* enable overflow buffer */
 };
 
 /**
@@ -158,9 +159,9 @@ int scm_uart_tx_async(enum scm_uart_idx idx, uint8_t *tx_buf, uint32_t tx_len,
  * @param[in] idx index of the UART
  * @param[in] rx_buf buffer to receive
  * @param[in/out] (in) rx_len length of the buffer, (out) actual received length
- * @param[in] timeout wait ms time for uart receive complete, or -1(indefinitely)
+ * @param[in] max_idle wait ms time for incoming data, or -1 for waiting indefinitely for rx_len
  */
-int scm_uart_rx(enum scm_uart_idx idx, uint8_t *rx_buf, uint32_t *rx_len, int timeout);
+int scm_uart_rx(enum scm_uart_idx idx, uint8_t *rx_buf, uint32_t *rx_len, int max_idle);
 
 /**
  * @brief UART receive data

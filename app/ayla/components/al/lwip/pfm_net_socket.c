@@ -6,11 +6,9 @@
  * with Ayla Networks, Inc., a copy of which can be obtained from
  * Ayla Networks, Inc.
  */
-
 #ifdef AYLA_SCM_SUPPORT
 #include <unistd.h>
 #endif
-
 #include <ayla/utypes.h>
 #include <ayla/endian.h>
 #include <al/al_err.h>
