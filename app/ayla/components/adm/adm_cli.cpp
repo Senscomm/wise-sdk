@@ -23,6 +23,7 @@
 #ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 #include "adm_data_provider.h"
 #endif
+
 #define PAIRING_CODE_LEN	11	/* manual pairing code string chars */
 #define QR_PAYLOAD_LEN		22	/* QR code payload string chars */
 
@@ -135,6 +136,7 @@ static int adm_cli_qr_payload_show(int argc, char **argv)
 #ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
 	adm_credentials_load();
 #endif
+
 	err = adm_onboarding_config_get(secret, &passcode, &vendor, &product,
 	    &discovery_mask, &discriminator, pairing_str, sizeof(pairing_str),
 	    qr_str, sizeof(qr_str));

@@ -178,6 +178,7 @@ int scm_uart_init(enum scm_uart_idx idx, struct scm_uart_cfg *cfg)
     uart_cfg.parity = cfg->parity;
     uart_cfg.stop_bits = cfg->stop_bits;
     uart_cfg.dma_en = cfg->dma_en;
+    uart_cfg.ovf_en = cfg->ovf_en;
 
     arg.cfg = &uart_cfg;
     arg.cb = uart_notify;
@@ -296,12 +297,13 @@ int scm_uart_tx_async(enum scm_uart_idx idx, uint8_t *tx_buf, uint32_t tx_len,
 }
 
 int scm_uart_rx(enum scm_uart_idx idx, uint8_t *rx_buf, uint32_t *rx_len,
-        int timeout)
+        int max_idle)
 {
     struct scm_uart_data *priv = &uart_data[idx];
     struct scm_uart_intf_data *intf = &priv->rx;
     struct uart_rx_arg rx_arg;
     struct uart_get_rx_len_arg rx_len_arg;
+    uint32_t available = 0;
     int ret;
 
     scm_uart_lock(intf);
@@ -313,6 +315,7 @@ int scm_uart_rx(enum scm_uart_idx idx, uint8_t *rx_buf, uint32_t *rx_len,
 
     rx_arg.rx_buf = rx_buf;
     rx_arg.rx_len = *rx_len;
+    *rx_len = 0;
 
     intf->sync = 1;
 
@@ -322,20 +325,35 @@ int scm_uart_rx(enum scm_uart_idx idx, uint8_t *rx_buf, uint32_t *rx_len,
         return WISE_ERR_IOCTL;
     }
 
-    ret = scm_uart_sync(intf, timeout);
+    do {
+        available = *rx_len;
 
-    /* Read actual received length regardless of the result.
-     */
-    rx_len_arg.len = rx_len;
-    ioctl(priv->fd, IOCTL_UART_GET_RX_LEN, &rx_len_arg);
+        ret = scm_uart_sync(intf, max_idle);
 
-    if (ret == WISE_ERR_TIMEOUT) {
-        int ret2; /* Still need to return TIMEOUT by ret. */
-        ret2 = ioctl(priv->fd, IOCTL_UART_RESET, NULL);
-        if (ret2) {
-            ret = WISE_ERR_IOCTL;
+        /* Read actual received length regardless of the result.
+         */
+        rx_len_arg.len = rx_len;
+        ioctl(priv->fd, IOCTL_UART_GET_RX_LEN, &rx_len_arg);
+
+        if (ret == WISE_OK) {
+            /* We've got desired amount of data.
+             */
+            break;
+        } else if (*rx_len > available) {
+            /* Wait longer because data is coming in.
+             */
+            continue;
+        } else {
+            /* No data for max_idle.
+             */
+            int ret2; /* Still need to return TIMEOUT by ret. */
+            ret2 = ioctl(priv->fd, IOCTL_UART_RESET, NULL);
+            if (ret2) {
+                ret = WISE_ERR_IOCTL;
+            }
+            break;
         }
-    }
+    } while (1);
 
     scm_uart_unlock(intf);
 

@@ -74,6 +74,7 @@ struct uart_cfg {
 	enum uart_parity parity;
 	enum uart_stop_bits stop_bits;
 	uint8_t dma_en;
+    uint8_t ovf_en; /* enable overflow buffer */
 };
 
 enum uart_event_type {

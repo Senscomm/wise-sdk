@@ -37,7 +37,6 @@
 #include <fcntl.h>
 #endif
 #include <platform/pfm_net_socket.h>
-
 #include <cmsis_os.h>
 
 #ifdef AYLA_SCM_SUPPORT
