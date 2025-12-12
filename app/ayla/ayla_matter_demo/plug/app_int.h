@@ -15,8 +15,12 @@
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 
 #define DEMO_OEM_ID	        "0dfc7900" /* may be set to your Ayla OEM ID */
-#define DEMO_OEM_MODEL	        "" /* may be set to your OEM model name */
-#define DEMO_TEMPLATE_VERSION   "demo_matter 1.1" /* demo template version */
+#define DEMO_OEM_MODEL	        "plug-m-1" /* may be set to your OEM model name */
+#define DEMO_TEMPLATE_VERSION   "matter plug 1.0" /* demo template version */
+#define DEMO_FACTORY_NAME       "MFG"
+#define DEMO_PURCHASE_ORDER     "PO"
+#define DEMO_DEVICE_ID          "Ayla-0506"
+
 
 /*
  * Define the number of active schedules supported.
@@ -24,11 +28,12 @@
  */
 #define DEMO_SCHED_COUNT	5
 
-#define GPIO_BLUE_LED		19
-#define GPIO_GREEN_LED		18
-#define GPIO_LINK_LED		16
+#define GPIO_BLUE_LED		17
+#define GPIO_GREEN_LED		1
+#define GPIO_LINK_LED		17
+#define GPIO_RELAY_OUT		7
 #undef  GPIO_RGB_LED
-#define GPIO_BOOT_BUTTON	0
+#define GPIO_BOOT_BUTTON	15
 #define GPIO_LED            GPIO_BLUE_LED
 /**
  * \brief Demo app initialization.
