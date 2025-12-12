@@ -40,19 +40,11 @@
 #include "bp5758d.h"
 #include "build.h"
 
+#include "ftm.h"
+
 #define DEMO_ENDPOINT_LIGHTING	1
 
 #define DEMO_SYNC_RETRY_MAX	10
-
-enum demo_light_action {
-	ACTION_LIGHT_ON,
-	ACTION_LIGHT_OFF,
-	ACTION_LIGHT_MODE,
-	ACTION_LIGHT_MODE2, /* MODE + set light bulb */
-	ACTION_LIGHT_LEVEL,
-	ACTION_LIGHT_TEMP,
-	ACTION_LIGHT_COLOR,
-};
 
 /* Attributes */
 static char version[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
@@ -251,7 +243,7 @@ static void demo_set_light_bulb(void)
     }
 }
 
-static void demo_light_evt_handler(struct app_event *evt)
+static void demo_evt_handler(struct app_event *evt)
 {
     bool need_set = false;
 
@@ -265,40 +257,40 @@ static void demo_light_evt_handler(struct app_event *evt)
     }
 
     switch(evt->light_event.action) {
-    case ACTION_LIGHT_ON:
+    case kLightAction_On:
     {
         u8 on_only = (u8)evt->light_event.value;
         demo_light_bulb_do_action(ON_ACTION, 0, true);
         need_set = on_only != 0 ? false : true;
         break;
     }
-    case ACTION_LIGHT_MODE2:
+    case kLightAction_Mode2:
     {
         need_set = true;
         break;
     }
-    case ACTION_LIGHT_MODE:
+    case kLightAction_Mode:
     {
         u8 value = (u8)evt->light_event.value;
         demo_light_bulb_do_action(MODE_ACTION, &value, true);
         break;
     }
-    case ACTION_LIGHT_OFF:
+    case kLightAction_Off:
         demo_light_bulb_do_action(OFF_ACTION, 0, false);
         break;
-	case ACTION_LIGHT_LEVEL:
+	case kLightAction_Level:
     {
         u8 value = (u8)evt->light_event.value;
         demo_light_bulb_do_action(LEVEL_ACTION, &value, value ? true : false);
         break;
     }
-	case ACTION_LIGHT_TEMP:
+	case kLightAction_Temp:
     {
         u8 value = (u8)evt->light_event.value;
         demo_light_bulb_do_action(TEMP_ACTION, &value, true);
         break;
     }
-	case ACTION_LIGHT_COLOR:
+	case kLightAction_Color:
     {
         u32 value = evt->light_event.value;
         RgbColor_t rgb;
@@ -350,8 +342,8 @@ static enum ada_err demo_bool_set(struct ada_sprop *sprop, const void *buf,
 
     if (!strcmp(sprop->name, "power")) {
 
-        demo_post_light_event(*(uint8_t *)sprop->val ? ACTION_LIGHT_ON
-                : ACTION_LIGHT_OFF, 0);
+        demo_post_light_event(*(uint8_t *)sprop->val ? kLightAction_On
+                : kLightAction_Off, 0);
 
         err = adm_write_boolean(DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID,
                 ADM_ON_OFF_AID, power);
@@ -383,7 +375,7 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
     if (!strcmp(sprop->name, "brightness")) {
         u8 level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
 
-        demo_post_light_event(ACTION_LIGHT_LEVEL, (uint32_t)level);
+        demo_post_light_event(kLightAction_Level, (uint32_t)level);
 
         err = adm_write_u8(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
             ADM_CURRENT_LEVEL_AID, level);
@@ -395,7 +387,7 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
     } else if (!strcmp(sprop->name, "color_temp")) {
         u16 mireds = demo_convert_temp_to_mireds(color_temp);
 
-        demo_post_light_event(ACTION_LIGHT_TEMP, (uint32_t)color_temp);
+        demo_post_light_event(kLightAction_Temp, (uint32_t)color_temp);
 
         err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
             ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID, mireds);
@@ -409,7 +401,7 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
         u8 g = color_select >> 8;
         u8 b = color_select >> 0;
 
-        demo_post_light_event(ACTION_LIGHT_COLOR, (uint32_t)color_select);
+        demo_post_light_event(kLightAction_Color, (uint32_t)color_select);
 
         hsv = RgbToHsv(r, g, b);
         xy = RgbToXy(r, g, b);
@@ -493,7 +485,7 @@ static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
             log_put(LOG_DEBUG "%s: %s to matter %d OK", __func__, sprop->name, color ? 0 : 2);
         }
 
-        demo_post_light_event(ACTION_LIGHT_MODE2, (uint32_t)color);
+        demo_post_light_event(kLightAction_Mode2, (uint32_t)color);
     }
 
 	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
@@ -596,7 +588,7 @@ static void demo_lc_completed(bool timeout)
     struct app_event evt;
 
     evt.type = kEventType_Light;
-    evt.light_event.action = ACTION_LIGHT_OFF;
+    evt.light_event.action = kLightAction_Off;
 
     app_event_post(&evt);
 
@@ -725,28 +717,28 @@ static void demo_matter_event_cb(enum adm_event_id id)
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_ON,
+                    .action = kLightAction_On,
                     .value = 1,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_MODE,
+                    .action = kLightAction_Mode,
                     .value = 0,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_LEVEL,
+                    .action = kLightAction_Level,
                     .value = 127,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_TEMP,
+                    .action = kLightAction_Temp,
                     .value = 78,
                 }
             },
@@ -759,7 +751,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_OFF,
+                    .action = kLightAction_Off,
                 }
             },
             {
@@ -773,11 +765,11 @@ static void demo_matter_event_cb(enum adm_event_id id)
         if (onboarding)
             break;
 
-        lighting_ctrl_terminate(false);
+        lighting_ctrl_terminate(false, false);
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(false, 180000/* 3 min. */, demo_lc_completed);
+        lighting_ctrl_run(-1, 180000/* 3 min. */, demo_lc_completed);
 
         onboarding = true;
     }
@@ -792,37 +784,37 @@ static void demo_matter_event_cb(enum adm_event_id id)
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_ON,
+                    .action = kLightAction_On,
                     .value = 1,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_MODE,
+                    .action = kLightAction_Mode,
                     .value = 0,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_LEVEL,
+                    .action = kLightAction_Level,
                     .value = 254,
                 }
             },
             {
                 .type = kEventType_Light,
                 .light_event = {
-                    .action = ACTION_LIGHT_TEMP,
+                    .action = kLightAction_Temp,
                     .value = 78,
                 }
             }
         };
-        lighting_ctrl_terminate(false);
+        lighting_ctrl_terminate(false, false);
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(true, 0, demo_lc_sync);
+        lighting_ctrl_run(1, 0, demo_lc_sync);
 
         onboarding = false;
         break;
@@ -858,7 +850,7 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
         }
     }
 
-    demo_post_light_event(*value ? ACTION_LIGHT_ON : ACTION_LIGHT_OFF, 0);
+    demo_post_light_event(*value ? kLightAction_On : kLightAction_Off, 0);
 
 	log_put(LOG_DEBUG "%s on_off %u", __func__, *value);
 
@@ -909,7 +901,7 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
         }
     }
 
-    demo_post_light_event(ACTION_LIGHT_LEVEL, *value);
+    demo_post_light_event(kLightAction_Level, *value);
 
 	log_put(LOG_DEBUG "%s level_control %u", __func__, *value);
 
@@ -969,7 +961,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
             /* XXX: update color_saturation ? */
         }
 
-        demo_post_light_event(ACTION_LIGHT_COLOR, val);
+        demo_post_light_event(kLightAction_Color, val);
 
         log_put(LOG_DEBUG "New XY color: %u|%u", xy.x, xy.y);
     }
@@ -1018,7 +1010,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
             }
         }
 
-        demo_post_light_event(ACTION_LIGHT_COLOR, val);
+        demo_post_light_event(kLightAction_Color, val);
 
         log_put(LOG_DEBUG "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
     }
@@ -1045,7 +1037,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
             }
         }
 
-        demo_post_light_event(ACTION_LIGHT_TEMP, (uint32_t)temp);
+        demo_post_light_event(kLightAction_Temp, (uint32_t)temp);
 
         log_put(LOG_DEBUG "%s: mireds %u, temp %d", __func__, mireds, temp);
     }
@@ -1064,7 +1056,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
             }
         }
 
-        demo_post_light_event(ACTION_LIGHT_MODE2, 1);
+        demo_post_light_event(kLightAction_Mode2, 1);
 
         log_put(LOG_DEBUG "color mode: %u", *value);
     }
@@ -1091,6 +1083,23 @@ static void init_ayla_clusters(void)
     MatterAylaLocalControlPluginServerInitCallback();
 }
 
+static int demo_run_ftm(void)
+{
+    struct app_event evt;
+
+    if (!ftm_is_enabled()) {
+        return 0;
+    }
+
+    evt.type = kEventType_Install;
+    evt.install_event.callback = ftm_run;
+    evt.install_event.arg = 0;
+
+    app_event_post(&evt);
+
+    return 1;
+}
+
 void demo_init(void)
 {
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
@@ -1101,11 +1110,19 @@ void demo_init(void)
 	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
 
     app_event_init();
-    app_event_install_handler(kEventType_Light, demo_light_evt_handler);
-    app_event_install_handler(kEventType_Install, demo_light_evt_handler);
+    app_event_install_handler(kEventType_Light, demo_evt_handler);
+    app_event_install_handler(kEventType_Install, demo_evt_handler);
 
     lighting_mgr_init(LightMgr());
     lighting_ctrl_init();
+
+    ftm_init();
+    if (demo_run_ftm()) {
+        /* This is FTM mode.
+         * Skip everything else and go directly to the event loop.
+         */
+        return;
+    }
 
 	adm_init();
     init_ayla_clusters();
@@ -1130,7 +1147,6 @@ void demo_init(void)
 
 	ada_sprop_mgr_register("demo_matter",
 	    demo_props, ARRAY_LEN(demo_props));
-
 }
 
 void demo_idle(void)

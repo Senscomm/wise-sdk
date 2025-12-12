@@ -136,3 +136,9 @@
 	CONF_TOKEN(0x7e, eth)
 	CONF_TOKEN(0x7f, id)	/* Using for homekit identify */
 	/* NB: tokens 0x80 and above require code enhancements */
+#ifdef AYLA_SCM_SUPPORT
+    CONF_TOKEN(0x80, ftm)
+    CONF_TOKEN(0x81, ftm_wifi)
+    CONF_TOKEN(0x82, ftm_bulb)
+    CONF_TOKEN(0x83, ftm_bulb_type)
+#endif

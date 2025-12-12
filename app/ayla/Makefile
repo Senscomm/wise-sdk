@@ -15,6 +15,7 @@ ccflags-y += -I$(src)/ayla_demo/main
 ccflags-y += -I$(src)/common/driver/bp5758d
 ccflags-y += -I$(src)/common/event
 ccflags-y += -I$(src)/common/lighting
+ccflags-y += -I$(src)/common/ftm
 ifdef CONFIG_AYLA_BULB
 ccflags-y += -I$(src)/ayla_demo/bulb
 endif
@@ -283,7 +284,10 @@ obj-$(CONFIG_AYLA) += \
 
 # main for alya test
 obj-$(CONFIG_AYLA) += \
-	main.o
+	main.o \
+	common/ftm/ftm.o \
+	common/ftm/ftm_wifi.o \
+	common/ftm/ftm_bulb.o
 
 # product class specific
 obj-$(CONFIG_AYLA_BULB) += \

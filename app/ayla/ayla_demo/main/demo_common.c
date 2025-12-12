@@ -13,6 +13,7 @@
 
 #include <stddef.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/time.h>
 
 #include "wise_err.h"
@@ -28,11 +29,16 @@
 #include "conf_wifi.h"
 #include "demo.h"
 
-#include <cmsis_os.h>
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
 
 #include <lwip/ip4_addr.h>
 
 #include "cli/cli.h"
+
+#include "app_event.h"
+#include "ftm.h"
 
 static u8 cloud_started;	/* set to 1 after first cloud connection */
 
@@ -68,10 +74,6 @@ static void demo_client_start(void)
 	 * Start schedule activities.
 	 */
 	ada_sched_enable();
-	demo_ota_init();
-#ifdef AYLA_WIFI_SUPPORT
-	demo_wifi_init();
-#endif
 }
 
 u8 demo_cloud_has_started(void)
@@ -124,20 +126,58 @@ static void demo_cmd_exec(const char *command)
 #endif
 }
 
-void demo_init()
+static int demo_run_ftm(void)
+{
+    struct app_event evt;
+
+    if (!ftm_is_enabled()) {
+        return 0;
+    }
+
+    evt.type = kEventType_Install;
+    evt.install_event.callback = ftm_run;
+    evt.install_event.arg = 0;
+
+    app_event_post(&evt);
+
+    return 1;
+}
+
+int demo_init()
 {
 	log_init();
 
     printf("\r\n\n%s\r\n", APP_NAME " " BUILD_STRING);
 
 	ada_client_command_func_register(demo_cmd_exec);
+
+    ftm_init();
+
 #ifdef AYLA_WIFI_SUPPORT
-	adw_wifi_init();
-	log_put(LOG_INFO "wlan init done");
+    /* Avoid conflicts between al_wifi and ftm_wifi.
+     */
+    if (!ftm_is_enabled()) {
+        adw_wifi_init();
+        log_put(LOG_INFO "wlan init done");
+    }
 #endif
+
 	demo_client_start();
 
+    if (demo_run_ftm()) {
+        /* This is FTM mode.
+         * Skip everything else and go directly to the event loop.
+         */
+        return 0;
+    }
+
+	demo_ota_init();
+#ifdef AYLA_WIFI_SUPPORT
+	demo_wifi_init();
+#endif
 #ifdef AYLA_BLUETOOTH_SUPPORT
 	demo_bt_init();
 #endif
+
+    return 1;
 }

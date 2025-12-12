@@ -132,8 +132,8 @@ void demo_wifi_init(void)
 	const u8 *pssid;
 	char hostname[32];
 
-	adw_wifi_event_register(demo_wifi_event_handler, NULL);
 	adw_wifi_init();
+	adw_wifi_event_register(demo_wifi_event_handler, NULL);
 	adw_wifi_page_init(enable_redirect);
 
 	pssid = adw_wifi_ap_ssid_get();

@@ -29,6 +29,7 @@
 #include "conf.h"
 #include "conf_wifi.h"
 #include "demo.h"
+#include "ftm.h"
 #include "scm_efuse.h"
 
 #define KEY_LENGTH      50
@@ -377,6 +378,20 @@ static int wise_metrics_cli(int argc, char **argv)
 		.func = &wise_metrics_cli
 	};
 #endif
+
+static const char conf_ftm_cli_help[] = "ftm [enable|disable]";
+
+static int wise_ftm_cli(int argc, char **argv)
+{
+	ftm_cli(argc, argv);
+	return 0;
+}
+
+	ayla_cmd_def(ftm) = {
+		.command = "ftm",
+		.help = conf_ftm_cli_help,
+		.func = &wise_ftm_cli
+	};
 
 static void cli_crash_overflow(char *arg)
 {
