@@ -29,7 +29,7 @@
 #define DEMO_SCHED_COUNT	5
 
 #define GPIO_BLUE_LED		17
-#define GPIO_GREEN_LED		1
+#define GPIO_POWER_LED		16
 #define GPIO_LINK_LED		17
 #define GPIO_RELAY_OUT		7
 #undef  GPIO_RGB_LED

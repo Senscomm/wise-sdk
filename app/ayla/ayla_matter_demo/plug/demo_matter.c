@@ -33,7 +33,7 @@
 #include "build.h"
 
 #define GPIO_OUTPUT_PIN_SEL	\
-    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_GREEN_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
+    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_POWER_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
 
 #define GPIO_INPUT_PIN_SEL	BIT64(GPIO_BOOT_BUTTON)
 
@@ -207,16 +207,12 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 	if (on) {
 		if (GPIO_BLUE_LED == gpio_num) {
 			printf("Blue set ON\n");
-		} else if (GPIO_GREEN_LED == gpio_num) {
-			printf("Green set ON\n");
 		}
 
 		gpio_set_level(gpio_num, 0);
 	} else {
 		if (GPIO_BLUE_LED == gpio_num) {
 			printf("Blue set OFF\n");
-		} else if (GPIO_GREEN_LED == gpio_num) {
-			printf("Green set OFF\n");
 		}
 
 		gpio_set_level(gpio_num, 1);
@@ -290,8 +286,6 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 	}
     if (sprop->val == &blue_led) {
 		set_led(GPIO_BLUE_LED, blue_led);
-	} else {
-		set_led(GPIO_GREEN_LED, green_led);
 	}
 
 	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
@@ -572,9 +566,9 @@ void demo_idle(void)
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
 
-	/* start with all LEDs to off */
+	/* start with all LEDs to off but power led to on */
 	set_led(GPIO_BLUE_LED, 0);
-	set_led(GPIO_GREEN_LED, 0);
+	set_led(GPIO_POWER_LED, 1);
 	set_led(GPIO_LINK_LED, 0);
 
 	scm_gpio_configure(GPIO_BOOT_BUTTON, SCM_GPIO_PROP_INPUT);
