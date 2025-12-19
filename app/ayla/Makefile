@@ -27,6 +27,10 @@ endif
 ifdef CONFIG_AYLA_LEDEVB
 ccflags-y += -I$(src)/ayla_demo/led_demo
 endif
+ifdef CONFIG_AYLA_POWER_MEASURE
+ccflags-y += -I$(src)/common/power_measure/include
+ccflags-y += -I$(src)/common/driver/bl0937
+endif
 
 # path for platform
 ccflags-y += -I$(srctree)/api/include
@@ -298,3 +302,9 @@ obj-$(CONFIG_AYLA_BULB) += \
 obj-$(CONFIG_AYLA_LEDEVB) += \
 	ayla_demo/led_demo/demo.o \
 	common/driver/bp5758d/bp5758d.o \
+
+# ayla power measure
+obj-$(CONFIG_AYLA_POWER_MEASURE) += \
+	common/driver/bl0937/bl0937.o \
+	common/power_measure/src/power_measure_api.o \
+	common/power_measure/src/power_measure_bl0937.o	\

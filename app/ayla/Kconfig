@@ -37,4 +37,13 @@ config AYLA_LEDEVB
 
 endchoice
 
+config AYLA_POWER_MEASURE
+    bool "Support for power measure IC for plug"
+	depends on AYLA_PLUG
+	default n
+
+if AYLA_POWER_MEASURE
+source "app/ayla/common/power_measure/Kconfig"
+endif
+
 endmenu
