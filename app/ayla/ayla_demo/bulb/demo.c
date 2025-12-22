@@ -40,6 +40,7 @@
 
 #include "bp5758d.h"
 #include "build.h"
+#include "power_cycle_reset.h"
 
 /*
  * The oem and oem_model strings determine the host name for the
@@ -726,6 +727,8 @@ void app_main()
 {
 	bp5758d_init();
 	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+
+    check_power_cycle_count();
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_light_evt_handler);
