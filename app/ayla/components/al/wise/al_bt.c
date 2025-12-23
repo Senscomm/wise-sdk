@@ -80,7 +80,12 @@
  * X - optional, to specify upper case hex, defaults to lower case
  */
 #define BT_NAME_DEFAULT_FORMAT	"Ayla%4X"
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+/* configuration can be changed from nimble host syscfg.h */
+#define BT_NAME_SIZE_MAX		MYNEWT_VAL(BLE_SVC_GAP_DEVICE_NAME_MAX_LENGTH)
+#else
 #define BT_NAME_SIZE_MAX	12		/* max characters in name */
+#endif
 
 /*
  * BT passkey defines
@@ -153,6 +158,21 @@ static void al_bt_advertise(void);
 static void (*al_bt_timer_func)(void *arg) = al_bt_wifi_provision_stop;
 
 static osThreadId_t host_task_h;
+
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+/* Set al_bt some features - bitmap */ 
+static u8 al_bt_feat_flags = 0;
+const char *bt_name_format =  BT_NAME_DEFAULT_FORMAT;
+
+void al_bt_set_features(u8 feat_flags, const char *format)
+{
+	al_bt_feat_flags = feat_flags;
+
+	if (format) {
+		bt_name_format = format;
+	}
+}
+#endif
 
 /*
  * Entry point for nimble host task
@@ -501,10 +521,24 @@ static void al_bt_advertise(void)
 	if (!adw_wifi_configured()) {
 		al_bt_wifi_provisioning = 1;
 		adb_event_notify(ADB_EV_WIFI_PROVISION_START);
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		/* For WLT DEMO, Keep the BLE ADV all the time */
+		if (!(al_bt_feat_flags & BIT(AL_BT_FEAT_KEEP_BT_ADV))) {
+			al_bt_wifi_timeout_start();
+		}
+#else
 		al_bt_wifi_timeout_start();
+#endif
 #ifdef AYLA_TEST_SERVICE_SUPPORT
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		if (!(al_bt_feat_flags & BIT(AL_BT_FEAT_EXTRA_LCTRL))) {
+			adb_mbox_svc_callbacks_set(om_session_alloc, om_session_down,
+			    om_rx);
+		}
+#else
 		adb_mbox_svc_callbacks_set(om_session_alloc, om_session_down,
 		    om_rx);
+#endif
 #endif
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	} else if (al_bt_wifi_provisioning) {
@@ -513,16 +547,30 @@ static void al_bt_advertise(void)
 		if (!al_bt_connections) {
 			al_bt_keep_up_clear(AL_BT_FUNC_PROVISION);
 		}
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		if (!(al_bt_feat_flags & BIT(AL_BT_FEAT_EXTRA_LCTRL))) {
+			adb_mbox_svc_callbacks_set(lctrl_session_alloc,
+			    lctrl_session_down, lctrl_msg_rx);
+		}
+#else
 		adb_mbox_svc_callbacks_set(lctrl_session_alloc,
 		    lctrl_session_down, lctrl_msg_rx);
+#endif
 #endif
 	} else {
 		if (!al_bt_connections) {
 			al_bt_keep_up_clear(AL_BT_FUNC_PROVISION);
 		}
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		if (!(al_bt_feat_flags & BIT(AL_BT_FEAT_EXTRA_LCTRL))) {
+			adb_mbox_svc_callbacks_set(lctrl_session_alloc,
+			    lctrl_session_down, lctrl_msg_rx);
+		}
+#else
 		adb_mbox_svc_callbacks_set(lctrl_session_alloc,
 		    lctrl_session_down, lctrl_msg_rx);
+#endif
 #else
 		adb_log(LOG_INFO "Wi-Fi configured, not advertising");
 #ifdef AYLA_TEST_SERVICE_SUPPORT
@@ -573,8 +621,16 @@ static void al_bt_advertise(void)
 		 * Advertise local control service data, pointer should be
 		 * const but isn't.
 		 */
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		/* Note:Service Data + Device Name will be larger than 31 bytes */
+		if (!(al_bt_feat_flags & BIT(AL_BT_FEAT_KEEP_NAME_IN_ADV))) {
+			adv_fields.svc_data_uuid16 = (u8 *)adb_ayla_svc_data_get(
+			    &adv_fields.svc_data_uuid16_len);
+		}
+#else
 		adv_fields.svc_data_uuid16 = (u8 *)adb_ayla_svc_data_get(
 		    &adv_fields.svc_data_uuid16_len);
+#endif
 	}
 
 	/*
@@ -585,7 +641,11 @@ static void al_bt_advertise(void)
 	 * If the service data isn't available (device not onboarded),
 	 * advertise the name.
 	 */
-	if (!adv_fields.svc_data_uuid16_len) {
+	if (!adv_fields.svc_data_uuid16_len
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		|| (al_bt_feat_flags & BIT(AL_BT_FEAT_KEEP_NAME_IN_ADV))
+#endif
+	) {
 		name = ble_svc_gap_device_name();
 		adb_log(LOG_DEBUG "gap device name %s", name);
 		adv_fields.name = (uint8_t *)name;
@@ -1301,9 +1361,14 @@ void al_bt_init(void (register_cb)(void))
 	len = conf_persist_get(BT_NAME_KEY_CONF, device_name,
 	    sizeof(device_name) - 1);
 	if (len <= 0) {
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+		if (al_bt_feat_flags & BIT(AL_BT_FEAT_BT_NAME_FMT))
+			strncpy(device_name, bt_name_format, sizeof(device_name));
+#else
 		/* use default */
 		strncpy(device_name, BT_NAME_DEFAULT_FORMAT,
 		    sizeof(device_name));
+#endif
 	} else {
 		device_name[len] = '\0';
 	}

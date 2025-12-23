@@ -17,6 +17,11 @@ config AYLA_LOCAL_CONTROL_SUPPORT
 	bool "Ayla Local Control support"
 	default y
 
+config AYLA_LOCAL_CONTROL_SUPPORT_WLT
+	bool "Ayla Local Control support WLT protocols"
+	depends on AYLA_LOCAL_CONTROL_SUPPORT
+	default n
+
 choice
     prompt "Product class"
     default AYLA_BULB

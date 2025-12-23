@@ -28,6 +28,11 @@ const void *adb_mbox_svc_uuid_get(void);
  */
 int adb_mbox_svc_register(const struct adb_attr **service);
 
+#ifdef AYLA_SCM_SUPPORT
+enum adb_att_err adb_mbox_svc_write_cb(u16 conn, const struct adb_attr *attr, u8 *buf, u16 length);
+enum adb_att_err adb_mbox_svc_subscribe_cb(u16 conn, u8 notify, u8 indicate);
+#endif
+
 /**
  * Register callbacks to connect higher layer protocol to mailbox.
  *
