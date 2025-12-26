@@ -29,6 +29,7 @@
 #include <cmsis_os.h>
 
 #include "cli/cli.h"
+#include "ftm.h"
 
 #define APP_SETUP_ENABLE_KEY	"secretkey"
 
@@ -208,6 +209,18 @@ ayla_cmd_def(id) = {
     .cmd = "id",
     .help = ada_conf_id_help,
     .func = demo_id_cli,
+};
+
+static int demo_ftm_cli(int argc, char **argv)
+{
+	ftm_cli(argc, argv);
+	return 0;
+}
+
+ayla_cmd_def(ftm) = {
+    .cmd = "ftm",
+    .help = "ftm [enable|disable]",
+    .func = &demo_ftm_cli
 };
 
 /*

@@ -215,7 +215,6 @@ void oem_conf_load(void);
 void client_conf_load(void);
 void adw_conf_load(void);
 void log_conf_load(void);
-
 int ada_conf_get_item(const struct ada_conf_item *item);
 int ada_conf_export_item(const struct ada_conf_item *item);
 

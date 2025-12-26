@@ -34,7 +34,7 @@
 #define PERSIST_PATH_MAX_LEN	64
 
 #define AYLA_FACTORY_INFO_PART_ADDR  CONFIG_FACTORY_PARTITION_OFFSET
-/* Total size = 4K, ayla oem info = 1K, matter section = 2K, optional for future use = 1k */
+/* Total size = 4K, ayla oem info = 1K, matter section = 2K, optional for future use = 1K */
 #define AYLA_FACTORY_INFO_PART_SIZE CONFIG_FACTORY_PARTITION_SIZE
 #define AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET      0x0400
 #define AYLA_FACTORY_INFO_PART_MATTER_SECTION_SIZE  0x0800
@@ -46,6 +46,10 @@ struct al_persist_factory_info {
     uint8_t oem_model[24];      /* factory/oem/model */
     uint8_t oem_key[256];       /* factory/oem/key */
     uint8_t serial[32];
+    uint8_t ftm;                /* factory/ftm/ftm */
+    uint8_t ftm_wifi;           /* factory/ftm/ftm_wifi */
+    uint8_t ftm_bulb;           /* factory/ftm/ftm_bulb */
+    uint8_t ftm_bulb_type;      /* factory/ftm/ftm_bulb_type */
 } __packed;
 
 static int al_persist_read_system_partition(enum al_persist_section section,
@@ -60,7 +64,12 @@ static int al_persist_read_system_partition(enum al_persist_section section,
             && strcmp(name, "id/key")
             && strcmp(name, "oem/oem")
             && strcmp(name, "oem/model")
-            && strcmp(name, "oem/key")) {
+            && strcmp(name, "oem/key")
+            && strcmp(name, "ftm/ftm")
+            && strcmp(name, "ftm/ftm_wifi")
+            && strcmp(name, "ftm/ftm_bulb")
+            && strcmp(name, "ftm/ftm_bulb_type")
+            ) {
         return -1;
     }
 
@@ -91,6 +100,18 @@ static int al_persist_read_system_partition(enum al_persist_section section,
     } else if (!strcmp(name, "oem/key")) {
         *data = (*info)->oem_key;
         *sz = sizeof((*info)->oem_key);
+    } else if (!strcmp(name, "ftm/ftm")) {
+        *data = &((*info)->ftm);
+        *sz = sizeof((*info)->ftm);
+    } else if (!strcmp(name, "ftm/ftm_wifi")) {
+        *data = &((*info)->ftm_wifi);
+        *sz = sizeof((*info)->ftm_wifi);
+    } else if (!strcmp(name, "ftm/ftm_bulb")) {
+        *data = &((*info)->ftm_bulb);
+        *sz = sizeof((*info)->ftm_bulb);
+    } else if (!strcmp(name, "ftm/ftm_bulb_type")) {
+        *data = &((*info)->ftm_bulb_type);
+        *sz = sizeof((*info)->ftm_bulb_type);
     }
 
     return 0;
@@ -124,6 +145,8 @@ static int al_persist_data_write_to_system_partition(enum al_persist_section sec
     bool has_matter = false;
     /* Now, we only care about 2K matter data, for 1K optional part, need additional logic for future use */
     uint8_t *matter_section;
+
+    ASSERT(sizeof(struct al_persist_factory_info) <= AYLA_FACTORY_INFO_PART_NON_AYLA_OFFSET);
 
     if (al_persist_read_system_partition(section, name, &info, &data, &sz) < 0) {
         return -1;

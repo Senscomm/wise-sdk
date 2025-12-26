@@ -26,8 +26,12 @@ typedef void (*lc_callback_completed)(bool timeout);
 
 extern void lighting_ctrl_init(void);
 extern void lighting_ctrl_add_event(struct app_event *evt);
-/* timeout in ms, 0 if not used */
-extern void lighting_ctrl_run(bool once, u32 timeout, lc_callback_completed cb);
-extern void lighting_ctrl_terminate(bool timeout);
+/* timeout: in ms, 0 if not used
+ * num: # of times to run, -1 if indefinite */
+extern void lighting_ctrl_run(int num, u32 timeout, lc_callback_completed cb);
+/* timeout: whether or not due to timeout
+ * silent: terminate without callback
+ */
+extern void lighting_ctrl_terminate(bool timeout, bool silent);
 
 #endif

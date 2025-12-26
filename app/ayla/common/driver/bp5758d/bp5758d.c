@@ -27,10 +27,6 @@
 #define BP5758D_ENABLE_ALL_OUT 	0x1F
 #define BP5758D_DISABLE_ALL_OUT	0x00
 
-#if 0
-#define SKIP_STNDBY /* Debug only */
-#endif
-
 struct bp5758d_ctx {
 	uint8_t rgb_current;
 	uint8_t cw_current;
@@ -83,7 +79,7 @@ static int convert_current_value(uint8_t *dst, uint8_t src)
 	return 0;
 }
 
-static void bp5758d_regiater_channel(enum bp5758d_channel channel, enum bp5758d_out_pin pin)
+static void bp5758d_register_channel(enum bp5758d_channel channel, enum bp5758d_out_pin pin)
 {
 	g_ctx->mapping_addr[channel] = pin;
 }
@@ -92,9 +88,7 @@ static int send_i2c(uint8_t *value, uint32_t len)
 {
 	int ret = 0;
 
-#ifdef CONFIG_API_I2C
 	ret = scm_i2c_master_tx(SCM_I2C_IDX_GPIO, 0, value, len, 0);
-#endif
 
 	return ret;
 }
@@ -121,11 +115,11 @@ int bp5758d_init(void)
 	 * Configure channel-to-pin mapping according to different LED module hardware
 	 * This configuration corresponds to the SkyLighting LED module
 	 */
-	bp5758d_regiater_channel(BP5758D_CHANNEL_B, BP5758D_PIN_OUT3);
-	bp5758d_regiater_channel(BP5758D_CHANNEL_G, BP5758D_PIN_OUT2);
-	bp5758d_regiater_channel(BP5758D_CHANNEL_R, BP5758D_PIN_OUT1);
-	bp5758d_regiater_channel(BP5758D_CHANNEL_W, BP5758D_PIN_OUT4);
-	bp5758d_regiater_channel(BP5758D_CHANNEL_C, BP5758D_PIN_OUT5);
+	bp5758d_register_channel(BP5758D_CHANNEL_B, BP5758D_PIN_OUT3);
+	bp5758d_register_channel(BP5758D_CHANNEL_G, BP5758D_PIN_OUT2);
+	bp5758d_register_channel(BP5758D_CHANNEL_R, BP5758D_PIN_OUT1);
+	bp5758d_register_channel(BP5758D_CHANNEL_W, BP5758D_PIN_OUT4);
+	bp5758d_register_channel(BP5758D_CHANNEL_C, BP5758D_PIN_OUT5);
 
 	memset(value, 0, 17);
 
@@ -140,13 +134,9 @@ int bp5758d_init(void)
     g_ctx->rgb_set_current = 14;
     g_ctx->cw_set_current = 14;
 
-#ifdef CONFIG_API_I2C
 	scm_i2c_init(SCM_I2C_IDX_GPIO);
     cfg.skip_address = 1;
     scm_i2c_configure(SCM_I2C_IDX_GPIO, &cfg, NULL, NULL);
-#else
-    (void)cfg;
-#endif
 
 	return send_i2c(value, sizeof(value));
 }
@@ -183,7 +173,6 @@ int bp5758d_set_standby(bool enable)
 		return -1;
 	}
 
-#ifndef SKIP_STNDBY
 	if (enable) {
         value[0] = BP5758D_ADDR_SETUP;
 		value[1] = BP5758D_DISABLE_ALL_OUT;
@@ -205,10 +194,6 @@ int bp5758d_set_standby(bool enable)
 			g_ctx->sleep_mode = false;
 		}
 	}
-#else
-    (void)value;
-    ret = 0;
-#endif
 
 	if (ret) {
 		printf("%s/ standby fail\n", enable ? "Enable" : "Disable");

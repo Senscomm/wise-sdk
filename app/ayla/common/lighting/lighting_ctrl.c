@@ -36,7 +36,7 @@ static struct
 {
     struct list_head list;
     lc_event_t *cur;
-    bool once;
+    int num;
     u64 until;
     lc_callback_completed cb;
 
@@ -70,14 +70,14 @@ static void lc_serve_next(void)
 
     if (lc.until != 0 && al_clock_get_total_ms() > lc.until) {
         xSemaphoreGive(lc.mutex);
-        lighting_ctrl_terminate(true);
+        lighting_ctrl_terminate(true, false);
         return;
     }
 
     if (list_is_last(&lc.cur->list, &lc.list)) {
-        if (lc.once) {
+        if (lc.num > 0 && --lc.num == 0) {
             xSemaphoreGive(lc.mutex);
-            lighting_ctrl_terminate(false);
+            lighting_ctrl_terminate(false, false);
             return;
         } else {
             lc.cur = list_first_entry(&lc.list, lc_event_t, list);
@@ -94,7 +94,11 @@ static void lc_serve_next(void)
 
 static void lc_timer_evt_handler(struct app_event *evt)
 {
-    xTimerChangePeriod(lc.timer, pdMS_TO_TICKS(evt->timer_event.value), 0);
+    if (evt->timer_event.value > 0) {
+        xTimerChangePeriod(lc.timer, pdMS_TO_TICKS(evt->timer_event.value), 0);
+    } else {
+        lc_serve_next();
+    }
 }
 
 static void lc_timer_callback(TimerHandle_t xTimer)
@@ -157,7 +161,7 @@ void lighting_ctrl_add_event(struct app_event *evt)
     xSemaphoreGive(lc.mutex);
 }
 
-void lighting_ctrl_run(bool once, u32 timeout, lc_callback_completed cb)
+void lighting_ctrl_run(int num, u32 timeout, lc_callback_completed cb)
 {
     xSemaphoreTake(lc.mutex, portMAX_DELAY);
 
@@ -167,7 +171,9 @@ void lighting_ctrl_run(bool once, u32 timeout, lc_callback_completed cb)
         return;
     }
 
-    lc.once = once;
+    /* XXX: interpret 0 as 1.
+     */
+    lc.num = (num == 0 ? 1 : num);
     if (timeout != 0) {
         lc.until = al_clock_get_total_ms() + (u64)timeout;
     } else {
@@ -181,9 +187,10 @@ void lighting_ctrl_run(bool once, u32 timeout, lc_callback_completed cb)
     xSemaphoreGive(lc.mutex);
 }
 
-void lighting_ctrl_terminate(bool timeout)
+void lighting_ctrl_terminate(bool timeout, bool silent)
 {
     lc_event_t *lce, *tmp;
+    lc_callback_completed cb;
 
     xSemaphoreTake(lc.mutex, portMAX_DELAY);
 
@@ -197,12 +204,13 @@ void lighting_ctrl_terminate(bool timeout)
         free(lce);
     }
 
-    if (lc.cb) {
-        (*lc.cb)(timeout);
-    }
-
+    cb = lc.cb;
     lc.cur = NULL;
 
     xSemaphoreGive(lc.mutex);
+
+    if (!silent && cb) {
+        (*cb)(timeout);
+    }
 }
 

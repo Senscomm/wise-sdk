@@ -26,6 +26,8 @@
 #include <scm_wifi.h>
 #include <scm_flash.h>
 
+#include "ftm.h"
+
 #define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / (uint32_t)1000))
 
 #define FLASH_SECTOR_SIZE 4096
@@ -137,6 +139,10 @@ void check_power_cycle_count(void)
             scm_partition_write(FLASH_PARTITION_LOG, pos - 1, &state, sizeof(state));
         }
         
+        /* Exit from the FTM mode */
+        ftm = 0;
+        al_persist_data_write(AL_PERSIST_FACTORY, "ftm/ftm", &ftm, sizeof(ftm));
+
         /* Trigger factory reset */
         ada_conf_reset(1);
         return;
