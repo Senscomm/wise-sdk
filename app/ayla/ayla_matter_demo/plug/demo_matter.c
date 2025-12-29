@@ -46,6 +46,8 @@
 #define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
 #define BUTTON_LONG_PRESSED_PERIOD 5000
 
+#define LED_INDICATOR_BLINK_PERIOD 500
+
 enum demo_queue_event {
 	DEMO_FROM_MATTER_ON,
 	DEMO_FROM_MATTER_OFF,
@@ -466,12 +468,12 @@ void led_indicator_timer_cb(TimerHandle_t xTimer)
 
 	set_led(GPIO_WIFI_LED, state);
 	state = 1- state;
-	led_indicator_start_timer(1000);
+	led_indicator_start_timer(LED_INDICATOR_BLINK_PERIOD);
 }
 
 static void demo_led_indicator_init(void)
 {
-	g_led_indicator_timer = xTimerCreate("indicatorTmr", 1000, false, NULL, led_indicator_timer_cb);
+	g_led_indicator_timer = xTimerCreate("indicatorTmr", LED_INDICATOR_BLINK_PERIOD, false, NULL, led_indicator_timer_cb);
 	if (g_led_indicator_timer == NULL) {
 		log_put(LOG_ERR "led_indicator timer init failed");
 	}
@@ -495,7 +497,12 @@ static void demo_matter_event_cb(enum adm_event_id id)
 
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
-		led_indicator_start_timer(1000);
+		led_indicator_start_timer(LED_INDICATOR_BLINK_PERIOD);
+		break;
+	case ADM_EVENT_COMMISSIONING_SESSION_STOPPED:
+	case ADM_EVENT_COMMISSIONING_WINDOW_CLOSED:
+		led_indicator_cancel_timer();
+		set_led(GPIO_WIFI_LED, 0);
 		break;
 	default:
 		break;
