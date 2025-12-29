@@ -173,7 +173,6 @@ int gpio_get_level(int gpio)
 
 void gpio_set_level(int gpio, u8 level)
 {
-	printf("GPIO: set pin=%d, level=%d\n", gpio, level);
 	if (scm_gpio_write((uint32_t)gpio, level) != WISE_OK) {
 		printf("Error setting GPIO level\n");
 	}
@@ -210,16 +209,8 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 	 * GPIO_pin--resistor--LED--VCC
 	 */
 	if (on) {
-		if (GPIO_WIFI_LED == gpio_num) {
-			printf("Blue set ON\n");
-		}
-
 		gpio_set_level(gpio_num, 0);
 	} else {
-		if (GPIO_WIFI_LED == gpio_num) {
-			printf("Blue set OFF\n");
-		}
-
 		gpio_set_level(gpio_num, 1);
 	}
 }
