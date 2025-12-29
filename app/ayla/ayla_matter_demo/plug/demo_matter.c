@@ -13,6 +13,7 @@
 #include <FreeRTOS.h>
 #include <queue.h>
 #include <task.h>
+#include <timers.h>
 
 /* XXX: cmsis_os2 doesn't support xQueuePeek yet. */
 
