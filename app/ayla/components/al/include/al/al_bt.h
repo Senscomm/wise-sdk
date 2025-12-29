@@ -268,6 +268,17 @@ void al_bt_keep_up_set(enum al_bt_function func_id);
  */
 void al_bt_keep_up_clear(enum al_bt_function func_id);
 
+#ifdef AYLA_LOCAL_CONTROL_SUPPORT_WLT
+enum al_bt_feats {
+	AL_BT_FEAT_EXTRA_LCTRL = 1,
+	AL_BT_FEAT_BT_NAME_FMT,
+	AL_BT_FEAT_KEEP_BT_ADV,
+    AL_BT_FEAT_KEEP_NAME_IN_ADV
+};
+
+void al_bt_set_features(u8 feat_flags, const char *format);
+#endif
+
 /**
  * Set transmit power.
  *

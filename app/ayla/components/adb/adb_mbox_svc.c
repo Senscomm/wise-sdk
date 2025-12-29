@@ -184,12 +184,19 @@ static void adb_mbox_svc_conn_event_cb(enum adb_conn_event event, u16 conn,
 	}
 }
 
-static enum adb_att_err adb_mbox_svc_subscribe_cb(u16 conn, u8 notify,
+#ifndef AYLA_SCM_SUPPORT
+static 
+#endif
+enum adb_att_err adb_mbox_svc_subscribe_cb(u16 conn, u8 notify,
     u8 indicate)
 {
 	struct generic_session *gs;
 
-	if (indicate) {
+	if (indicate 
+#ifdef AYLA_SCM_SUPPORT
+		|| notify
+#endif
+	) {
 		gs = adb_mbox_svc_session_get(conn);
 		if (!gs) {
 			adb_log(LOG_WARN
@@ -231,7 +238,10 @@ static inline int rx_fragment_offset(const u8 *buf)
  * own message inbox. If there is already a message in the inbox (receiver
  * returns AE_BUSY), the write is failed due to insufficient resources.
  */
-static enum adb_att_err adb_mbox_svc_write_cb(u16 conn,
+#ifndef AYLA_SCM_SUPPORT
+static 
+#endif
+enum adb_att_err adb_mbox_svc_write_cb(u16 conn,	
     const struct adb_attr *attr, u8 *buf, u16 length)
 {
 	struct adb_mbox_state *ms = &adb_mbox_state;
@@ -354,13 +364,22 @@ const void *adb_mbox_svc_uuid_get(void)
 
 int adb_mbox_svc_register(const struct adb_attr **service)
 {
-	if (service) {
+#ifdef AYLA_SCM_SUPPORT
+	if (!service)
+#else
+	if (service)
+#endif
+	{
 		*service = adb_mbox_svc_table;
 	}
 
 	adb_conn_event_register(adb_mbox_svc_conn_event_cb, NULL);
 
+#ifdef AYLA_SCM_SUPPORT
+	return al_bt_register_service(*service);
+#else
 	return al_bt_register_service(adb_mbox_svc_table);
+#endif
 }
 
 /*
