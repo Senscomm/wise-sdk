@@ -33,7 +33,7 @@
 #include "build.h"
 
 #define GPIO_OUTPUT_PIN_SEL	\
-    (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_POWER_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
+    (BIT64(GPIO_WIFI_LED) | BIT64(GPIO_POWER_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
 
 #define GPIO_INPUT_PIN_SEL	BIT64(GPIO_BOOT_BUTTON)
 
@@ -69,6 +69,8 @@ static int wifi_rssi;
 static char log[1024];
 
 static xQueueHandle demo_evt_queue;
+
+TimerHandle_t g_led_indicator_timer = NULL;
 
 /*
  * Matter Certification Declaration(s).
@@ -205,13 +207,13 @@ static void set_led(gpio_num_t gpio_num, u8 on)
 	 * GPIO_pin--resistor--LED--VCC
 	 */
 	if (on) {
-		if (GPIO_BLUE_LED == gpio_num) {
+		if (GPIO_WIFI_LED == gpio_num) {
 			printf("Blue set ON\n");
 		}
 
 		gpio_set_level(gpio_num, 0);
 	} else {
-		if (GPIO_BLUE_LED == gpio_num) {
+		if (GPIO_WIFI_LED == gpio_num) {
 			printf("Blue set OFF\n");
 		}
 
@@ -285,7 +287,7 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 		return ret;
 	}
     if (sprop->val == &blue_led) {
-		set_led(GPIO_BLUE_LED, blue_led);
+		set_led(GPIO_WIFI_LED, blue_led);
 	}
 
 	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
@@ -429,6 +431,52 @@ static void prop_send_by_name(const char *name)
 	}
 }
 
+static void demo_led_indicator_init(void)
+{
+	g_led_indicator_timer = xTimerCreate("indicatorTmr",
+										1000,
+										false,
+										NULL,
+										led_indicator_timer_cb
+}
+
+void led_indicator_cancel_timer(void)
+{
+	if (g_led_indicator_timer == NULL)
+		return;
+
+	if (xTimerStop(g_led_indicator_timer, 0) == pdFAIL) {
+		log_put(LOG_WARN "app timer stop failed!");
+	}
+}
+
+void led_indicator_start_timer(uint32_t timeout_ms)
+{
+	if (g_led_indicator_timer == NULL)
+		return;
+
+	if (xTimerIsTimerActive(g_led_indicator_timer)) {
+		log_put(LOG_WARN "app timer already started!");
+		led_indicator_cancel_timer();
+	}
+
+	// timer is not active, change its period to required value (== restart).
+	// FreeRTOS- Block for a maximum of 100 ticks if the change period command
+	// cannot immediately be sent to the timer command queue.
+	if (xTimerChangePeriod(g_led_indicator_timer, (timeout_ms / portTICK_PERIOD_MS), 100) != pdPASS) {
+		log_put(LOG_ERR "led_indicator timer start() failed");
+	}
+}
+
+void led_indicator_timer_cb(TimerHandle_t xTimer)
+{
+	static u8 state = 0;
+
+	set_led(GPIO_WIFI_LED, state);
+	state = 1- state;
+	led_indicator_start_timer(1000);
+}
+
 static void demo_matter_event_cb(enum adm_event_id id)
 {
 	log_put(LOG_DEBUG "%s %d", __func__, id);
@@ -436,10 +484,18 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	case ADM_EVENT_IPV4_UP:
 		ada_client_ip_up();
 		ada_client_health_check_en();
+		led_indicator_cancel_timer();
+		set_led(GPIO_WIFI_LED, 1); /* turn on WiFi LED to indicate connection up */
 		break;
 
 	case ADM_EVENT_IPV4_DOWN:
 		ada_client_ip_down();
+		set_led(GPIO_WIFI_LED, 0); /* turn off WiFi LED to indicate connection down */
+		break;
+
+	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
+	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
+		led_indicator_start_timer(1000);
 		break;
 	default:
 		break;
@@ -522,6 +578,7 @@ void demo_init(void)
 #endif
 
 	demo_gpio_init();
+	demo_led_indicator_init();
 	adm_attribute_change_cb_register(&demo_on_off_cb_entry);
 
 	ada_sprop_mgr_register("demo_matter",
@@ -567,7 +624,7 @@ void demo_idle(void)
 	prop_send_by_name("version");
 
 	/* start with all LEDs to off but power led to on */
-	set_led(GPIO_BLUE_LED, 0);
+	set_led(GPIO_WIFI_LED, 0);
 	set_led(GPIO_POWER_LED, 1);
 	set_led(GPIO_LINK_LED, 0);
 
