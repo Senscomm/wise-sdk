@@ -471,11 +471,10 @@ void led_indicator_timer_cb(TimerHandle_t xTimer)
 
 static void demo_led_indicator_init(void)
 {
-	g_led_indicator_timer = xTimerCreate("indicatorTmr",
-										1000,
-										false,
-										NULL,
-										led_indicator_timer_cb
+	g_led_indicator_timer = xTimerCreate("indicatorTmr", 1000, false, NULL, led_indicator_timer_cb);
+	if (g_led_indicator_timer == NULL) {
+		log_put(LOG_ERR "led_indicator timer init failed");
+	}
 }
 
 static void demo_matter_event_cb(enum adm_event_id id)
