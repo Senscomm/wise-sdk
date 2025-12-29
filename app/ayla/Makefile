@@ -16,6 +16,7 @@ ccflags-y += -I$(src)/common/driver/bp5758d
 ccflags-y += -I$(src)/common/event
 ccflags-y += -I$(src)/common/lighting
 ccflags-y += -I$(src)/common/ftm
+ccflags-y += -I$(src)/common/power_cycle_reset
 ifdef CONFIG_AYLA_BULB
 ccflags-y += -I$(src)/ayla_demo/bulb
 endif
@@ -298,6 +299,7 @@ obj-$(CONFIG_AYLA_BULB) += \
 	common/lighting/lighting_ctrl.o \
 	common/lighting/lighting_mgr.o \
 	common/event/app_event.o \
+	common/power_cycle_reset/power_cycle_reset.o
 
 obj-$(CONFIG_AYLA_LEDEVB) += \
 	ayla_demo/led_demo/demo.o \
