@@ -29,7 +29,7 @@
 #include <cmsis_os.h>
 
 #include "cli/cli.h"
-#include "ftm.h"
+//#include "ftm.h"
 
 #define APP_SETUP_ENABLE_KEY	"secretkey"
 
@@ -211,6 +211,7 @@ ayla_cmd_def(id) = {
     .func = demo_id_cli,
 };
 
+#if 0
 static int demo_ftm_cli(int argc, char **argv)
 {
 	ftm_cli(argc, argv);
@@ -222,6 +223,7 @@ ayla_cmd_def(ftm) = {
     .help = "ftm [enable|disable]",
     .func = &demo_ftm_cli
 };
+#endif
 
 /*
  * Print diagnostic info for debug or for customers reporting problems.

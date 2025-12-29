@@ -26,7 +26,7 @@
 #include <scm_wifi.h>
 #include <scm_flash.h>
 
-#include "ftm.h"
+//#include "ftm.h"
 
 #define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / (uint32_t)1000))
 
@@ -140,8 +140,8 @@ void check_power_cycle_count(void)
         }
         
         /* Exit from the FTM mode */
-        ftm = 0;
-        al_persist_data_write(AL_PERSIST_FACTORY, "ftm/ftm", &ftm, sizeof(ftm));
+        //ftm = 0;
+        //al_persist_data_write(AL_PERSIST_FACTORY, "ftm/ftm", &ftm, sizeof(ftm));
 
         /* Trigger factory reset */
         ada_conf_reset(1);
