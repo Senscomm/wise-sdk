@@ -27,6 +27,17 @@
 struct app_event;
 typedef void (*event_handler)(struct app_event *);
 
+enum app_light_action
+{
+    kLightAction_On,
+    kLightAction_Off,
+    kLightAction_Mode,
+    kLightAction_Mode2, /* Mode + set light bulb */
+    kLightAction_Level,
+    kLightAction_Temp,
+    kLightAction_Color,
+};
+
 enum app_event_types
 {
     kEventType_Button = 0,

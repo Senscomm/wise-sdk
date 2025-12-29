@@ -205,7 +205,7 @@ config CLI_ADC
 
 config API_I2C
 	bool "Include I2C APIs"
-	default n
+	default y
 	select I2C
 	help
 	 Include I2C APIs in SDK

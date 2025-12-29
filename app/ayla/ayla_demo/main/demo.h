@@ -20,8 +20,10 @@
 
 /*
  * Initialize demo.
+ * return
+ * 1: normal mode, 0: FTM mode
  */
-void demo_init(void);
+int demo_init(void);
 
 /*
  * CLI save command - to save config
