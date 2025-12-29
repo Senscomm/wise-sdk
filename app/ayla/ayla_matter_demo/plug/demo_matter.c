@@ -432,15 +432,6 @@ static void prop_send_by_name(const char *name)
 	}
 }
 
-static void demo_led_indicator_init(void)
-{
-	g_led_indicator_timer = xTimerCreate("indicatorTmr",
-										1000,
-										false,
-										NULL,
-										led_indicator_timer_cb
-}
-
 void led_indicator_cancel_timer(void)
 {
 	if (g_led_indicator_timer == NULL)
@@ -476,6 +467,15 @@ void led_indicator_timer_cb(TimerHandle_t xTimer)
 	set_led(GPIO_WIFI_LED, state);
 	state = 1- state;
 	led_indicator_start_timer(1000);
+}
+
+static void demo_led_indicator_init(void)
+{
+	g_led_indicator_timer = xTimerCreate("indicatorTmr",
+										1000,
+										false,
+										NULL,
+										led_indicator_timer_cb
 }
 
 static void demo_matter_event_cb(enum adm_event_id id)
