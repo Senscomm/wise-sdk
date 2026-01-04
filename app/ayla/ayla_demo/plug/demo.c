@@ -49,6 +49,7 @@
 #include "scm_gpio.h"
 
 #include "bp5758d.h"
+#include "host_prop_mgr.h"
 
 #define APP_VER         "2.0"
 #define APP_NAME        "ayla_ledevb_demo"
@@ -156,6 +157,37 @@ static u32 demo_msg_crc;
 static size_t demo_msg_rx_len;
 #endif
 
+static struct {
+	u8 blue_led;
+    u8 green_led;
+} prop_conf_val_map;
+
+static struct prop_conf_metadata prop_conf_table[] = {
+    {
+        .prop_name = "Blue_LED",
+        .token =CT_Blue_LED, 
+        .item = {
+            .name = "prop/Blue_LED", 
+            .type = ATLV_BOOL, 
+            .val = &(prop_conf_val_map.blue_led),
+            .len = sizeof(prop_conf_val_map.blue_led)
+        }
+    },
+    {
+        .prop_name = "Green_LED",
+        .token =CT_Green_LED, 
+        .item = {
+            .name = "prop/Green_LED", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.green_led, 
+            .len = sizeof(prop_conf_val_map.green_led)
+        }
+    },
+    /* must be the last, we do not pass the table size */
+    {
+        .prop_name = NULL,
+    }
+};
 
 #include "../led_demo/gpio_types.h"
 
@@ -495,6 +527,7 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 #ifdef GPIO_RGB_LED
 	demo_rgb_led_update();
 #endif
+	host_prop_unsync_tag(sprop, prop_conf_table);
 	printf("%s: %s set to %u\r\n",
 		__func__, sprop->name, *(u8 *)sprop->val);
 
@@ -1283,6 +1316,7 @@ static void demo_idle(void)
 	button_info.val = !gpio_get_level(button_info.gpio);
 	button_info.start_timer = 0;
 
+	host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 	/* Wait for cloud connection to come up for the 1st time. */
 	while (!demo_cloud_has_started()) {
 		osDelay(MS_TO_TICKS(100));
