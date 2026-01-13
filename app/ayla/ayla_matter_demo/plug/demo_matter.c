@@ -32,6 +32,39 @@
 #include "scm_gpio.h"
 #include "gpio_types.h"
 #include "build.h"
+#include "host_prop_mgr.h"
+
+static struct {
+	u8 blue_led;
+    u8 outlet;
+} prop_conf_val_map;
+
+static struct prop_conf_metadata prop_conf_table[] = {
+    {
+        .prop_name = "night_mode",
+        .token =CT_night_mode, 
+        .item = {
+            .name = "prop/night_mode", 
+            .type = ATLV_BOOL, 
+            .val = &(prop_conf_val_map.blue_led),
+            .len = sizeof(u32)
+        }
+    },
+    {
+        .prop_name = "outlet1",
+        .token =CT_outlet1, 
+        .item = {
+            .name = "prop/outlet1", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.outlet, 
+            .len = sizeof(u32)
+        }
+    },
+    /* must be the last, we do not pass the table size */
+    {
+        .prop_name = NULL,
+    }
+};
 
 #define GPIO_OUTPUT_PIN_SEL	\
     (BIT64(GPIO_WIFI_LED) | BIT64(GPIO_POWER_LED) | BIT64(GPIO_LINK_LED) | BIT64(GPIO_RELAY_OUT))
@@ -284,6 +317,7 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 		set_led(GPIO_WIFI_LED, blue_led);
 	}
 
+	host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
 
 	demo_write_notify_event(blue_led);
@@ -304,6 +338,7 @@ static enum ada_err demo_outlet_set(struct ada_sprop *sprop,
 		set_outlet(GPIO_RELAY_OUT, outlet);
 	}
 
+	host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_INFO "%s on_off %u", __func__, outlet);
 
 	demo_write_notify_event(outlet);
@@ -627,6 +662,8 @@ void demo_idle(void)
 	set_led(GPIO_LINK_LED, 0);
 
 	scm_gpio_configure(GPIO_BOOT_BUTTON, SCM_GPIO_PROP_INPUT);
+
+	host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 
 	while (1) {
 		if (gpio_get_level(GPIO_BOOT_BUTTON) == 0) {

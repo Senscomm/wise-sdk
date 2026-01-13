@@ -31,6 +31,72 @@
 #include "scm_gpio.h"
 #include "bp5758d.h"
 #include "gpio_types.h"
+#include "host_prop_mgr.h"
+
+static struct {
+	u8 blue_led;
+	u8 green_led;
+	u8 red_led;
+	u8 warm_led;
+	u8 cool_led;
+} prop_conf_val_map;
+
+static struct prop_conf_metadata prop_conf_table[] = {
+    {
+        .prop_name = "Blue_LED",
+        .token =CT_Blue_LED, 
+        .item = {
+            .name = "prop/Blue_LED", 
+            .type = ATLV_BOOL, 
+            .val = &(prop_conf_val_map.blue_led),
+            .len = sizeof(u32)
+        }
+    },
+    {
+        .prop_name = "Green_LED",
+        .token =CT_Green_LED, 
+        .item = {
+            .name = "prop/Green_LED", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.green_led, 
+            .len = sizeof(u32)
+        }
+    },
+    {
+        .prop_name = "Red_LED",
+        .token =CT_Red_LED, 
+        .item = {
+            .name = "prop/Red_LED", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.red_led, 
+            .len = sizeof(u32)
+        }
+    },
+    {
+        .prop_name = "WW_LED",
+        .token =CT_WW_LED, 
+        .item = {
+            .name = "prop/WW_LED", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.warm_led, 
+            .len = sizeof(u32)
+        }
+    },
+	{
+        .prop_name = "CW_LED",
+        .token =CT_CW_LED,
+        .item = {
+            .name = "prop/CW_LED", 
+            .type = ATLV_BOOL, 
+            .val = &prop_conf_val_map.cool_led, 
+            .len = sizeof(u32)
+        }
+    },
+    /* must be the last, we do not pass the table size */
+    {
+        .prop_name = NULL,
+    }
+};
 
 #define GPIO_OUTPUT_PIN_SEL	\
     (BIT64(GPIO_BLUE_LED) | BIT64(GPIO_GREEN_LED) | BIT64(GPIO_LINK_LED))
@@ -310,6 +376,7 @@ static enum ada_err demo_led_set(struct ada_sprop *sprop,
 		set_led(GPIO_COOL_LED, cool_led);
 	}
 
+	host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_INFO "%s on_off %u", __func__, blue_led);
 
 	demo_write_notify_event(blue_led);
@@ -541,6 +608,8 @@ void demo_idle(void)
 	io_conf.pull_up_en = 0;
 
 	gpio_config(&io_conf);
+
+	host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
