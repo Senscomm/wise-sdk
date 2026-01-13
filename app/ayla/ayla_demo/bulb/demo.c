@@ -26,6 +26,8 @@
 #endif
 #include <ayla/log.h>
 #include <ayla/crc.h>
+#include <ayla/callback.h>
+#include "client_timer.h"
 #include "conf.h"
 #include "demo.h"
 #include "ada/batch.h"
@@ -41,6 +43,7 @@
 #include "bp5758d.h"
 #include "build.h"
 #include "power_cycle_reset.h"
+#include "host_prop_mgr.h"
 
 /*
  * The oem and oem_model strings determine the host name for the
@@ -74,6 +77,85 @@ static int wifi_rssi;
 
 static bool onboarding;
 static char *cmd_buf;
+
+static struct {
+    s32 brightness;
+    s32 color_bright;
+    s32 color_saturation;
+    s32 color_select;
+    s32 color_temp;
+    char mode[32];
+} prop_conf_val_map = {
+    /* string must have no zero len value */
+    .mode = "null"
+};
+
+static struct prop_conf_metadata prop_conf_table[] = {
+    {
+        .prop_name = "brightness",
+        .token =CT_brightness, 
+        .item = {
+            .name = "prop/brightness", 
+            .type = ATLV_INT, 
+            .val = &(prop_conf_val_map.brightness),
+            .len = sizeof(prop_conf_val_map.brightness)
+        }
+    },
+    {
+        .prop_name = "color_bright",
+        .token =CT_color_bright, 
+        .item = {
+            .name = "prop/color_bright", 
+            .type = ATLV_INT, 
+            .val = &prop_conf_val_map.color_bright, 
+            .len = sizeof(prop_conf_val_map.color_bright)
+        }
+    },
+    {
+        .prop_name = "color_saturation",
+        .token =CT_color_saturation, 
+        .item = {
+            .name = "prop/color_saturation",
+            .type = ATLV_INT, 
+            .val = &prop_conf_val_map.color_saturation,
+            .len = sizeof(prop_conf_val_map.color_saturation)
+        }
+    },
+    {
+        .prop_name = "color_select",
+        .token =CT_color_select,
+        .item = {
+            .name = "prop/color_select",
+            .type = ATLV_INT,
+            .val = &prop_conf_val_map.color_select,
+            .len = sizeof(prop_conf_val_map.color_select)
+        }
+    },
+    {
+        .prop_name = "color_temp",
+        .token =CT_color_temp, 
+        .item = {
+            .name = "prop/color_temp",
+            .type = ATLV_INT,
+            .val = &prop_conf_val_map.color_temp,
+            .len = sizeof(prop_conf_val_map.color_temp)
+        }
+    },
+    {
+        .prop_name = "mode",
+        .token =CT_mode, 
+        .item = {
+            .name = "prop/mode",
+            .type = ATLV_UTF8,
+            .val = prop_conf_val_map.mode,
+            .len = sizeof(prop_conf_val_map.mode)
+        }
+    },
+    /* must be the last, we do not pass the table size */
+    {
+        .prop_name = NULL,
+    }
+};
 
 /*
  * Range converter
@@ -259,6 +341,7 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
         demo_post_light_event(kLightAction_Color, (uint32_t)color_select);
     }
 
+    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
 
 	return AE_OK;
@@ -290,6 +373,7 @@ static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
         demo_post_light_event(kLightAction_Mode2, (uint32_t)color);
     }
 
+    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
 
 	return AE_OK;
@@ -695,6 +779,8 @@ static void demo_onboarding_done(void)
 static void demo_idle(void)
 {
 	struct app_event event;
+
+    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 
 	wise_task_wdt_add(NULL);
 

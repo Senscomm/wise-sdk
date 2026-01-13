@@ -141,4 +141,17 @@
     CONF_TOKEN(0x81, ftm_wifi)
     CONF_TOKEN(0x82, ftm_bulb)
     CONF_TOKEN(0x83, ftm_bulb_type)
+
+	CONF_TOKEN(0x84, brightness)
+	CONF_TOKEN(0x85, color_bright)
+	CONF_TOKEN(0x86, color_saturation)
+	CONF_TOKEN(0x87, color_select)
+	CONF_TOKEN(0x88, color_temp)
+	CONF_TOKEN(0x89, night_mode)
+	CONF_TOKEN(0x8a, outlet1)
+	CONF_TOKEN(0x8b, Blue_LED)
+	CONF_TOKEN(0x8c, Green_LED)
+	CONF_TOKEN(0x8d, Red_LED)
+	CONF_TOKEN(0x8e, WW_LED)
+	CONF_TOKEN(0x8f, CW_LED)
 #endif
