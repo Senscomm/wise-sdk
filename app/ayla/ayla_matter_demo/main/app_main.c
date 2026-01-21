@@ -18,7 +18,6 @@
 
 #include "app_common.h"
 #include "app_int.h"
-#include "power_cycle_reset.h"
 
 #include <wise_event_loop.h>
 #include <wise_wifi_types.h>
@@ -26,7 +25,10 @@
 #include <wise_err.h>
 #include <scm_wifi.h>
 
+#ifdef CONFIG_AYLA_BULB
 #include "ftm.h"
+#include "power_cycle_reset.h"
+#endif
 
 char oem[] = DEMO_OEM_ID;
 char oem_model[] = DEMO_OEM_MODEL;
@@ -84,8 +86,9 @@ void app_main()
     log_init();
 
     printf("\r\n\n%s\r\n", APP_NAME " " BUILD_STRING);
-
+#ifdef CONFIG_AYLA_BULB
     check_power_cycle_count();
+#endif
     ada_client_command_func_register(app_cmd_exec);
     AYLA_ASSERT(demo_client_start() == 0);
     demo_ota_init();
