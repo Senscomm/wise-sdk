@@ -29,7 +29,9 @@
 #include <cmsis_os.h>
 
 #include "cli/cli.h"
+#ifdef CONFIG_AYLA_BULB
 #include "ftm.h"
+#endif
 
 #define APP_SETUP_ENABLE_KEY	"secretkey"
 
@@ -213,7 +215,9 @@ ayla_cmd_def(id) = {
 
 static int demo_ftm_cli(int argc, char **argv)
 {
+#ifdef CONFIG_AYLA_BULB
 	ftm_cli(argc, argv);
+#endif
 	return 0;
 }
 
