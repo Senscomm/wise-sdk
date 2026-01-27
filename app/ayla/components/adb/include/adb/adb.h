@@ -8,6 +8,9 @@
  */
 #ifndef __AYLA_ADB_H__
 #define __AYLA_ADB_H__
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define ADB_PASSKEY_MAX	999999	/* 6 digit decimal number */
 
@@ -414,5 +417,11 @@ enum adb_att_err adb_chr_write(u16 conn, const struct adb_attr *attr, u8 *buf,
  */
 enum adb_att_err adb_chr_write_str(u16 conn, const struct adb_attr *attr,
     u8 *buf, u16 length);
+void adb_process_gap_event_wrap(void *event);
+int adb_bt_scan_start_wrap(void);
+int adb_bt_scan_cancel_wrap(void); 
 
+#ifdef __cplusplus
+}
+#endif
 #endif

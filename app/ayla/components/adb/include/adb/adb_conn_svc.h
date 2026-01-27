@@ -31,4 +31,5 @@ const void *adb_conn_svc_get_uuid(void);
  */
 int adb_conn_svc_register(const struct adb_attr **service);
 
+int adb_hyd_svc_register(const struct adb_attr **service);
 #endif

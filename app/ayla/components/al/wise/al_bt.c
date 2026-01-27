@@ -40,6 +40,7 @@
 #include "host/util/util.h"
 #include "services/gap/ble_svc_gap.h"
 #include "services/gatt/ble_svc_gatt.h"
+#include "host/ble_gap.h"
 
 #define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / 1000))
 
@@ -206,21 +207,21 @@ static void al_bt_print_conn_desc(struct ble_gap_conn_desc *desc)
 
 	adb_snprint_addr(desc->our_ota_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "handle %d our_ota_addr type %d addr %s",
+	adb_log(LOG_ERR "handle %d our_ota_addr type %d addr %s",
 	    desc->conn_handle, desc->our_ota_addr.type, addr_str);
 	adb_snprint_addr(desc->our_id_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "our_id_addr type %d addr %s",
+	adb_log(LOG_ERR "our_id_addr type %d addr %s",
 	    desc->our_id_addr.type, addr_str);
 	adb_snprint_addr(desc->peer_ota_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "peer_ota_addr type %d addr %s",
+	adb_log(LOG_ERR "peer_ota_addr type %d addr %s",
 	    desc->peer_ota_addr.type, addr_str);
 	adb_snprint_addr(desc->peer_id_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "peer_id_addr type %d addr %s",
+	adb_log(LOG_ERR "peer_id_addr type %d addr %s",
 	    desc->peer_id_addr.type, addr_str);
-	adb_log(LOG_DEBUG
+	adb_log(LOG_ERR
 	    "conn itvl %d latency %d timeout %d "
 	    "enc %d auth %d bond %d",
 	    desc->conn_itvl, desc->conn_latency,
@@ -807,6 +808,104 @@ random:
 	} else {
 		adb_log(LOG_INFO "passkey %06d", pk.passkey);
 	}
+}
+
+u8 flag = 0;
+int al_bt_process_gap_event(void *input)
+{
+	int rc;
+	struct ble_gap_conn_desc desc;
+	struct ble_gap_event *event = (struct ble_gap_event *)input;
+	u8 mask;
+	const struct adb_attr *attr;
+	struct adb_chr_info *chr_info;
+
+	if (flag == 0) {
+		al_bt_mutex = osSemaphoreNew(1, 0, NULL);
+		osSemaphoreRelease(al_bt_mutex);
+		flag =1;
+	}
+
+	printf("[AL-BT]Process BLE GAP Event:%d!\n", event->type);
+
+	switch (event->type) {
+	case BLE_GAP_EVENT_CONNECT:
+		if (event->connect.status == 0) {
+			al_bt_connections++;
+			rc = al_bt_connection_add(event->connect.conn_handle);
+
+		rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+			al_bt_print_conn_desc(&desc);
+		}
+		break;
+
+	case BLE_GAP_EVENT_DISCONNECT:
+		printf("disconnect reason %d\n",event->disconnect.reason);
+		rc = al_bt_connection_delete(event->disconnect.conn.conn_handle);
+		al_bt_connections--;
+		if (event->disconnect.reason == BLE_HS_ETIMEOUT_HCI) {
+			al_bt_controller_syncd = 0;
+			break;
+		}
+		break;
+
+	case BLE_GAP_EVENT_SUBSCRIBE:
+		printf(
+			"subscribe event conn_handle %d attr_handle %d "
+			"reason %d prevn %d curn %d previ %d curi %d",
+			event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
+			event->subscribe.prev_notify, event->subscribe.cur_notify, event->subscribe.prev_indicate, event->subscribe.cur_indicate);
+
+		mask = al_bt_connection_mask(event->subscribe.conn_handle);
+
+		attr = al_bt_find_attr_by_handle(event->subscribe.attr_handle);
+		if (!attr || attr->type != ADB_ATTR_CHR) {
+			/*
+			 * Attributes that are outside of ADB, not known or not
+			 * characteristics. For Matter Attr already process ahead.
+			 */
+			break;
+		}
+		chr_info = attr->info;
+		printf("Subscribe, name :%s\n", attr->name);
+		if (event->subscribe.cur_notify) {
+			chr_info->notify_mask |= mask;
+		} else {
+			chr_info->notify_mask &= ~mask;
+		}
+		if (event->subscribe.cur_indicate) {
+			chr_info->indicate_mask |= mask;
+		} else {
+			chr_info->indicate_mask &= ~mask;
+		}
+		if (attr->subscribe_cb) {
+			attr->subscribe_cb(event->subscribe.conn_handle,event->subscribe.cur_notify,event->subscribe.cur_indicate);
+		}
+		break;
+	case BLE_GAP_EVENT_MTU:
+		adb_log(LOG_ERR "mtu update event conn_handle %d cid %d mtu %d", event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
+		rc = al_bt_conn_mtu_update(event->mtu.conn_handle, event->mtu.value);
+		if (rc) {
+			adb_log(LOG_ERR "mtu update err %d", rc);
+		}
+		break;
+	case BLE_GAP_EVENT_PASSKEY_ACTION:
+		printf("passkey action event %d\n", event->passkey.params.action);
+		if (adb_pairing_mode_get() == ADB_PM_DISABLED) {
+			printf("attempt to pair while pairing disabled\n");
+			break;
+		}
+		if (event->passkey.params.action != BLE_SM_IOACT_DISP) {
+			printf("unsupported passkey action");
+			break;
+		}
+		al_bt_display_passkey(event->passkey.conn_handle);
+		break;
+	default:
+		break;
+	}
+
+	return rc;
 }
 
 /*
@@ -1982,6 +2081,168 @@ int al_bt_tx_power_set(int tx_power)
 int al_bt_tx_power_get(int *tx_power)
 {
 	return 0;
+}
+
+/* gap event cb arg - some opts with some filters or other things */
+static struct al_bt_scan_filters
+{
+    /* adv data len limit */
+    uint16_t limit;
+    uint8_t name_filter_len;
+    char name_filter[20];
+    /* filter by ble addr */
+    /* Currently, the MAC address of the local remote control is used for filtering the debugging. */
+    ble_addr_t peer;
+} g_scan_filters = {
+	.limit           = UINT16_MAX,
+	.name_filter_len = 0,
+	.peer            = {
+		.type = 0,
+		/* Little-endian */
+		.val = { 0x3b, 0x9a, 0xce, 0xa0, 0x2b, 0x58 },
+	}
+};
+
+static void print_addr(const void *addr)
+{
+    const uint8_t *u8p;
+    u8p = addr;
+    printf("%02x:%02x:%02x:%02x:%02x:%02x", u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+}
+
+uint8_t debug_flag = 0;
+
+static void al_bt_process_adv_fields(const struct ble_hs_adv_fields * fields, void * arg)
+{
+    struct al_bt_scan_filters * scan_opts = arg;
+    /* todo: different fields are parsed to implement a private protocol. Example: */
+    //  使用 name过滤示例,根据需求添加过滤方式,
+    if (fields->name != NULL) {
+        char name[32];
+        memcpy(name, fields->name, fields->name_len);
+        name[fields->name_len] = 0;
+        if (scan_opts->name_filter_len > 0 && scan_opts->name_filter_len < fields->name_len) {
+            if (strncasecmp(scan_opts->name_filter, (const char *) name, scan_opts->name_filter_len)) {
+                return;
+            }
+        }
+    }
+    if (fields->flags != 0) {}
+    if (fields->uuids16 != NULL) {}
+
+    /* BLE_HS_ADV_TYPE_MFG_DATA */
+    if (fields->mfg_data != NULL) {
+        /* HYD Remote Controller - Company ID: 0x5a80 */
+        // printf("Company ID: 0x%02x 0x%02x\n", fields->mfg_data[0], fields->mfg_data[1]);
+        if (fields->mfg_data[0] == 0x80 && fields->mfg_data[1] == 0x5a) {
+            debug_flag = 1;
+        }
+    }
+}
+
+static void al_bt_decode_adv_data(const uint8_t * adv_data, uint8_t adv_data_len, void * arg)
+{
+    struct ble_hs_adv_fields fields;
+    struct al_bt_scan_filters * scan_opts = arg;
+
+    /* the length of the parseadv can be controlled, and it can be annotated. */
+    if (scan_opts) {
+        adv_data_len = min(adv_data_len, scan_opts->limit);
+    }
+    ble_hs_adv_parse_fields(&fields, adv_data, adv_data_len);
+    al_bt_process_adv_fields(&fields, arg);
+}
+
+#if 0
+uint32_t g_sample_num = 0;
+#endif
+static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
+{
+    struct al_bt_scan_filters * opts = (struct al_bt_scan_filters *) arg;
+    switch (event->type) {
+    case BLE_GAP_EVENT_DISC:
+#if 0
+        if (++g_sample_num % 300 == 1) {
+            /* debug to show scan still working */
+            printf("Reveive adv pkts!!\n");
+        }
+#endif
+        if (event->disc.event_type == BLE_HCI_ADV_RPT_EVTYPE_DIR_IND) {
+            printf("\nConnectable directed advertising event\n");
+            return 0;
+        }
+        /* filter demo: use peer addr mac filter */
+        if (!memcmp(event->disc.addr.val, opts->peer.val, 6)) {
+            /* Len, Type, CompanyID */
+            printf("Recv BLE Remote Controller Pkts: [Len:0x%02x][Type:0x%02x][CompanyID:0x%02x 0x%02x]\n", event->disc.data[0],
+				event->disc.data[1], event->disc.data[2], event->disc.data[3]);
+        }
+        else {
+            return 0;
+        }
+#if 0
+		/* For debug, too many prints */
+        printf("received advertisement; event_type=%d rssi=%d ""addr_type=%d addr=", 
+                event->disc.event_type,event->disc.rssi, event->disc.addr.type);
+        print_addr(event->disc.addr.val);
+		printf(" data_length=%d data=", event->disc.length_data);
+		print_bytes(event->disc.data, event->disc.length_data);
+#endif
+        al_bt_decode_adv_data(event->disc.data, event->disc.length_data, arg);
+        if (debug_flag != 0) {
+            print_addr(event->disc.addr.val);
+            printf("\n");
+            debug_flag = 0;
+        }
+
+        return 0;
+    case BLE_GAP_EVENT_DISC_COMPLETE:
+        printf("discovery complete; reason=%d\n", event->disc_complete.reason);
+    default:
+        return 0;
+    }
+}
+
+/* Do not support BLE_EXT_ADV now */
+int al_bt_scan_start(void)
+{
+    struct ble_gap_disc_params scan_params = { 0 };
+    int32_t duration_ms;
+    uint8_t own_addr_type;
+    int rc;
+
+    /* forever or real duration */
+    duration_ms   = BLE_HS_FOREVER;
+    own_addr_type = BLE_OWN_ADDR_PUBLIC;
+
+    /* Use passive scanning to avoid conflicts */
+    scan_params.passive = 1;
+    /* scan interval 500ms */
+    scan_params.itvl = BLE_GAP_SCAN_ITVL_MS(500);
+    /* scan window 20-40ms */
+    scan_params.window = BLE_GAP_SCAN_WIN_MS(32);
+    /* For multiple broadcasts from the same device, only report once - based on the scene settings. */
+    scan_params.filter_duplicates = 0;
+    scan_params.limited = 0;
+    scan_params.filter_policy = BLE_HCI_SCAN_FILT_NO_WL;
+
+    /* disc params may need sanity check */
+    rc = ble_gap_disc(own_addr_type, duration_ms, &scan_params, bt_gap_scan_event, &g_scan_filters);
+    if (rc != 0) {
+        printf("error scanning; rc=%d\n", rc);
+        return rc;
+    }
+    printf("!!!Start bt scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
+    return 0;
+}
+
+int al_bt_scan_cancel(void)
+{
+    int rc;
+
+    rc = ble_gap_disc_cancel();
+    printf("!!!Stop bt scan!\n");
+    return rc;
 }
 
 #endif /* AYLA_BLUETOOTH_SUPPORT */

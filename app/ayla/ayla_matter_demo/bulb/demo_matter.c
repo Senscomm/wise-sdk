@@ -27,6 +27,12 @@
 #include <ayla/log.h>
 #include <ayla/timer.h>
 
+#include <ayla/utypes.h>
+#include <adb/adb.h>
+#include <adb/adb_ayla_svc.h>
+#include <adb/adb_conn_svc.h>
+#include <adb/adb_wifi_cfg_svc.h>
+
 #include "app_int.h"
 #include "app_event.h"
 
@@ -1213,6 +1219,12 @@ void demo_init(void)
 	adm_start(demo_test_cert_declaration,
 	    sizeof(demo_test_cert_declaration));
 
+    adb_hyd_svc_register(NULL);
+    adb_ayla_svc_register(NULL);
+    adb_wifi_cfg_svc_register(NULL);
+    adb_conn_svc_register(NULL);
+
+    printf("ayla svc + conn + wifi cfg!!\n");
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.

@@ -196,7 +196,7 @@ int bp5758d_set_standby(bool enable)
 	}
 
 	if (ret) {
-		printf("%s/ standby fail\n", enable ? "Enable" : "Disable");
+		// printf("%s/ standby fail\n", enable ? "Enable" : "Disable");
 	}
 
 	return ret;

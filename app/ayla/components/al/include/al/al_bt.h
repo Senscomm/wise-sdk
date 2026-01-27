@@ -299,4 +299,7 @@ int al_bt_tx_power_set(int tx_power);
  */
 int al_bt_tx_power_get(int *tx_power);
 
+int al_bt_scan_start(void);
+int al_bt_scan_cancel(void);
+int al_bt_process_gap_event(void *input);
 #endif
