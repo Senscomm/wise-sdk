@@ -374,6 +374,7 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 		printf("WiFi Start Scan!!\n");
 		adb_wifi_cfg_scan_done_handler();
 		break;
+	// todo : add a event to indicate device is register to ayla cloud
 	default:
 		/*
 		 * Regarding to any unexpected event, it thinks that it is
@@ -448,7 +449,7 @@ static enum adb_att_err adb_wifi_cfg_connect_request_cb(u16 conn,
 {
 	struct wifi_connect_request_msg *conn_req = (struct wifi_connect_request_msg *)buf;
 	struct al_wifi_ssid ssid;
-	int err;
+	// int err;
 #ifdef ADW_OPEN
 	enum wifi_error error;
 
@@ -479,17 +480,17 @@ static enum adb_att_err adb_wifi_cfg_connect_request_cb(u16 conn,
 		return ADB_ATT_UNLIKELY;
 	}
 #else
+	printf("[Recv]:ssid: %s, len:%d, sec:%d, key:%s, key len:%d\n", (char *)(conn_req->ssid), 
+		conn_req->ssid_len, conn_req->security, (char *)(conn_req->key), conn_req->key_len);
 	scm_wifi_assoc_request req = {0};
 	memcpy(req.ssid, conn_req->ssid, conn_req->ssid_len);
-	req.auth = SCM_WIFI_SECURITY_WPA2PSK;
-	// req.auth = conn_req->security
+	// req.auth = SCM_WIFI_SECURITY_WPA2PSK;
+	req.auth = conn_req->security;
 	memcpy(req.key, conn_req->key, conn_req->key_len);
-	// memset(req.bssid, 0, sizeof(req.bssid));
-	req.pairwise = SCM_WIFI_PAIRWISE_AES;
-	// req.hidden_ap = 0;
-
-	printf("[!!!!!!!!!] ssid: %s, len:%d, sec:%d, key:%s, key len:%d\n", (char *)(conn_req->ssid), 
-		conn_req->ssid_len, conn_req->security, (char *)(conn_req->key), conn_req->key_len);
+	// req.pairwise = SCM_WIFI_PAIRWISE_AES;
+	// post a event to matter platform, need follow matter wifi logic management
+	adm_post_event_to_plat(req.ssid, req.key, req.auth);
+#if 0
 	err = scm_wifi_sta_set_config(&req, NULL);
 	if (err != WISE_OK) {
 		printf("Error(%d) from scm_wifi_sta_set_config", err);
@@ -498,6 +499,7 @@ static enum adb_att_err adb_wifi_cfg_connect_request_cb(u16 conn,
 	if (err != WISE_OK) {
 		printf("Error(%d) from scm_wifi_sta_connect", err);
 	}
+#endif
 #endif
 
 	return ADB_ATT_SUCCESS;

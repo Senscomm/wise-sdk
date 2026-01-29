@@ -1088,6 +1088,28 @@ int adm_initialized(void)
 	return adm_matter_initialized;
 }
 
+void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
+{
+	ChipDeviceEvent e = { 0 };
+	e.Type = DeviceEventType::kSCMSystemEvent;
+
+	if (!ssid || !key) {
+		printf("Invalid inputs!!\n");
+		return;
+	}
+
+	e.Platform.test.ssidLen = strlen(ssid);
+	memcpy(e.Platform.test.ssid, ssid, e.Platform.test.ssidLen);
+	e.Platform.test.keyLen = strlen(key);
+	memcpy(e.Platform.test.key, key, e.Platform.test.keyLen);
+	e.Platform.test.auth = auth;
+	// reuse
+	e.Platform.test.event.event_id = SYSTEM_EVENT_MAX_RETRY;
+
+	printf("Send a event to plat!!!\n");
+	(void) PlatformMgr().PostEvent(&e);
+}
+
 enum ada_err adm_onboard_config_generate(const char *secret)
 {
 	return adm_onboard_autogen_internal(secret);

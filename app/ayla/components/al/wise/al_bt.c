@@ -826,7 +826,7 @@ int al_bt_process_gap_event(void *input)
 		flag =1;
 	}
 
-	printf("[AL-BT]Process BLE GAP Event:%d!\n", event->type);
+	// printf("[AL-BT]Process BLE GAP Event:%d!\n", event->type);
 
 	switch (event->type) {
 	case BLE_GAP_EVENT_CONNECT:
@@ -840,7 +840,7 @@ int al_bt_process_gap_event(void *input)
 		break;
 
 	case BLE_GAP_EVENT_DISCONNECT:
-		printf("disconnect reason %d\n",event->disconnect.reason);
+		// printf("disconnect reason %d\n",event->disconnect.reason);
 		rc = al_bt_connection_delete(event->disconnect.conn.conn_handle);
 		al_bt_connections--;
 		if (event->disconnect.reason == BLE_HS_ETIMEOUT_HCI) {

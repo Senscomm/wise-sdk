@@ -199,6 +199,7 @@ void adm_start(const u8 *cert_declaration, size_t cd_len);
  * \returns 0 if not initialized, 1 if initialized
  */
 int adm_initialized(void);
+void adm_post_event_to_plat(char *ssid, char *key, u8 auth);
 
 /**
  * Generate and configure Matter onboarding credentials.
