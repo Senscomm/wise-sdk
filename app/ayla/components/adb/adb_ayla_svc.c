@@ -116,9 +116,8 @@ static struct adb_service_info ayla_svc = {
 
 static const struct adb_attr ayla_svc_table[] = {
 	ADB_SERVICE("ayla_svc", &ayla_svc_uuid, &ayla_svc),
-	ADB_CHR("duid", &duid_uuid,
-	    AL_BT_AF_READ | AL_BT_AF_READ_ENC,
-	    adb_chr_read_str, NULL, &duid_chr),
+	ADB_CHR("duid", &duid_uuid, AL_BT_AF_READ, 
+		adb_chr_read_str, NULL, &duid_chr),
 	ADB_CHR("oem_id", &oem_id_uuid,
 	    AL_BT_AF_READ, adb_chr_read_str, NULL, &oem_id_chr),
 	ADB_CHR("oem_model", &oem_model_uuid,
@@ -129,9 +128,8 @@ static const struct adb_attr ayla_svc_table[] = {
 	    AL_BT_AF_WRITE, NULL, adb_ayla_svc_identify_write_cb,
 	    &identify_chr),
 	ADB_CHR("display_name", &display_name_uuid,
-	    AL_BT_AF_READ | AL_BT_AF_READ_ENC |
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
-	    adb_chr_read_str, adb_chr_write_str, &display_name_chr),
+		AL_BT_AF_READ | AL_BT_AF_WRITE,
+		adb_chr_read_str, adb_chr_write_str, &display_name_chr),
 	ADB_SERVICE_END()
 };
 

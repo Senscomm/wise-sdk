@@ -39,9 +39,8 @@ static struct adb_service_info conn_svc = {
 
 static const struct adb_attr conn_svc_table[] = {
 	ADB_SERVICE("conn_svc", &conn_svc_uuid, &conn_svc),
-	ADB_CHR("setup_token", &setup_token_uuid,
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
-	    NULL, adb_conn_svc_setup_token_write_cb, &setup_token),
+	ADB_CHR("setup_token", &setup_token_uuid, AL_BT_AF_WRITE, NULL,
+		adb_conn_svc_setup_token_write_cb, &setup_token),
 	ADB_SERVICE_END()
 };
 

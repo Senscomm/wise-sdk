@@ -146,22 +146,16 @@ static struct adb_service_info wifi_cfg_svc = {
 
 static const struct adb_attr wifi_cfg_svc_table[] = {
 	ADB_SERVICE("wifi_svc", &wifi_cfg_svc_uuid, &wifi_cfg_svc),
-	ADB_CHR_REDACT("wifi_connect", &wifi_connect_uuid,
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
+	ADB_CHR_REDACT("wifi_connect", &wifi_connect_uuid, AL_BT_AF_WRITE ,
 	    NULL, adb_wifi_cfg_connect_request_cb, &wifi_connect_chr,
 	    NULL, adb_wifi_cfg_connect_write_redact_cb),
-	ADB_CHR("wifi_wps", &wifi_wps_uuid,
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
+	ADB_CHR("wifi_wps", &wifi_wps_uuid, AL_BT_AF_WRITE,
 	    NULL, adb_wifi_cfg_wps_start_cb, &wifi_wps_chr),
-	ADB_CHR("wifi_connect_status", &wifi_connect_status_uuid,
-	    AL_BT_AF_READ | AL_BT_AF_READ_ENC | AL_BT_AF_NOTIFY,
-	    adb_wifi_cfg_connect_status_read_cb, NULL,
-	    &wifi_connect_status_chr),
-	ADB_CHR("wifi_scan", &wifi_scan_uuid,
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
+	ADB_CHR("wifi_connect_status", &wifi_connect_status_uuid, AL_BT_AF_READ | AL_BT_AF_NOTIFY,
+	    adb_wifi_cfg_connect_status_read_cb, NULL, &wifi_connect_status_chr),
+	ADB_CHR("wifi_scan", &wifi_scan_uuid, AL_BT_AF_WRITE,
 	    NULL, adb_wifi_cfg_scan_start_cb, &wifi_scan_chr),
-	ADB_CHR("wifi_scan_result", &wifi_scan_result_uuid,
-	    AL_BT_AF_READ_ENC | AL_BT_AF_NOTIFY,
+	ADB_CHR("wifi_scan_result", &wifi_scan_result_uuid, AL_BT_AF_READ | AL_BT_AF_NOTIFY,
 	    NULL, NULL, &wifi_scan_result_chr),
 	ADB_SERVICE_END()
 };
