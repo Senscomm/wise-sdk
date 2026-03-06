@@ -36,6 +36,9 @@
 #include "client_lock.h"
 #include "ada_lock.h"
 #include "schedeval.h"
+#if 0
+#include "scm_flash.h"
+#endif
 #ifdef AYLA_MATTER_SUPPORT
 #include <al/al_matter.h>
 #endif
@@ -385,6 +388,11 @@ void ada_conf_reset(int factory)
 #endif
 #ifdef AYLA_BLUETOOTH_SUPPORT
 		al_bt_conf_factory_reset();
+#endif
+#if 0
+		/* For Debug */
+		uint8_t state = 0xAA;
+		scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 #endif
 	}
 	adap_conf_reset(factory);

@@ -31,6 +31,7 @@ struct al_thread;
  */
 enum al_os_thread_pri {
 	al_os_thread_pri_high,		/**< High priority */
+	al_os_thread_above_nomal,	/**< Above Normal priority */
 	al_os_thread_pri_normal,	/**< Normal priority */
 	al_os_thread_pri_low,		/**< Low priority */
 	al_os_thread_pri_count,		/**< Count of priorities */

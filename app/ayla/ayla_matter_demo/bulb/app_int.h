@@ -14,9 +14,16 @@
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 
+#if 1
 #define DEMO_OEM_ID	            "d9754164" /* may be set to your Ayla OEM ID */
-#define DEMO_OEM_MODEL	        "iworkbulb-dev" /* may be set to your OEM model name */
+#define DEMO_OEM_MODEL	        "a60-rgbcct-m" /* may be set to your OEM model name */
 #define DEMO_TEMPLATE_VERSION   "m color bulb 1.0" /* demo template version */
+#else
+#define DEMO_OEM_ID	            "ec85a8df" /* may be set to your Ayla OEM ID */
+#define DEMO_OEM_MODEL	        "floor-lamp-dev" /* may be set to your OEM model name */
+#define DEMO_TEMPLATE_VERSION   "floor_lamp 1.0.2" /* demo template version */
+#endif
+
 #define DEMO_FACTORY_NAME       "MFG"
 #define DEMO_PURCHASE_ORDER     "PO"
 #define DEMO_DEVICE_ID          "Ayla-0506"

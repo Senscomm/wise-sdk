@@ -2107,7 +2107,7 @@ static void print_addr(const void *addr)
 {
     const uint8_t *u8p;
     u8p = addr;
-    printf("%02x:%02x:%02x:%02x:%02x:%02x", u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+    printf("BLE Remote Control MAC:%02x:%02x:%02x:%02x:%02x:%02x\n", u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }
 
 uint8_t debug_flag = 0;
@@ -2171,6 +2171,7 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
             printf("\nConnectable directed advertising event\n");
             return 0;
         }
+#if 0
         /* filter demo: use peer addr mac filter */
         if (!memcmp(event->disc.addr.val, opts->peer.val, 6)) {
             /* Len, Type, CompanyID */
@@ -2180,6 +2181,12 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
         else {
             return 0;
         }
+#else
+		/* HYD Protocol filter */
+		if (event->disc.data[2] != 0x80 || event->disc.data[3] != 0x5a) {
+			return 0;
+		}
+#endif
 #if 0
 		/* For debug, too many prints */
         printf("received advertisement; event_type=%d rssi=%d ""addr_type=%d addr=", 
@@ -2190,8 +2197,8 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
 #endif
         al_bt_decode_adv_data(event->disc.data, event->disc.length_data, arg);
         if (debug_flag != 0) {
+			// printf("BLE Remote Controller Mac: ");
             print_addr(event->disc.addr.val);
-            printf("\n");
             debug_flag = 0;
         }
 
@@ -2232,7 +2239,7 @@ int al_bt_scan_start(void)
         printf("error scanning; rc=%d\n", rc);
         return rc;
     }
-    printf("!!!Start bt scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
+    log_put(LOG_INFO "Start bt passive scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
     return 0;
 }
 
@@ -2241,7 +2248,7 @@ int al_bt_scan_cancel(void)
     int rc;
 
     rc = ble_gap_disc_cancel();
-    printf("!!!Stop bt scan!\n");
+    log_put(LOG_INFO "Stop bt passive scan! rc=%d\n", rc);
     return rc;
 }
 

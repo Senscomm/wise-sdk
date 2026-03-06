@@ -37,6 +37,9 @@
 #include "app_event.h"
 
 #include "wise_task_wdt.h"
+#ifdef PATCH_HYD_EXTRA_FLASH_PARTITION
+#include "scm_flash.h"
+#endif
 
 #include "color_format.h"
 #include "led_widget.h"
@@ -800,7 +803,17 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
+#ifdef PATCH_HYD_BUTTON_FACTORY_RESET
     {
+#if PATCH_HYD_EXTRA_FLASH_PARTITION
+        uint8_t state = 0;
+        scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+        if (state != 0xAA) {
+            break;
+        }
+        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096);
+        log_put(LOG_INFO "Trigger Button Factory Reset!");
+#endif
         int i;
         struct app_event evt[] = {
             {
@@ -858,16 +871,18 @@ static void demo_matter_event_cb(enum adm_event_id id)
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(-1, 180000/* 3 min. */, demo_lc_completed);
+        lighting_ctrl_run(-1, 60000/* 1 min. */, demo_lc_completed);
 
         onboarding = true;
     }
+#endif
         break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STOPPED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_CLOSED:
         break;
 	case ADM_EVENT_COMMISSIONING_COMPLETE:
     {
+#ifndef PATCH_HYD_BUTTON_FACTORY_RESET
         int i;
         struct app_event evt[] = {
             {
@@ -906,6 +921,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         lighting_ctrl_run(1, 0, demo_lc_sync);
 
         onboarding = false;
+#endif
         break;
     }
 	default:
@@ -1219,12 +1235,13 @@ void demo_init(void)
 	adm_start(demo_test_cert_declaration,
 	    sizeof(demo_test_cert_declaration));
 
+#if defined(PATCH_HYD_REUSE_AYLA_BLE_SVC) || 1
     adb_hyd_svc_register(NULL);
     adb_ayla_svc_register(NULL);
     adb_wifi_cfg_svc_register(NULL);
     adb_conn_svc_register(NULL);
-
-    printf("ayla svc + conn + wifi cfg!!\n");
+    log_put(LOG_INFO "Register Ayla adb svc!");
+#endif
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.
@@ -1244,18 +1261,64 @@ void demo_init(void)
 	    demo_props, ARRAY_LEN(demo_props));
 }
 
+#if defined(PATCH_HYD_BUTTON_FACTORY_RESET) && defined(PATCH_HYD_EXTRA_FLASH_PARTITION)
+#define BUTTON_SHORT_PRESSED_PERIOD_MIN 200
+#define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
+#define BUTTON_LONG_PRESSED_PERIOD 5000
+static unsigned long button_pressed;
+static unsigned long button_released;
+static void demo_button_toggle(unsigned long pressed, unsigned long released)
+{
+    uint8_t state = 0xAA;
+	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX)) {
+		log_put(LOG_INFO "Button short pressed");
+	}
+
+	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) {
+		log_put(LOG_INFO "Button long pressed");
+        /* write flash partition */
+        scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+		/* Trigger factory reset */
+		ada_conf_reset(2);
+	}
+}
+#endif
+
 void demo_idle(void)
 {
 	struct app_event event;
 
+#if 0
+    /* HYD Use its own prop sync mechanism */
     host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
-
+#endif
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
 
 	wise_task_wdt_add(NULL);
 
 	while (1) {
+#if defined(PATCH_HYD_BUTTON_FACTORY_RESET) && defined(PATCH_HYD_EXTRA_FLASH_PARTITION)
+        /* todo: Configure io and GPIO!! */
+        /* have no module test yet, using "Ayla reset factory" cmd test instead. */
+        /* Note: Cannot add led flashing in demo_idle, heap run out problems, do not why... */
+#if 0
+        if (gpio_get_level(GPIO_BOOT_BUTTON) == 0) {
+			if (button_pressed == 0) {
+				button_pressed = time_now();
+				log_put(LOG_DEBUG "Button pressed");
+			}
+		} else {
+			if (button_pressed) {
+				button_released = time_now();
+				log_put(LOG_DEBUG "Button released");
+				demo_button_toggle(button_pressed, button_released);
+				button_pressed = 0;
+				button_released = 0;
+			}
+		}
+#endif
+#endif
         BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
         while (eventReceived == pdTRUE) {
             app_event_dispatch(&event);

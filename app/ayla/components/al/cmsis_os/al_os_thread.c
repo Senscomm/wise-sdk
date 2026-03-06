@@ -28,6 +28,7 @@
 
 static const osPriority_t task_pri[] = {
 	osPriorityHigh,			/* al_os_thread_pri_high */
+	osPriorityAboveNormal,  /* al_os_thread_above_nomal*/
 	osPriorityNormal,		/* al_os_thread_pri_nomal */
 	osPriorityLow,			/* al_os_thread_pri_low */
 };

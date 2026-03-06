@@ -245,7 +245,7 @@ int ada_init(void)
 
 #ifndef AYLA_ADA_MAIN_THREAD_SUPPORT
 	client_task = al_os_thread_create(ADA_THREAD_NAME, NULL,
-	    PFM_STACKSIZE_ADA, al_os_thread_pri_normal, client_idle, NULL);
+	    PFM_STACKSIZE_ADA, al_os_thread_above_nomal/* al_os_thread_pri_normal */, client_idle, NULL);
 	ASSERT(client_task);
 #endif
 

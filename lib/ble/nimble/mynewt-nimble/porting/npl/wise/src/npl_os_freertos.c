@@ -401,13 +401,13 @@ int npl_freertos_task_init(struct ble_npl_task *t, const char *name, ble_npl_tas
 
     (void)sanity_itvl;
     (void)stack_bottom;
-    (void)prio;
+    // (void)prio;
 
     ret = xTaskCreate((TaskFunction_t)func,
                       name,
                       stack_size != 0 ? stack_size : configMINIMAL_STACK_SIZE + 400,
                       arg,
-                      configMAX_PRIORITIES - 1,
+                      prio/*configMAX_PRIORITIES - 1*/,
                       (TaskHandle_t *)t);
     if (ret == pdPASS) {
         return 0;
