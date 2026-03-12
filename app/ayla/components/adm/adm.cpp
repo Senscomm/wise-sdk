@@ -1114,6 +1114,14 @@ void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
 	(void) PlatformMgr().PostEvent(&e);
 }
 
+void adm_post_event_to_plat_for_test(void)
+{
+    ChipDeviceEvent event;
+    event.Type                                           = DeviceEventType::kServiceProvisioningChange;
+    event.ServiceProvisioningChange.ServiceConfigUpdated = true;
+    (void) PlatformMgr().PostEvent(&event);
+}
+
 enum ada_err adm_onboard_config_generate(const char *secret)
 {
 	return adm_onboard_autogen_internal(secret);
