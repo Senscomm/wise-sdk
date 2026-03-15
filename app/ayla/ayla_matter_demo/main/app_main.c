@@ -80,6 +80,9 @@ static int demo_client_start(void)
 
     return 0;
 }
+#include "iotalink.h"
+
+#include "scm_flash.h"
 
 void app_main()
 {
@@ -92,6 +95,28 @@ void app_main()
     ada_client_command_func_register(app_cmd_exec);
     AYLA_ASSERT(demo_client_start() == 0);
     demo_ota_init();
-    demo_init();
+	demo_init();
+
+
+	log_put(LOG_DEBUG "wlt app_main \n");
+	
+	extern light_ctrl_data_t sg_light_ctrl_data;
+	scm_partition_read(FLASH_PARTITION_TMP, 0, &sg_light_ctrl_data, sizeof(sg_light_ctrl_data));
+
+	printf("-------------------> switch_status %d\n  ",sg_light_ctrl_data.switch_status);
+	if(sg_light_ctrl_data.switch_status ==0xFF)iotalink_light_ctrl_data_init();
+		
+	iotalink_control_timer_init();
+	// wlt_init 
+	wlt_ws2812_test();//spi Çý¶¯	
+	iotalink_light_driver_init();
+	iotalink_button_init();
+	iotalink_adc_init();
+	
+	iotalink_light_ctrl_process();
+
+
+	
+    
     demo_idle();
 }

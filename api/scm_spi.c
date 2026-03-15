@@ -211,7 +211,6 @@ int scm_spi_master_tx(enum scm_spi_idx idx, int slave, uint8_t *tx_buf,
     spi_data[idx].sync = 1;
 
     ret = scm_spi_master_transfer(&spi_data[idx], &arg, IOCTL_SPI_MASTER_TX, timeout);
-
     return ret;
 }
 

@@ -7,6 +7,7 @@
 #include "scm_i2c.h"
 #include "bp5758d.h"
 
+
 #define INVALID_ADDR			0xFF
 
 #define BP5758D_MAX_PIN			5
@@ -87,8 +88,11 @@ static void bp5758d_register_channel(enum bp5758d_channel channel, enum bp5758d_
 static int send_i2c(uint8_t *value, uint32_t len)
 {
 	int ret = 0;
+	
+#ifdef CONFIG_API_I2C
+		ret = scm_i2c_master_tx(SCM_I2C_IDX_GPIO, 0, value, len, 0);
+#endif
 
-	ret = scm_i2c_master_tx(SCM_I2C_IDX_GPIO, 0, value, len, 0);
 
 	return ret;
 }
@@ -134,9 +138,13 @@ int bp5758d_init(void)
     g_ctx->rgb_set_current = 14;
     g_ctx->cw_set_current = 14;
 
-	scm_i2c_init(SCM_I2C_IDX_GPIO);
-    cfg.skip_address = 1;
-    scm_i2c_configure(SCM_I2C_IDX_GPIO, &cfg, NULL, NULL);
+#ifdef CONFIG_API_I2C
+		scm_i2c_init(SCM_I2C_IDX_GPIO);
+		cfg.skip_address = 1;
+		scm_i2c_configure(SCM_I2C_IDX_GPIO, &cfg, NULL, NULL);
+#else
+		(void)cfg;
+#endif
 
 	return send_i2c(value, sizeof(value));
 }
@@ -147,7 +155,7 @@ int bp5758d_deinit(void)
 		return -1;
 	}
 
-	bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
+//	bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
 	bp5758d_set_standby(true);
 
 	free(g_ctx);
@@ -325,6 +333,8 @@ int bp5758d_set_rgb_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b
 
 int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w)
 {
+
+
 	uint8_t value[5] = { 0, };
 	int ret;
 
@@ -353,6 +363,12 @@ int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w)
 int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b, uint16_t value_c, uint16_t value_w)
 {
 
+
+	printf("-----------> 1  set  rgbcw %d %d %d %d %d \n ",value_r,value_g,value_b ,value_c,value_w);	
+	matter_wlt_light_set_rgbcw(value_c,value_w ,value_r,value_g,value_b);
+	return 0;
+
+
 	uint8_t value[11] = { 0, };
 	int ret;
 
@@ -367,7 +383,7 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 		}
 	}
 
-#if 0
+#if 1
 	printf("[%s, %d] r: %d, g: %d, b: %d, c: %d, w: %d\n", __func__, __LINE__,
             value_r, value_g, value_b, value_c, value_w);
 #endif

@@ -401,7 +401,7 @@ int npl_freertos_task_init(struct ble_npl_task *t, const char *name, ble_npl_tas
 
     (void)sanity_itvl;
     (void)stack_bottom;
-    // (void)prio;
+  //  (void)prio;
 
     ret = xTaskCreate((TaskFunction_t)func,
                       name,

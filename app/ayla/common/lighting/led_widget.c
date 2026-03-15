@@ -106,6 +106,13 @@ void led_widget_do_set(struct led_widget *lw, bool state)
         break;
     }
     lw->state = state;
+	
+	if(state ==0) 
+	light_power_set(0);
+
+	// bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
+
+	
 }
 
 void led_widget_set(struct led_widget *lw, bool state)

@@ -59,14 +59,12 @@ static const flash_partition_info_t partition_table[FLASH_PARTITION_MAX] = {
         .size = CONFIG_LOG_PARTITION_SIZE,
         .read_only = false
     },
-#ifdef PATCH_HYD_EXTRA_FLASH_PARTITION
-    [FLASH_PARTITION_TMP] = {
-        .type = FLASH_PARTITION_TMP,
-        .start_addr = 0x80016000,
-        .size = 0x1000,
-        .read_only = false
-    },
-#endif
+   [FLASH_PARTITION_TMP] = {
+   .type = FLASH_PARTITION_TMP,
+   .start_addr = 0x80016000,
+   .size = CONFIG_LOG_PARTITION_SIZE,        
+   .read_only = false
+	},
 };
 
 /* Get partition information by partition type */

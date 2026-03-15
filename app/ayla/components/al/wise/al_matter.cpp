@@ -193,6 +193,7 @@ int al_matter_unique_id_config_set(const char *unique_id, u8 overwrite)
 
 void al_matter_config_reset(void)
 {
+	printf("12");
 	/* Erase all values in the chip-config NVS namespace */
 	SCM1612SConfig::ClearNamespace(SCM1612SConfig::kConfigNamespace_ChipConfig);
 
@@ -203,7 +204,7 @@ void al_matter_config_reset(void)
 	/* Erase Wi-Fi config */
     scm_wifi_clear_config(WIFI_IF_STA);
 #endif
-
+	printf("34\n");
 	/* Erase all key-values including fabric info */
 	PersistedStorage::KeyValueStoreMgrImpl().ErasePartition();
 }

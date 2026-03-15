@@ -9,14 +9,16 @@
 #ifndef __AYLA_APP_H__
 #define __AYLA_APP_H__
 
-#define APP_VER         "1.0.1"
-#define APP_NAME        "ayla_matter_demo"
+#define APP_VER         "1.0.0"
+#define APP_NAME        "wlt_ayla_matter_demo"
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 
-#define DEMO_OEM_ID	        "0dfc7900" /* may be set to your Ayla OEM ID */
+#define DEMO_OEM_ID	        "ec85a8df" /* may be set to your Ayla OEM ID */
 #define DEMO_OEM_MODEL	        "" /* may be set to your OEM model name */
-#define DEMO_TEMPLATE_VERSION   "m color bulb 0.1" /* demo template version */
+//#define DEMO_TEMPLATE_VERSION   "m color bulb 0.1" /* demo template version */
+#define DEMO_TEMPLATE_VERSION   "hyd_floor_lamp 1.0.0" /* demo template version */
+
 
 /*
  * Define the number of active schedules supported.

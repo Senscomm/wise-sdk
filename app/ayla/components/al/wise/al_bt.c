@@ -2099,15 +2099,192 @@ static struct al_bt_scan_filters
 	.peer            = {
 		.type = 0,
 		/* Little-endian */
-		.val = { 0x3b, 0x9a, 0xce, 0xa0, 0x2b, 0x58 },
+		//.val = { 0x3b, 0x9a, 0xce, 0xa0, 0x2b, 0x58 },
+		.val = { 0x3b, 0x9a, 0xce, 0x3c, 0x2b, 0x58 },
 	}
 };
+
+
+// ========== 新增：多包过滤上下文 ==========
+// 避免短时间内重复打印同一设备的符合条件广播
+static struct {
+    ble_addr_t last_addr;          // 最后处理的设备地址
+    uint32_t last_time_ms;         // 最后处理的时间（毫秒）
+    uint32_t filter_interval_ms;   // 过滤间隔（默认xxxms）
+} scan_filter_ctx = {
+    .filter_interval_ms = 250,
+};
+
+
+// ==========wlt 新增：辅助函数 - 打印字节数组 ==========
+
+
+/*============================================================================
+ * 常量定义
+ *============================================================================*/
+
+/* 协议固定头部 */
+static const uint8_t PROTOCOL_HEADER[] = {0x0E, 0xFF, 0x80, 0x5A, 0xA5, 0x50};
+#define HEADER_LEN      6
+
+/* 密钥流 (前8字节) */
+static const uint8_t KEY_STREAM[] = {0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xB0, 0xC6, 0x7D};
+#define KEY_STREAM_LEN  8
+
+/* 数据包总长度 */
+#define PACKET_LEN      15
+#define PAYLOAD_LEN     9
+
+/* 明文结构中的固定XOR偏移 */
+#define OFFSET_BYTE1    0xF3
+#define OFFSET_BYTE2    0x70
+#define OFFSET_BYTE3    0x8C
+#define OFFSET_BYTE4    0xFE
+#define OFFSET_BYTE5    0xDC  /* 字节4到字节5的XOR偏移 (不含KeyCode) */
+
+/*============================================================================
+ * 按键码定义
+ *============================================================================*/
+
+typedef enum {
+    KEY_POWER   = 0x00,     /* 电源键 */
+    KEY_1H      = 0x03,     /* 1h键 */
+    /* 以下为推测值，需要验证 */
+    KEY_2H      = 0x06,     /* 2h键 (推测) */
+    KEY_3H      = 0x09,     /* 3h键 (推测) */
+    KEY_UNKNOWN = 0xFF      /* 未知按键 */
+} KeyCode_t;
+
+/* 按键名称查找表 */
+typedef struct {
+    uint8_t     code;
+    const char* name;
+} KeyName_t;
+
+static const KeyName_t KEY_NAMES[] = {
+    {KEY_POWER,   "电源键"},
+    {KEY_1H,      "1h键"},
+    {KEY_2H,      "2h键(推测)"},
+    {KEY_3H,      "3h键(推测)"},
+    {KEY_UNKNOWN, "未知按键"}
+};
+#define KEY_NAMES_COUNT (sizeof(KEY_NAMES) / sizeof(KEY_NAMES[0]))
+
+/*============================================================================
+ * 解密结果结构体
+ *============================================================================*/
+
+typedef struct {
+    bool        valid;          /* 数据包是否有效 */
+    uint8_t     counter;        /* 主计数器值 */
+    uint8_t     key_code;       /* 按键码 */
+    const char* key_name;       /* 按键名称 */
+    uint8_t     sub_counter;    /* 子计数器 */
+    uint8_t     decrypted[8];   /* 解密后的8字节数据 */
+    uint8_t     checksum;       /* 校验和 (原始值) */
+} DecodeResult_t;
+/*============================================================================
+ * 核心解密函数
+ *============================================================================*/
+
+/**
+ * @brief 解密BLE遥控器数据包
+ * 
+ * @param packet    输入的原始数据包 (15字节)
+ * @param len       数据包长度
+ * @param result    输出的解密结果
+ * @return true     解密成功
+ * @return false    数据包无效
+ */
+bool ble_remote_decode(const uint8_t* packet, uint16_t len, DecodeResult_t* result)
+{
+    /* 初始化结果 */
+    memset(result, 0, sizeof(DecodeResult_t));
+    result->valid = false;
+    result->key_code = KEY_UNKNOWN;
+    result->key_name = "未知";
+    
+    /* 检查数据包长度 */
+    if (len < PACKET_LEN) {
+        return false;
+    }
+    
+    /* 验证协议头部 */
+    if (memcmp(packet, PROTOCOL_HEADER, HEADER_LEN) != 0) {
+        return false;
+    }
+    
+    /* 提取加密载荷 (字节6-14) */
+    const uint8_t* cipher = &packet[HEADER_LEN];
+    
+    /* 解密前8字节: 明文 = 密文 XOR 密钥流 */
+    for (int i = 0; i < KEY_STREAM_LEN; i++) {
+        result->decrypted[i] = cipher[i] ^ KEY_STREAM[i];
+    }
+    
+    /* 提取主计数器 (字节0) */
+    result->counter = result->decrypted[0];
+    
+    /* 验证明文结构 (检查相邻字节XOR是否符合预期) */
+    /* 字节0 XOR 字节1 应该等于 0xF3 */
+    if ((result->decrypted[0] ^ result->decrypted[1]) != OFFSET_BYTE1) {
+        return false;
+    }
+    /* 字节1 XOR 字节2 应该等于 0x83 */
+    if ((result->decrypted[1] ^ result->decrypted[2]) != 0x83) {
+        return false;
+    }
+    /* 字节2 XOR 字节3 应该等于 0xFC */
+    if ((result->decrypted[2] ^ result->decrypted[3]) != 0xFC) {
+        return false;
+    }
+    /* 字节3 XOR 字节4 应该等于 0x72 */
+    if ((result->decrypted[3] ^ result->decrypted[4]) != 0x72) {
+        return false;
+    }
+    
+    /* 提取按键码 */
+    /* 字节5 = 字节4 XOR 0xDC XOR KeyCode */
+    /* 因此 KeyCode = 字节4 XOR 字节5 XOR 0xDC */
+    result->key_code = result->decrypted[4] ^ result->decrypted[5] ^ OFFSET_BYTE5;
+    
+    /* 获取按键名称 */
+//    result->key_name = get_key_name(result->key_code);
+    
+    /* 提取子计数器 */
+    /* SubCounter = 字节5 XOR 字节6 */
+    result->sub_counter = result->decrypted[5] ^ result->decrypted[6];
+    
+    /* 保存校验和 */
+    result->checksum = cipher[8];
+    
+    /* 标记为有效 */
+    result->valid = true;
+    
+    return true;
+}
+
+
+
+static void print_bytes(const uint8_t *bytes, uint8_t len)
+{
+    for (int i = 0; i < len; i++) {
+        printf("%02x ", bytes[i]);
+        // 每8个字节换行，提升可读性
+        if ((i + 1) % 8 == 0 && i != len - 1) {
+            printf("\n                ");
+        }
+    }
+
+	
+	
+}
 
 static void print_addr(const void *addr)
 {
     const uint8_t *u8p;
     u8p = addr;
-    printf("BLE Remote Control MAC:%02x:%02x:%02x:%02x:%02x:%02x\n", u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
+    printf("%02x:%02x:%02x:%02x:%02x:%02x", u8p[5], u8p[4], u8p[3], u8p[2], u8p[1], u8p[0]);
 }
 
 uint8_t debug_flag = 0;
@@ -2171,22 +2348,76 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
             printf("\nConnectable directed advertising event\n");
             return 0;
         }
+
+		int ii;
+
+		// 1. 基础长度检查：至少包含 Len(1) + Type(1) + CompanyID(2) = 4 字节
+		   if (event->disc.length_data < 4) {
+			   return 0; // 数据长度不足，直接跳过
+		   }
+
+		   // 2. 解析关键字段（严格匹配目标格式）
+		   uint8_t target_len = 0x0e;		// 目标长度
+		   uint8_t target_type = 0xff;		// 目标类型（厂商特定数据）
+		   uint16_t target_company_id = 0x5a80; // 目标厂商ID（0x80 0x5a 小端转大端）
+
+		   uint8_t adv_len = event->disc.data[0];
+		   uint8_t adv_type = event->disc.data[1];
+		   // 注意字节序：广播中CompanyID是小端存储（0x80 0x5a → 0x5a80）
+		   uint16_t company_id = (event->disc.data[3] << 8) | event->disc.data[2];
+		   
+		// 3. 判定是否符合目标条件
+			   if (adv_len != target_len || adv_type != target_type || company_id != target_company_id) {
+				   return 0; // 不符合条件，跳过
+			   }
+		
+			// 4. 多包过滤：同一设备100ms内不重复打印
+			uint32_t current_tick = osKernelGetTickCount();
+			uint32_t current_ms = current_tick * 1000 / osKernelGetTickFreq();
+			// 检查是否是同一设备 + 时间间隔是否小于过滤阈值
+			int is_same_addr = !memcmp(event->disc.addr.val, scan_filter_ctx.last_addr.val, 6);
+			if (is_same_addr && (current_ms - scan_filter_ctx.last_time_ms) < scan_filter_ctx.filter_interval_ms) {
+				return 0; // 短时间重复包，跳过
+			}
+			
+			// 5. 更新过滤上下文（记录当前设备和时间）
+			memcpy(scan_filter_ctx.last_addr.val, event->disc.addr.val, 6);
+			scan_filter_ctx.last_addr.type = event->disc.addr.type;
+			scan_filter_ctx.last_time_ms = current_ms;
 #if 0
+
+		// . 完整打印符合条件的广播数据
+			printf("\n====================================\n");
+			printf("Matched BLE ADV (target format)\n");
+			printf("Dev addr: "); print_addr(event->disc.addr.val); printf("\n");
+			printf("RSSI: %d dBm\n", event->disc.rssi);
+			printf("ADV type: %d\n", event->disc.event_type);
+			printf("ADV data len: %d bytes\n", event->disc.length_data);
+			printf("ADV data (hex): \n				 ");
+			print_bytes(event->disc.data, event->disc.length_data);
+			printf("\n====================================\n");
+#endif			
+			DecodeResult_t result;
+
+			if (ble_remote_decode(event->disc.data, event->disc.length_data, &result))
+			{
+				extern void wlt_ble_remote_control(u8 keyvalue);
+				
+				printf(" key_code %d \n",result.key_code);
+				wlt_ble_remote_control(result.key_code);
+
+			}
+
         /* filter demo: use peer addr mac filter */
-        if (!memcmp(event->disc.addr.val, opts->peer.val, 6)) {
-            /* Len, Type, CompanyID */
-            printf("Recv BLE Remote Controller Pkts: [Len:0x%02x][Type:0x%02x][CompanyID:0x%02x 0x%02x]\n", event->disc.data[0],
-				event->disc.data[1], event->disc.data[2], event->disc.data[3]);
+       if (!memcmp(event->disc.addr.val, opts->peer.val, 6)) 
+		{
+            /* Len, Type, CompanyID */// [Len:0x0e][Type:0xff][CompanyID:0x80 0x5a]
+        //    printf("Recv BLE Remote Controller Pkts: [Len:0x%02x][Type:0x%02x][CompanyID:0x%02x 0x%02x]\n", event->disc.data[0],event->disc.data[1], event->disc.data[2], event->disc.data[3]);
         }
-        else {
-            return 0;
+        else
+		{
+          //  return 0;
         }
-#else
-		/* HYD Protocol filter */
-		if (event->disc.data[2] != 0x80 || event->disc.data[3] != 0x5a) {
-			return 0;
-		}
-#endif
 #if 0
 		/* For debug, too many prints */
         printf("received advertisement; event_type=%d rssi=%d ""addr_type=%d addr=", 
@@ -2197,10 +2428,13 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
 #endif
         al_bt_decode_adv_data(event->disc.data, event->disc.length_data, arg);
         if (debug_flag != 0) {
-			// printf("BLE Remote Controller Mac: ");
-            print_addr(event->disc.addr.val);
+            //print_addr(event->disc.addr.val);
+           // printf("\n");
             debug_flag = 0;
         }
+
+
+
 
         return 0;
     case BLE_GAP_EVENT_DISC_COMPLETE:
@@ -2225,7 +2459,7 @@ int al_bt_scan_start(void)
     /* Use passive scanning to avoid conflicts */
     scan_params.passive = 1;
     /* scan interval 500ms */
-    scan_params.itvl = BLE_GAP_SCAN_ITVL_MS(500);
+    scan_params.itvl = BLE_GAP_SCAN_ITVL_MS(200);
     /* scan window 20-40ms */
     scan_params.window = BLE_GAP_SCAN_WIN_MS(32);
     /* For multiple broadcasts from the same device, only report once - based on the scene settings. */
@@ -2239,7 +2473,7 @@ int al_bt_scan_start(void)
         printf("error scanning; rc=%d\n", rc);
         return rc;
     }
-    log_put(LOG_INFO "Start bt passive scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
+    printf("!!!Start bt scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
     return 0;
 }
 
@@ -2248,7 +2482,7 @@ int al_bt_scan_cancel(void)
     int rc;
 
     rc = ble_gap_disc_cancel();
-    log_put(LOG_INFO "Stop bt passive scan! rc=%d\n", rc);
+    printf("!!!Stop bt scan!\n");
     return rc;
 }
 

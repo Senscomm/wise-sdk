@@ -39,8 +39,9 @@ static struct adb_service_info conn_svc = {
 
 static const struct adb_attr conn_svc_table[] = {
 	ADB_SERVICE("conn_svc", &conn_svc_uuid, &conn_svc),
-	ADB_CHR("setup_token", &setup_token_uuid, AL_BT_AF_WRITE, NULL,
-		adb_conn_svc_setup_token_write_cb, &setup_token),
+	ADB_CHR("setup_token", &setup_token_uuid,
+	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
+	    NULL, adb_conn_svc_setup_token_write_cb, &setup_token),
 	ADB_SERVICE_END()
 };
 
@@ -85,17 +86,40 @@ static struct adb_chr_info hyd_inbox_info;
 static struct adb_chr_info hyd_outbox_info;
 
 /* al_bt_gatt_chr_access_cb ===> bt_chr->write_cb = adb_hyd_svc_write_cb */
+extern void wlt_ble_app_control(u8 *buf, u16 length);
+
 static enum adb_att_err adb_hyd_svc_write_cb(u16 conn, const struct adb_attr *attr, u8 *buf, u16 length)
 {
 	/* Note: Update the MTU. No need to incorporate the logic for fragment assembly. */
+#if 0
 	printf("write %s conn %d\n", attr->name, conn);
 	printf("Recv HYD Demo Protocol Pkts: \n");
-	for (int i = 0; i < length; i++) {
-		printf("%02x ", buf[i]);
+	for (int i = 0; i < length; i++) 
+	{
+		//printf("%02x ", buf[i]);
 	}
 	printf("\n");
-
+#endif
 	// todo : Implement your own protocols logic by sync or async ways.
+
+	
+	uint32_t current_tick = osKernelGetTickCount();
+	uint32_t current_ms = current_tick * 1000 / osKernelGetTickFreq();
+	static  uint32_t last_time_ms;
+	// 检查是否时间间隔是否小于过滤阈值
+	//int is_same_addr = !memcmp(event->disc.addr.val, scan_filter_ctx.last_addr.val, 6);
+	
+	if ((current_ms - last_time_ms) > 120)
+	{
+		//printf("(current_ms - last_time_ms ) == %d is small !!!\n",(current_ms - last_time_ms));
+		//放到iotalink_control处理	
+		wlt_ble_app_control(buf,  length);
+		last_time_ms = current_ms;
+		return ADB_ATT_SUCCESS;
+	}
+
+	 // 短时间重复包，跳过
+
 
 	return ADB_ATT_SUCCESS;
 }

@@ -37,9 +37,6 @@
 #include "app_event.h"
 
 #include "wise_task_wdt.h"
-#ifdef PATCH_HYD_EXTRA_FLASH_PARTITION
-#include "scm_flash.h"
-#endif
 
 #include "color_format.h"
 #include "led_widget.h"
@@ -52,6 +49,12 @@
 #include "ftm.h"
 
 #include "host_prop_mgr.h"
+
+#include "scm_flash.h"
+#include "scm_gpio.h"
+
+
+#include "iotalink.h"
 
 static struct {
     s32 brightness;
@@ -137,7 +140,8 @@ static struct prop_conf_metadata prop_conf_table[] = {
 #define DEMO_SYNC_RETRY_MAX	10
 
 /* Attributes */
-static char version[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
+//static char version[] = "ADA-" ADA_VERSION BUILD_NAME "-" SDK_VERSION;
+static char version[] = APP_NAME " " BUILD_STRING;
 char template_version[] = DEMO_TEMPLATE_VERSION;
 static char factory_name[] = DEMO_FACTORY_NAME;
 static char purchase_order[] = DEMO_PURCHASE_ORDER;
@@ -148,8 +152,8 @@ static char mode[32];
 static u8 alexa_enabled;
 static u8 google_enable;
 static u8 local_voice_enable;
-static u8 power;
-static int brightness;
+//static u8 power;
+//static int brightness;
 static int color_bright;
 static int color_saturation;
 static int color_select;
@@ -162,6 +166,110 @@ static HsvColor_t hsv;
 static XyColor_t xy;
 
 static bool onboarding;
+
+
+
+/*****************************《 Template 》**************************************/
+#include "iotalink_control.h"
+// wlt_add
+static u8 power;
+
+static u16 big_mode;//大模式
+
+//全局亮度
+static u32 brightness;
+
+// 动态场景相关
+static u16 scene;
+static u32 speed;
+// 白光
+
+static u32 temperature;
+
+// 彩光
+static u32 color;
+
+//律动
+static u32 music;
+static u32 sensitivity;
+
+//自定义
+
+static u32 custome;
+
+//线序
+static u32 rgb_sequence;
+
+
+//-------------------------------用于上报----------------------------------------------------//
+void light_mode_update(LIGHT_MODE_E locol_mode)
+{
+	big_mode = locol_mode;
+	demo_send_prop("big_mode"); 
+}
+void light_power_update(bool on_off)
+{
+	power = on_off;
+	demo_send_prop("Power"); 
+}
+
+
+void light_brightness_update(uint32_t value)
+{
+    brightness = value;
+    demo_send_prop("Brightness"); 
+}
+
+void light_scene_update(uint16_t value)
+{
+    scene = value;
+    demo_send_prop("Scene"); 
+}
+
+void light_custome_unit_update(uint16_t value)
+{
+    custome = value;
+    demo_send_prop("custome"); 
+}
+
+void light_speed_update(uint32_t value)
+{
+    speed = value;
+    demo_send_prop("Speed"); 
+}
+
+void light_temperature_update(uint32_t value)
+{
+    temperature = value;
+    demo_send_prop("Temperature"); 
+}
+
+void light_color_update(uint32_t value)
+{
+    color = value;
+    demo_send_prop("Color"); 
+}
+
+void light_music_update(uint32_t value)
+{
+    music = value;
+    demo_send_prop("Music"); 
+}
+
+void light_sensitivity_update(uint32_t value)
+{
+    sensitivity = value;
+    demo_send_prop("Sensitivity"); 
+}
+
+void light_rgb_sequence_update(uint32_t value)
+{
+    rgb_sequence = value;
+    demo_send_prop("RGB_Sequence"); 
+}
+
+
+//------------------------------- end ----------------------------------------------------//
 
 /*
  * Matter Certification Declaration(s).
@@ -559,12 +667,16 @@ static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
 		return err;
 	}
 
-    if (!strcmp(sprop->name, "mode")) {
-        if (!strncmp(buf, "white", len)) {
+    if (!strcmp(sprop->name, "mode")) 
+	{
+        if (!strncmp(buf, "white", len))
+		{
             color = 0;
-        } else if (!strncmp(buf, "color", len)) {
+        } else if (!strncmp(buf, "color", len)) 
+		{
             color = 1;
-        } else {
+        } else 
+		{
             return AE_INVAL_VAL;
         }
 
@@ -604,67 +716,214 @@ static enum ada_err demo_cmd_set(struct ada_sprop *sprop, const void *buf,
 	return AE_OK;
 }
 
+
+/*****************************************************属性接收处理******************************************************************/
+static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, size_t len)
+{
+	int ret = 0;
+	static unsigned int ack_count;
+	
+	//printf("%s: %d  %s \r\n",__func__,sprop->type, sprop->name);
+
+	if (sprop->type == ATLV_BOOL) //bool
+	{
+		u32 val = *(u32 *)buf;
+		if (val > 1)
+		{
+			return AE_INVAL_VAL;
+		}
+		if (sprop->val_len != sizeof(u8))
+		{
+			return AE_LEN;
+		}
+		*(u8 *)sprop->val = val;		
+		if (sprop->val == &power)
+		{
+			light_power_set(power);
+		}
+		printf("[bool]%s: %s set to %u\r\n",__func__, sprop->name, *(u8 *)sprop->val);
+	}
+
+	else if (sprop->type == ATLV_INT || sprop->type == ATLV_CENTS) //整形
+	{
+	 
+		s32 val = *(s32 *)buf;
+
+		switch (sprop->val_len)
+		{
+			case 1:
+				if (val < MIN_S8 || val > MAX_S8) {
+					return AE_INVAL_VAL;
+				}
+				*(s8 *)sprop->val = val;
+				break;
+			case 2:
+				if (val < MIN_S16 || val > MAX_S16) {
+					return AE_INVAL_VAL;
+				}
+				*(s16 *)sprop->val = val;
+				break;
+			case 4:
+				*(s32 *)sprop->val = *(s32 *)buf;
+				break;
+		}
+	
+	
+		 if(sprop->val == &big_mode)
+		{
+			light_mode_set(big_mode);		
+		//	demo_send_prop("mode");	
+			my_printf("[int]%s: set to %d\r\n", sprop->name, big_mode);	
+		}
+		else if(sprop->val == &brightness)
+		{
+			light_bright_set(brightness);				
+		}
+		else if(sprop->val == &scene)
+		{
+
+			light_magicunit_set(scene);			
+			my_printf("[int]%s: set to %d\r\n", sprop->name, scene);
+					
+		}
+		else if(sprop->val == &custome)
+		{
+			light_custome_unit_set(custome);
+
+		}
+		else if(sprop->val == &speed)
+		{
+			light_speed_set(speed);
+		}
+		else if(sprop->val == &temperature)//
+		{
+			light_temper_set(temperature);	
+		}
+		else if(sprop->val == &color)
+		{
+			light_color_set(color);				
+		}
+		else if(sprop->val == &music)
+		{
+			light_musicunit_set(music);				
+		}
+		else if(sprop->val == &sensitivity)
+		{
+			light_sensitivity_set(sensitivity); 			
+		}
+		else if(sprop->val == &rgb_sequence)
+		{
+			light_rgb_sequence_set(rgb_sequence); 			
+		}
+
+
+	}
+
+	if (sprop->ack_id)
+	{
+		ada_sprop_send_ack(sprop, 0, ++ack_count);
+	}
+	
+	if(sprop->val != &brightness && sprop->val != &speed) 
+	{
+		iotalink_light_ctrl_process();	
+	}
+		
+
+	return AE_OK;
+}
+
+
 static struct ada_sprop demo_props[] = {
 	/*
 	 * version properties
 	 * oem_host_version is the template version and must be sent first.
 	 */
-	{ "oem_host_version", ATLV_UTF8,
-		template_version, sizeof(template_version),
-		ada_sprop_get_string, NULL},
-	{ "version", ATLV_UTF8, &version[0], sizeof(version),
-		ada_sprop_get_string, NULL},
-	{ "factory_name", ATLV_UTF8,
-		factory_name, sizeof(factory_name),
-		ada_sprop_get_string, NULL},
-	{ "device_id", ATLV_UTF8, &device_id[0], sizeof(device_id),
-		ada_sprop_get_string, NULL},
-	{ "purchase_order", ATLV_UTF8,
-		purchase_order, sizeof(purchase_order),
-		ada_sprop_get_string, NULL},
-	{ "led_driver", ATLV_UTF8, &led_driver[0], sizeof(led_driver),
-		ada_sprop_get_string, NULL},
-	{ "mode", ATLV_UTF8, mode, sizeof(mode),
-		ada_sprop_get_string, demo_string_set},
-	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),
-		ada_sprop_get_string, demo_string_set},
+	{ "oem_host_version", ATLV_UTF8,template_version, sizeof(template_version),ada_sprop_get_string, NULL},
+	{ "version", ATLV_UTF8, &version[0], sizeof(version),ada_sprop_get_string, NULL},
+	{ "factory_name", ATLV_UTF8,factory_name, sizeof(factory_name),ada_sprop_get_string, NULL},
+	{ "device_id", ATLV_UTF8, &device_id[0], sizeof(device_id),ada_sprop_get_string, NULL},
+//	{ "purchase_order", ATLV_UTF8,purchase_order, sizeof(purchase_order),ada_sprop_get_string, NULL},
+//	{ "led_driver", ATLV_UTF8, &led_driver[0], sizeof(led_driver),ada_sprop_get_string, NULL},
+//	{ "mode", ATLV_UTF8, mode, sizeof(mode),ada_sprop_get_string, demo_string_set},
+//	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),ada_sprop_get_string, demo_string_set},
 
 	/*
 	 * boolean properties.
 	 */
-	{ "alexa_enabled", ATLV_BOOL, &alexa_enabled, sizeof(alexa_enabled),
-		ada_sprop_get_bool, demo_bool_set},
-	{ "google_enable", ATLV_BOOL, &google_enable, sizeof(google_enable),
-		ada_sprop_get_bool, demo_bool_set },
-	{ "local_voice_enable", ATLV_BOOL, &local_voice_enable, sizeof(local_voice_enable),
-		ada_sprop_get_bool, demo_bool_set },
-	{ "power", ATLV_BOOL, &power, sizeof(power),
-		ada_sprop_get_bool, demo_bool_set },
+	{ "alexa_enabled", ATLV_BOOL, &alexa_enabled, sizeof(alexa_enabled),ada_sprop_get_bool, demo_bool_set},
+	{ "google_enable", ATLV_BOOL, &google_enable, sizeof(google_enable),ada_sprop_get_bool, demo_bool_set },
+	{ "local_voice_enable", ATLV_BOOL, &local_voice_enable, sizeof(local_voice_enable),ada_sprop_get_bool, demo_bool_set },
+
+
+	//{ "power", ATLV_BOOL, &power, sizeof(power),ada_sprop_get_bool, demo_bool_set },
 
 	/*
 	 * Integer properties.
 	 */
-	{ "brightness", ATLV_INT, &brightness, sizeof(brightness),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_bright", ATLV_INT, &color_bright, sizeof(color_bright),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_saturation", ATLV_INT, &color_saturation, sizeof(color_saturation),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_select", ATLV_INT, &color_select, sizeof(color_select),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_temp", ATLV_INT, &color_temp, sizeof(color_temp),
-		ada_sprop_get_int, demo_int_set },
-	{ "wifi_rssi", ATLV_INT, &wifi_rssi, sizeof(wifi_rssi),
-		ada_sprop_get_int, demo_int_set },
-
+#if 0
+//	{ "brightness", ATLV_INT, &brightness, sizeof(brightness),ada_sprop_get_int, demo_int_set },
+//	{ "color_bright", ATLV_INT, &color_bright, sizeof(color_bright),ada_sprop_get_int, demo_int_set },
+//	{ "color_saturation", ATLV_INT, &color_saturation, sizeof(color_saturationada_sprop_get_int, demo_int_set },
+//	{ "color_select", ATLV_INT, &color_select, sizeof(color_select),ada_sprop_get_int, demo_int_set },
+//	{ "color_temp", ATLV_INT, &color_temp, sizeof(color_temp),ada_sprop_get_int, demo_int_set },
+//	{ "wifi_rssi", ATLV_INT, &wifi_rssi, sizeof(wifi_rssi),ada_sprop_get_int, demo_int_set },
+#endif
 	/*
 	 * String properties.
 	 */
 	{ "cmd", ATLV_UTF8, "", 0, ada_sprop_get_string, demo_cmd_set },
 	{ "log", ATLV_UTF8, _log, sizeof(_log), ada_sprop_get_string, NULL },
+
+
+	//wlt_add 开关
+	{ "Power", ATLV_BOOL, &power, sizeof(power),ada_sprop_get_bool, wlt_attributes_set },
+
+//	{ "Mode", ATLV_INT, &mode, sizeof(mode),ada_sprop_get_int, wlt_attributes_set },
+//和原matter冲突暂换
+	{ "big_mode", ATLV_INT, &big_mode, sizeof(big_mode),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "custome", ATLV_INT, &custome, sizeof(custome),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Brightness", ATLV_INT, &brightness, sizeof(brightness),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Temperature", ATLV_INT, &temperature, sizeof(temperature),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Color", ATLV_INT, &color, sizeof(color),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Scene", ATLV_INT,&scene, sizeof(scene),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Speed", ATLV_INT, &speed, sizeof(speed),ada_sprop_get_int, wlt_attributes_set },
+
+	{ "Music", ATLV_INT, &music, sizeof(music),ada_sprop_get_int, wlt_attributes_set },
+	
+	{ "Sensitivity", ATLV_INT, &sensitivity, sizeof(sensitivity),ada_sprop_get_int, wlt_attributes_set },
+
+
+
 };
 
-static void prop_send_by_name(const char *name)
+void demo_send_prop(const char *name)
+{
+#ifdef AYLA_BATCH_PROP_SUPPORT
+	/*
+	 * If batch hold is enabled, batch changes for selected from-device
+	 * properties.
+	 */
+	if (node_batch_hold && (
+	    !strcmp(name, "log") ||
+	    !strcmp(name, "output") ||
+	    !strcmp(name, "decimal_out"))) {
+		demo_put_prop_to_batch(NULL, name);
+	} else {
+		prop_send_by_name(name);
+	}
+#else
+	prop_send_by_name(name);
+#endif
+}
+
+void prop_send_by_name(const char *name)
 {
 	enum ada_err err;
 
@@ -680,10 +939,10 @@ static void demo_lc_completed(bool timeout)
     struct app_event evt;
 
     evt.type = kEventType_Light;
-    evt.light_event.action = kLightAction_Off;
+    evt.light_event.action = kLightAction_On;
 
     app_event_post(&evt);
-
+	
     if (timeout) {
         onboarding = false;
     }
@@ -790,6 +1049,8 @@ static void demo_lc_sync(bool timeout)
 
 static void demo_matter_event_cb(enum adm_event_id id)
 {
+	uint8_t state = 0;
+
 	log_put(LOG_DEBUG2 "%s %d", __func__, id);
 
 	switch (id) {
@@ -803,17 +1064,19 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
-#ifdef PATCH_HYD_BUTTON_FACTORY_RESET
-    {
-#if PATCH_HYD_EXTRA_FLASH_PARTITION
-        uint8_t state = 0;
-        scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
-        if (state != 0xAA) {
-            break;
-        }
-        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096);
-        log_put(LOG_INFO "Trigger Button Factory Reset!");
+
+#if 1//定制
+				
+		scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+		printf("=========================> state: 0x%02x\n", state);
+		if (state == 0xAA) 
+		{
+			scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
+		}
+		else break;
 #endif
+    {
+
         int i;
         struct app_event evt[] = {
             {
@@ -875,14 +1138,15 @@ static void demo_matter_event_cb(enum adm_event_id id)
 
         onboarding = true;
     }
-#endif
         break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STOPPED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_CLOSED:
         break;
+#if 1
+
 	case ADM_EVENT_COMMISSIONING_COMPLETE:
-    {
-#ifndef PATCH_HYD_BUTTON_FACTORY_RESET
+
+	{
         int i;
         struct app_event evt[] = {
             {
@@ -921,9 +1185,10 @@ static void demo_matter_event_cb(enum adm_event_id id)
         lighting_ctrl_run(1, 0, demo_lc_sync);
 
         onboarding = false;
-#endif
         break;
     }
+
+#endif
 	default:
 		break;
 	}
@@ -983,10 +1248,12 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 		return AE_INVAL_VAL;
 	}
 
-    if (*value <= 1) {
+    if (*value <= 1) 
+	{
         /* XXX: what should we do? It seems to be the best to ignore it.
          */
         log_put(LOG_WARN "%s: level_control %d ignored", __func__, *value);
+	//	bp5758d_set_rgbcw_channel(0,0,0,0,0);
         return AE_OK;
     }
 
@@ -1212,7 +1479,7 @@ void demo_init(void)
 #endif
 
 	bp5758d_init();
-	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+//	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);
@@ -1232,16 +1499,14 @@ void demo_init(void)
 	adm_init();
     init_ayla_clusters();
 	adm_event_cb_register(demo_matter_event_cb);
-	adm_start(demo_test_cert_declaration,
-	    sizeof(demo_test_cert_declaration));
+	adm_start(demo_test_cert_declaration,sizeof(demo_test_cert_declaration));
 
-#if defined(PATCH_HYD_REUSE_AYLA_BLE_SVC) || 1
     adb_hyd_svc_register(NULL);
     adb_ayla_svc_register(NULL);
     adb_wifi_cfg_svc_register(NULL);
     adb_conn_svc_register(NULL);
-    log_put(LOG_INFO "Register Ayla adb svc!");
-#endif
+
+    printf("ayla svc + conn + wifi cfg!!\n");
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.
@@ -1258,69 +1523,86 @@ void demo_init(void)
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
 
 	ada_sprop_mgr_register("demo_matter",
-	    demo_props, ARRAY_LEN(demo_props));
+	demo_props, ARRAY_LEN(demo_props));
+
+
 }
 
-#if defined(PATCH_HYD_BUTTON_FACTORY_RESET) && defined(PATCH_HYD_EXTRA_FLASH_PARTITION)
-#define BUTTON_SHORT_PRESSED_PERIOD_MIN 200
+
+#define BUTTON_SHORT_PRESSED_PERIOD_MIN 80
 #define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
-#define BUTTON_LONG_PRESSED_PERIOD 5000
-static unsigned long button_pressed;
-static unsigned long button_released;
+#define BUTTON_LONG_PRESSED_PERIOD 3000
+
 static void demo_button_toggle(unsigned long pressed, unsigned long released)
 {
-    uint8_t state = 0xAA;
-	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX)) {
-		log_put(LOG_INFO "Button short pressed");
+	uint8_t state = 0xAA;
+	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX))
+	{
+		my_printf( "Button short pressed");
+	//	bool _switch = sg_light_ctrl_data.switch_status;	
+		
+		/************************>>单击开关灯<<********************************/
+		light_power_set(!power);
+		iotalink_light_ctrl_process();
 	}
-
-	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) {
+	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) 
+	{
+	
 		log_put(LOG_INFO "Button long pressed");
-        /* write flash partition */
+        // write flash partition
+        scm_partition_erase(FLASH_PARTITION_TMP, 0, 1024); 
         scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		/* Trigger factory reset */
 		ada_conf_reset(2);
 	}
 }
-#endif
+#define GPIO_BOOT_BUTTON  18
 
 void demo_idle(void)
 {
 	struct app_event event;
+    static unsigned long button_pressed;
+	static unsigned long button_released;
 
-#if 0
-    /* HYD Use its own prop sync mechanism */
-    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
-#endif
+//    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
+
 	prop_send_by_name("oem_host_version");
 	prop_send_by_name("version");
 
 	wise_task_wdt_add(NULL);
+	uint8_t gpio_level =0;
 
-	while (1) {
-#if defined(PATCH_HYD_BUTTON_FACTORY_RESET) && defined(PATCH_HYD_EXTRA_FLASH_PARTITION)
-        /* todo: Configure io and GPIO!! */
-        /* have no module test yet, using "Ayla reset factory" cmd test instead. */
-        /* Note: Cannot add led flashing in demo_idle, heap run out problems, do not why... */
-#if 0
-        if (gpio_get_level(GPIO_BOOT_BUTTON) == 0) {
-			if (button_pressed == 0) {
+	while (1) 
+	{
+
+        // todo: use you own gpio api!!
+
+		scm_gpio_read(GPIO_BOOT_BUTTON,&gpio_level);
+	
+        if (gpio_level == 0)
+		{
+			if (button_pressed == 0)
+			{
 				button_pressed = time_now();
-				log_put(LOG_DEBUG "Button pressed");
+				my_printf("Button pressed");
 			}
-		} else {
-			if (button_pressed) {
+		//	my_printf("gpio_level %d\n",gpio_level);
+		} 
+		else
+		{		
+			if (button_pressed) 
+			{
 				button_released = time_now();
 				log_put(LOG_DEBUG "Button released");
-				demo_button_toggle(button_pressed, button_released);
+				demo_button_toggle(button_pressed,
+				    button_released);
 				button_pressed = 0;
 				button_released = 0;
 			}
 		}
-#endif
-#endif
         BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
-        while (eventReceived == pdTRUE) {
+        while (eventReceived == pdTRUE)
+		{
             app_event_dispatch(&event);
             eventReceived = xQueueReceive(g_app_event_queue, &event, 0);
         }
