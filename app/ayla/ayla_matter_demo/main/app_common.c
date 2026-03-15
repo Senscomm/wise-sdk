@@ -20,6 +20,9 @@
 #include <ayla/log.h>
 #include <ada/libada.h>
 #include <adm/adm_cli.h>
+#include "host/ble_hs.h"
+
+#include <adm/adm.h>
 
 #include "app_common.h"
 #include "app_int.h"
@@ -398,3 +401,45 @@ void app_save_cmd(int argc, char **argv)
 	}
 	conf_cli(2, args);
 }
+
+
+#ifndef STOP_CLI_DEBUG
+static int ctrl_stop_ble_adv(int argc, char **argv)
+{
+	printf("BLE adv: %s\n", ble_gap_adv_active() ? "active" : "inactive");
+	if (argc == 2 && !strcmp(argv[1], "off")) {
+		printf("Stop BLE ADV!\n");
+		ble_gap_adv_stop();
+	} else if (argc == 2 && !strcmp(argv[1], "on")) {
+		printf("Open BLE ADV");
+		struct ble_gap_adv_params adv_params;
+		memset(&adv_params, 0, sizeof(adv_params));
+		adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
+		adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
+		ble_gap_adv_stop();
+		ble_gap_adv_start(BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
+	} else if (argc == 2 && !strcmp(argv[1], "reset")) {
+		printf("Trigger an Event!!\n");
+		adm_post_event_to_plat_for_test();
+	}
+    return 0;
+}
+
+ayla_cmd_def(bleadv) = {
+    .cmd = "bleadv",
+    .help = "dbg - ctrl ble adv manually, on or off",
+    .func = &ctrl_stop_ble_adv
+};
+
+static int show_dbg_version(int argc, char **argv)
+{
+	printf("[wade]: 260311-5-floor lamp!\n");
+	return 0;
+}
+
+ayla_cmd_def(dbgv) = {
+    .cmd = "dbgv",
+    .help = "dbgv - debug version",
+    .func = &show_dbg_version
+};
+#endif
