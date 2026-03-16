@@ -1207,7 +1207,11 @@ enum ada_err ada_sprop_send_to_by_name(const char *name, u8 dests)
  */
 enum ada_err ada_sprop_send_by_name(const char *name)
 {
+#ifdef AYLA_COMMON_SPROP_AUTOSYNC
 	return ada_sprop_send_to_by_name(name, NODES_ALL);
+#else
+	return AE_OK;
+#endif
 }
 
 enum ada_err ada_sprop_send_by_name_with_meta(const char *name,
@@ -1429,4 +1433,3 @@ int ada_batch_add_prop_by_name(struct batch_ctx *ctx, const char *name,
 	return ada_batch_add_prop(ctx, sprop, t_stamp);
 }
 #endif /* AYLA_BATCH_PROP_SUPPORT */
-

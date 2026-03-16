@@ -1566,8 +1566,10 @@ void demo_idle(void)
 
 //    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 
-	prop_send_by_name("oem_host_version");
-	prop_send_by_name("version");
+	// prop_send_by_name("oem_host_version");
+	// prop_send_by_name("version");
+    ada_sprop_send_to_by_name("oem_host_version", NODES_ALL);
+    ada_sprop_send_to_by_name("version", NODES_ALL);
 
 	wise_task_wdt_add(NULL);
 	uint8_t gpio_level =0;
