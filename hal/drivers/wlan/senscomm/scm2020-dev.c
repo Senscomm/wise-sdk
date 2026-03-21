@@ -1391,13 +1391,11 @@ CMD(txto_dbg, do_tx_timeout_dbg,
 void scm2020_tx_peridtimeout(void *arg)
 {
 	u8 i;
-	u32 flags;
 	u32 timenow, cp_timetxirq;
 	bool empty;
 	struct sc_softc *sc = (struct sc_softc *)arg;
 
 	timenow = ktime();
-	local_irq_save(flags);
 
 	for (i = 0; i < SC_NR_TXQ; i++) {
 		empty = ifq_empty(&(sc->txq[i].sched));
@@ -1417,7 +1415,6 @@ void scm2020_tx_peridtimeout(void *arg)
 			scm2020_tx_timeout(&sc->txq[i]);
 		}
 	}
-	local_irq_restore(flags);
 }
 #endif
 
