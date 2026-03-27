@@ -374,7 +374,6 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 		printf("WiFi Start Scan!!\n");
 		adb_wifi_cfg_scan_done_handler();
 		break;
-	// todo : add a event to indicate device is register to ayla cloud
 	default:
 		/*
 		 * Regarding to any unexpected event, it thinks that it is
@@ -386,6 +385,7 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 
 	if (conn_state != WIFI_STATE_NA) {
 		// error = adw_wifi_get_error();
+		/* Note: APP can not use conn_state 4 to judge to register, because we add some latency... */
 		adb_wifi_cfg_send_connect_status_msg(conn_state, 0/*error*/);
 	}
 }
@@ -398,13 +398,17 @@ static void adb_wifi_cfg_client_event_handler(void *arg, enum ada_err err)
 
 	if (err) {
 		client_up = 0;
+		/* Ayla matter do not use adw module */
 		// error = adw_wifi_get_error();
-		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP, WIFI_ERR_NONE/*error*/);
+		/* Choose a normal wifi err to notify HYD APP that sth wrong! */
+		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP, WIFI_ERR_NOT_FOUND/*error*/);
 		return;
 	}
 
 	if (!client_up) {
 		client_up = 1;
+		/* Note: HYD APP need use conn_state - 5 to initiate register. */
+		printf("[HYD]the app can register device now!!\n");
 		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP,WIFI_ERR_NONE);
 	}
 }
@@ -552,6 +556,7 @@ static enum adb_att_err adb_wifi_cfg_connect_status_read_cb(u16 conn,
 	if (ssid_len < 0) {
 		ssid_len = 0;
 	}
+	/* Note: It is fortunate that HYD APP dose not actively read but wait for us to notify. */
 	adb_wifi_cfg_encode_connect_status_msg(ssid, ssid_len, conn_state, 0/*error*/, &connect_status_msg);
 
 	if (*length > sizeof(connect_status_msg)) {
@@ -578,6 +583,7 @@ int adb_wifi_cfg_svc_register(const struct adb_attr **service)
 	connect_status_chr = al_bt_find_attr_by_uuid(wifi_cfg_svc_table,&wifi_connect_status_uuid);
 
 	// adw_wifi_event_register(adb_wifi_cfg_wifi_event_handler, NULL);
+	/* Note: Use ADM cb instead of adw, adw dose not support matter now. */
 	adm_event_cb_register(adb_wifi_cfg_wifi_event_handler);
 	ada_client_event_register(adb_wifi_cfg_client_event_handler, NULL);
 

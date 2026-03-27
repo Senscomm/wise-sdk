@@ -6,6 +6,7 @@
  * with Ayla Networks, Inc., a copy of which can be obtained from
  * Ayla Networks, Inc.
  */
+#include <stdbool.h>
 #include <stddef.h>
 #include <string.h>
 
@@ -15,6 +16,7 @@
 #include <adb/adb.h>
 #include <al/al_bt.h>
 #include <adb/adb_conn_svc.h>
+
 
 #ifdef AYLA_BLUETOOTH_SUPPORT
 
@@ -40,11 +42,29 @@ static struct adb_service_info conn_svc = {
 static const struct adb_attr conn_svc_table[] = {
 	ADB_SERVICE("conn_svc", &conn_svc_uuid, &conn_svc),
 	ADB_CHR("setup_token", &setup_token_uuid,
-	    AL_BT_AF_WRITE | AL_BT_AF_WRITE_ENC,
+	    AL_BT_AF_WRITE /*| AL_BT_AF_WRITE_ENC*/,
 	    NULL, adb_conn_svc_setup_token_write_cb, &setup_token),
 	ADB_SERVICE_END()
 };
 
+#define HYD_AVOID_AYLA_MULTI_REGISTER	1
+#if HYD_AVOID_AYLA_MULTI_REGISTER
+char first_setup_token[CLIENT_SETUP_TOK_LEN];
+struct ada_conf_item token_item = {
+	.name = "prop/sim", 
+	.type = ATLV_UTF8, 
+	.val = &(first_setup_token),
+	.len = sizeof(first_setup_token)
+};
+
+static void setup_token_conf_save(void *arg)
+{
+	conf_delete(CT_sim);
+	conf_put_s32(CT_sim, *(s32 *)(token_item.val));
+	conf_put_str(CT_sim, (char *)(token_item.val));
+    conf_cd_parent();
+}
+#endif
 static enum adb_att_err adb_conn_svc_setup_token_write_cb(u16 conn,
     const struct adb_attr *attr, u8 *buf, u16 length)
 {
@@ -56,7 +76,24 @@ static enum adb_att_err adb_conn_svc_setup_token_write_cb(u16 conn,
 
 	memcpy(setup_token, buf, length);
 	setup_token[length] = '\0';
-
+#if HYD_AVOID_AYLA_MULTI_REGISTER
+	{
+		bool exist = ada_conf_get_item(&token_item) > 0 ? true : false;
+		if (!exist) {
+			printf("Input setup_token: %s, len:%d\n", buf, length);
+			memcpy(first_setup_token, buf, length);
+			first_setup_token[length] = '\0';
+			conf_persist(CT_prop, setup_token_conf_save, NULL);
+		} else {
+			printf("Setup_token: cur - %s, recv - %s\n", first_setup_token, setup_token);
+			if (strcmp(first_setup_token, setup_token) != 0) {
+				printf("Setup token is not same, use a trash vaule to register!\n");
+				strcpy(setup_token, "Trash");
+			}
+		}
+		printf("Register setup_token:%s\n", setup_token);
+	}
+#endif
 	client_set_setup_token(setup_token);
 
 	return ADB_ATT_SUCCESS;
