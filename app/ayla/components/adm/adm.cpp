@@ -1036,8 +1036,6 @@ public:
 		    __func__, fabricTable.FabricCount(), fabricIndex);
 		if (fabricTable.FabricCount() == 0) {
 			adm_event_callback(ADM_EVENT_ALL_FABRIC_REMOVED);
-			/* Note: For Iphone Alex APP Conner Case - Reboot Device. */
-			ada_conf_reset(0);
 		}
 	}
 };

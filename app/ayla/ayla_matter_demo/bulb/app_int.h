@@ -16,7 +16,7 @@
 
 #define DEMO_OEM_ID	            "ec85a8df" /* may be set to your Ayla OEM ID */
 #define DEMO_OEM_MODEL	        "floor-lamp-dev" /* may be set to your OEM model name */
-#define DEMO_TEMPLATE_VERSION   "floor_lamp 1.0.3" /* demo template version */
+#define DEMO_TEMPLATE_VERSION   "floor_lamp 1.0.4" /* demo template version */
 
 
 #define DEMO_FACTORY_NAME       "FLO"

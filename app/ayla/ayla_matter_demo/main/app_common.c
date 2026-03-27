@@ -433,7 +433,8 @@ ayla_cmd_def(bleadv) = {
 
 static int show_dbg_version(int argc, char **argv)
 {
-	printf("[wade]: 260311-5-floor lamp!\n");
+	/* Distinguish between dbg versions */
+	printf("[HYD][f-l1.0.4][260327]:An Integrate Version!\n");
 	return 0;
 }
 

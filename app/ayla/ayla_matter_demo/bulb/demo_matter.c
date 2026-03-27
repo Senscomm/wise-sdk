@@ -167,7 +167,13 @@ static XyColor_t xy;
 
 static bool onboarding;
 
-
+#define	msecs_to_ticks(ms)      (((ms)*1000)/osKernelGetTickFreq())
+/* ayla cloud connect timer */
+#define AC_DELAY_TIMER_MSECS    (10 * 1000)
+static osTimerId_t ac_conn_timer;
+/* matter all farbrics remove timer, reboot after 4 secs. */
+#define MF_REMOVE_DELAY_TIMER_MSECS    (4 * 1000)
+static osTimerId_t mf_remove_timer;
 
 /*****************************《 Template 》**************************************/
 #include "iotalink_control.h"
@@ -898,10 +904,18 @@ static struct ada_sprop demo_props[] = {
 	{ "Music", ATLV_INT, &music, sizeof(music),ada_sprop_get_int, wlt_attributes_set },
 	
 	{ "Sensitivity", ATLV_INT, &sensitivity, sizeof(sensitivity),ada_sprop_get_int, wlt_attributes_set },
-
-
-
 };
+
+static void prop_send_by_name(const char *name)
+{
+	enum ada_err err;
+
+	err = ada_sprop_send_by_name(name);
+	if (err) {
+		log_put(LOG_ERR "demo: %s: send of %s: err %d",
+				__func__, name, err);
+	}
+}
 
 void demo_send_prop(const char *name)
 {
@@ -921,17 +935,6 @@ void demo_send_prop(const char *name)
 #else
 	prop_send_by_name(name);
 #endif
-}
-
-void prop_send_by_name(const char *name)
-{
-	enum ada_err err;
-
-	err = ada_sprop_send_by_name(name);
-	if (err) {
-		log_put(LOG_ERR "demo: %s: send of %s: err %d",
-				__func__, name, err);
-	}
 }
 
 static void demo_lc_completed(bool timeout)
@@ -977,7 +980,7 @@ static void demo_lc_do_sync(u32 timeout)
         log_put(LOG_WARN "%s: send brightness: err %d",
             __func__, err);
     } else {
-        log_put(LOG_DEBUG "%s: send brightness  %d OK", __func__,
+        log_put(LOG_DEBUG "%s: send brightness  %ld OK", __func__,
                 brightness);
     }
     err = ada_sprop_send_by_name("color_bright");
@@ -1055,8 +1058,14 @@ static void demo_matter_event_cb(enum adm_event_id id)
 
 	switch (id) {
 	case ADM_EVENT_IPV4_UP:
-		ada_client_ip_up();
-		ada_client_health_check_en();
+        if (ac_conn_timer) {
+            log_put(LOG_INFO "IPV4 up, notify ADA after %d s!", AC_DELAY_TIMER_MSECS/1000);
+            osTimerStart(ac_conn_timer, msecs_to_ticks(AC_DELAY_TIMER_MSECS));
+        } else {
+            log_put(LOG_INFO "IPV4 up, notify ADA at once!");
+            ada_client_ip_up();
+            ada_client_health_check_en();
+        }
 		break;
 
 	case ADM_EVENT_IPV4_DOWN:
@@ -1064,9 +1073,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
-
 #if 1//定制
-				
 		scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		printf("=========================> state: 0x%02x\n", state);
 		if (state == 0xAA) 
@@ -1076,7 +1083,6 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		else break;
 #endif
     {
-
         int i;
         struct app_event evt[] = {
             {
@@ -1143,9 +1149,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	case ADM_EVENT_COMMISSIONING_WINDOW_CLOSED:
         break;
 #if 1
-
 	case ADM_EVENT_COMMISSIONING_COMPLETE:
-
 	{
         int i;
         struct app_event evt[] = {
@@ -1187,8 +1191,21 @@ static void demo_matter_event_cb(enum adm_event_id id)
         onboarding = false;
         break;
     }
-
 #endif
+    case ADM_EVENT_ALL_FABRIC_REMOVED:
+    {
+        /*
+        * Note: For Iphone Alexa APP Conner Case - Reboot Device.
+        * Google Home & Apple Home can use WLAN ways to add device again, but Alexa can not.
+        * Reboot after 3-5 secs, because matter 'remove' device need some time to delete 
+        * old farbric stored files.
+        */
+        if (mf_remove_timer) {
+            log_put(LOG_INFO "All matter farbrics are removed, reboot after %d s!", MF_REMOVE_DELAY_TIMER_MSECS/1000);
+            osTimerStart(mf_remove_timer, msecs_to_ticks(MF_REMOVE_DELAY_TIMER_MSECS));
+        }
+        break;
+    }
 	default:
 		break;
 	}
@@ -1359,6 +1376,10 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
                 __func__, err);
         }
 
+        /* Workround: We get hsv.v wrong value rarely. */
+        if (hsv.v < 2) {
+            hsv.v = (u8)demo_convert_range((brightness > 5 ? brightness: 5), 0, 100, 0, 254);
+        }
         rgb = HsvToRgb(hsv);
         val = (0 << 24 | rgb.r << 16 | rgb.g << 8 | rgb.b);
 
@@ -1472,6 +1493,23 @@ static int demo_run_ftm(void)
     return 1;
 }
 
+static void ac_timer_handle(void *arg)
+{
+#if 0
+    /* Use ADA Client Task to handle cb */
+    client_callback_pend(&ac_conn_cb);
+#else
+    ada_client_ip_up();
+    ada_client_health_check_en();
+#endif
+}
+
+static void mf_remove_handle(void *arg)
+{
+    /* Only reboot */
+    ada_conf_reset(0);
+}
+
 void demo_init(void)
 {
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
@@ -1522,10 +1560,18 @@ void demo_init(void)
 	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
 
-	ada_sprop_mgr_register("demo_matter",
-	demo_props, ARRAY_LEN(demo_props));
+	ada_sprop_mgr_register("demo_matter", demo_props, ARRAY_LEN(demo_props));
 
+#if 1
+    if (!ac_conn_timer) {
+        ac_conn_timer = osTimerNew(ac_timer_handle, osTimerOnce, NULL, NULL);
+        // callback_init(&ac_conn_cb, ayla_client_ip_up_cb, NULL);
+    }
 
+    if (!mf_remove_timer) {
+        mf_remove_timer = osTimerNew(mf_remove_handle, osTimerOnce, NULL, NULL);
+    }
+#endif
 }
 
 
@@ -1550,7 +1596,7 @@ static void demo_button_toggle(unsigned long pressed, unsigned long released)
 	
 		log_put(LOG_INFO "Button long pressed");
         // write flash partition
-        scm_partition_erase(FLASH_PARTITION_TMP, 0, 1024); 
+        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
         scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		/* Trigger factory reset */
 		ada_conf_reset(2);
