@@ -302,4 +302,5 @@ int al_bt_tx_power_get(int *tx_power);
 int al_bt_scan_start(void);
 int al_bt_scan_cancel(void);
 int al_bt_process_gap_event(void *input);
+void al_bt_scan_special_event_handle(void);
 #endif

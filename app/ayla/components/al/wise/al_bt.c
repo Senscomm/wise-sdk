@@ -826,21 +826,39 @@ int al_bt_process_gap_event(void *input)
 		flag =1;
 	}
 
-	// printf("[AL-BT]Process BLE GAP Event:%d!\n", event->type);
+	if (event->type != BLE_GAP_EVENT_NOTIFY_TX) {
+		printf("[BT]Process BLE GAP Event:%d!\n", event->type);
+	}
 
 	switch (event->type) {
 	case BLE_GAP_EVENT_CONNECT:
 		if (event->connect.status == 0) {
 			al_bt_connections++;
 			rc = al_bt_connection_add(event->connect.conn_handle);
+			rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
 
-		rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
-			al_bt_print_conn_desc(&desc);
+			char addr_str1[20], addr_str2[20];
+			adb_snprint_addr(desc.our_id_addr.val, addr_str1,sizeof(addr_str1));
+			adb_snprint_addr(desc.peer_id_addr.val, addr_str2,sizeof(addr_str2));
+			printf("our_id:%s, peer_id:%s, conn itvl:%d latency:%d timeout:%d enc:%d auth:%d bond:%d\n",
+				addr_str1, addr_str2, desc.conn_itvl, desc.conn_latency, desc.supervision_timeout,
+				desc.sec_state.encrypted, desc.sec_state.authenticated, desc.sec_state.bonded);
+#if TMP_DEBUG
+			// struct ble_gap_upd_params params = {
+			// 	.itvl_min = 20, // 25ms
+			// 	.itvl_max = 40, // 50ms
+			// 	.latency = 0,
+			// 	.supervision_timeout = 500,  // 5秒
+			// };
+			// rc = ble_gap_update_params(event->connect.conn_handle, &params);
+			// printf("Slave update conn params, rc:%d!!!\n", rc);
+#endif
+			al_bt_scan_special_event_handle();
 		}
 		break;
 
 	case BLE_GAP_EVENT_DISCONNECT:
-		// printf("disconnect reason %d\n",event->disconnect.reason);
+		printf("disconnect reason %d\n",event->disconnect.reason);
 		rc = al_bt_connection_delete(event->disconnect.conn.conn_handle);
 		al_bt_connections--;
 		if (event->disconnect.reason == BLE_HS_ETIMEOUT_HCI) {
@@ -850,11 +868,10 @@ int al_bt_process_gap_event(void *input)
 		break;
 
 	case BLE_GAP_EVENT_SUBSCRIBE:
-		printf(
-			"subscribe event conn_handle %d attr_handle %d "
-			"reason %d prevn %d curn %d previ %d curi %d",
-			event->subscribe.conn_handle, event->subscribe.attr_handle, event->subscribe.reason,
-			event->subscribe.prev_notify, event->subscribe.cur_notify, event->subscribe.prev_indicate, event->subscribe.cur_indicate);
+		printf("subscribe conn %d attr %d reason %d prevn %d curn %d previ %d curi %d\n",
+			event->subscribe.conn_handle, event->subscribe.attr_handle, 
+			event->subscribe.reason, event->subscribe.prev_notify, event->subscribe.cur_notify, 
+			event->subscribe.prev_indicate, event->subscribe.cur_indicate);
 
 		mask = al_bt_connection_mask(event->subscribe.conn_handle);
 
@@ -2485,5 +2502,87 @@ int al_bt_scan_cancel(void)
     printf("!!!Stop bt scan!\n");
     return rc;
 }
+
+static osTimerId_t al_bt_scan_timer = NULL;
+#define AL_BT_SCAN_TIMEOUT_MS (60 * 1000)
+u32 al_bt_scan_timeout_ms = (60 * 1000);
+
+static void al_bt_scan_timer_cb(void *arg)
+{
+	al_bt_scan_start();
+}
+
+void al_bt_scan_special_event_handle(void)
+{
+	static osMutexId_t scan_mutex = NULL;
+	if (!scan_mutex) {
+        scan_mutex = osMutexNew(NULL);
+    }
+
+	osMutexAcquire(scan_mutex, osWaitForever);
+
+	if (!al_bt_scan_timer) {
+		al_bt_scan_timer = osTimerNew(al_bt_scan_timer_cb, osTimerOnce, NULL, NULL);
+		// ASSERT(al_bt_scan_timer);
+	}
+
+	if (al_bt_scan_timer) {
+		al_bt_scan_cancel();
+		osTimerStop(al_bt_scan_timer);
+
+		u8 retry_cnt = 0;
+		while (retry_cnt < 3) {
+			if (osTimerStart(al_bt_scan_timer, MS_TO_TICKS(al_bt_scan_timeout_ms/*AL_BT_SCAN_TIMEOUT_MS*/)) != osErrorResource) {
+				break;
+			}
+			retry_cnt++;
+			osDelay(10);
+		}
+	}
+
+	osMutexRelease(scan_mutex);
+}
+
+/* For self debug */
+#if 1
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <cli.h>
+
+static int do_ble_scan_ctrl(int argc, char *argv[])
+{
+    const char *format;
+	int itvl;
+
+	if (argc != 3) {
+		return CMD_RET_USAGE;
+	}
+
+    format = argv[1];
+	itvl = atoi(argv[2]);
+
+    if (!strcmp(format, "itvl")) {
+        al_bt_scan_timeout_ms = (itvl > 5) ? (5 * 1000) : (itvl * 1000);
+        printf("Set intlv %lu ms\n", al_bt_scan_timeout_ms);
+    } else if (!strcmp(format, "stop")) {
+        printf("todo\n");
+    } else if (!strcmp(format, "start")) {
+        printf("todo\n");
+    } else {
+        return CMD_RET_USAGE;
+    }
+
+	return CMD_RET_SUCCESS;
+}
+
+CMD(blescan, do_ble_scan_ctrl,
+		"Change ble scan interval",
+		"blescan <itvl|stop|start> <v > 5s>"
+	);
+
+#endif
 
 #endif /* AYLA_BLUETOOTH_SUPPORT */
