@@ -155,9 +155,15 @@ extern char __heap_start[], __heap_end[];
 #ifdef CONFIG_N22_ONLY
 extern char __heapext1_start[], __heapext1_end[];
 extern char __heapext2_start[], __heapext2_end[];
+extern char __heapext3_start[], __heapext3_end[];
 #endif
 
-tMemoryRegion ram[5];
+#ifdef CONFIG_N22_ONLY
+#define RAM_BLOCKS_COUNT 6
+#else
+#define RAM_BLOCKS_COUNT 3
+#endif
+tMemoryRegion ram[RAM_BLOCKS_COUNT];
 
 #endif
 
@@ -1331,6 +1337,8 @@ const HeapRegion_t *pxHeapRegion;
     ram[3].size = ( __heapext1_end - __heapext1_start );
     ram[4].vma = __heapext2_start;
     ram[4].size = ( __heapext2_end - __heapext2_start );
+    ram[5].vma = __heapext3_start;
+    ram[5].size = ( __heapext3_end - __heapext3_start );
 #endif
 
 #endif
@@ -1565,8 +1573,8 @@ void OPTIMIZE_FAST vPortMemoryScan( void )
 	char xFuncName[CONFIG_MEM_HEAP_DEBUG_FUNCNAMELEN];
 #endif
 #ifdef CONFIG_MEM_HEAP_SEARCH_REF
-    uint8_t ucFound; /* 0 : not found, 1 : in stack, 2 : data, 3 : bss, 4-6 : heap  */
-    const char *location[] = { "nowhere", "stack", "data", "bss", "heap", "heapext1", "heapext2" };
+    uint8_t ucFound; /* 0 : not found, 1 : in stack, 2 : data, 3 : bss, 4-7 : heap  */
+    const char *location[] = { "nowhere", "stack", "data", "bss", "heap", "heapext1", "heapext2", "heapext3" };
 	uint32_t *pulAddr, *pulEnd;
 #endif
 	bool alive = true;
@@ -1617,7 +1625,7 @@ void OPTIMIZE_FAST vPortMemoryScan( void )
 			else
             {
                 /* Scan defined memory regions if we still don't have reference. */
-                for (int i = 0; i < 5; i++) {
+                for (int i = 0; i < RAM_BLOCKS_COUNT; i++) {
                     /* Calculate start address. */
                     pulAddr = ( uint32_t * ) ram[i].vma;
                     /* Calculate end address. */

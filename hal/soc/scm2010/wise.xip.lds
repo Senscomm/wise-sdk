@@ -13,7 +13,10 @@
 #else
     _buffer_deduction = 4K;
 #endif
-
+#ifdef CONFIG_N22_ONLY
+_buffer_size_unaligned = CONFIG_FREEBSD_MBUF_CHUNK_SIZE*CONFIG_MEMP_NUM_MBUF_CHUNK + CONFIG_FREEBSD_MBUF_CACHE_SIZE*CONFIG_MEMP_NUM_MBUF_CACHE;
+_buffer_size          = ALIGN(_buffer_size_unaligned, 32);
+#endif
 MEMORY
 {
 #ifdef CONFIG_SUPPORT_GCOV
@@ -25,7 +28,9 @@ MEMORY
     DLMROM (rw)   : ORIGIN = 0x00200000, LENGTH = 43K
     DLM (rw)      : ORIGIN = 0x0020AC00, LENGTH = 192K - 43K
 #ifdef CONFIG_N22_ONLY
-    BUFFER (rw)   : ORIGIN = 0x40000000, LENGTH = 104K - _buffer_deduction
+    BUFFER (rw)   : ORIGIN = 0x40000000, LENGTH = _buffer_size
+    /* FIXME: reserved a magic 1KB for unexpected buffer alignment needed */
+    EXTRAM3(rw)	  : ORIGIN = 0x40000000 + _buffer_size + 1K, LENGTH = 104K - _buffer_deduction - _buffer_size - 1K
 #else
     SHM1 (rw)     : ORIGIN = 0x40000000, LENGTH = 20K
     SHM2 (rw)     : ORIGIN = 0x40005000, LENGTH = 20K
@@ -372,6 +377,7 @@ SECTIONS
 
 #endif
 
+
 #ifndef CONFIG_N22_ONLY
 
     .shm1 (NOLOAD) : {
@@ -402,6 +408,17 @@ SECTIONS
         *(.sdio_dma_desc)
 #endif
     } > BUFFER
+
+#ifdef CONFIG_N22_ONLY
+    .heap_ext3 (NOLOAD) : ALIGN(16)
+    {
+#ifdef CONFIG_HEAP_AUTO_SIZE
+        . = ORIGIN(EXTRAM3) + LENGTH(EXTRAM3);
+#else
+        *(.heap_ext3)
+#endif
+    } > EXTRAM3
+#endif
 
 #ifdef CONFIG_PM_MULTI_CORE
     .pmsigram (NOLOAD) : ALIGN(4)
@@ -455,6 +472,7 @@ SECTIONS
     EXPORT_SECTION_INFO(kernel,  .kernel);
     EXPORT_SECTION_INFO(heapext1,.heap_ext1);
     EXPORT_SECTION_INFO(heapext2,.heap_ext2);
+    EXPORT_SECTION_INFO(heapext3,.heap_ext3);
 #else
     EXPORT_SECTION_INFO(shm1,    .shm1);
     EXPORT_SECTION_INFO(shm2,    .shm2);

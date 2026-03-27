@@ -57,15 +57,16 @@ void heap_init(void)
 
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
 static HeapRegion_t xHeapRegions[2];
-static HeapRegion_t xHeapRegionsDMA[3];
+static HeapRegion_t xHeapRegionsDMA[4];
 #else
-static HeapRegion_t xHeapRegions[4];
+static HeapRegion_t xHeapRegions[5];
 #endif
 size_t heap_total_size = 0;
 
 DECLARE_SECTION_INFO(heap);
 DECLARE_SECTION_INFO(heapext1);
 DECLARE_SECTION_INFO(heapext2);
+DECLARE_SECTION_INFO(heapext3);
 
 #else
 
@@ -73,6 +74,7 @@ u8 ucHeap[ CONFIG_HEAP1_SIZE ] __section(".heap");
 #ifdef CONFIG_N22_ONLY
 u8 ucHeapx1[ CONFIG_HEAP2_SIZE ] __section(".heap_ext1");
 u8 ucHeapx2[ CONFIG_HEAP3_SIZE ] __section(".heap_ext2");
+u8 ucHeapx3[ CONFIG_HEAP4_SIZE ] __section(".heap_ext3");
 #endif
 
 #ifdef CONFIG_SUPPORT_DMA_DYNAMIC_ALLOC
@@ -81,11 +83,15 @@ static HeapRegion_t xHeapRegions[] = {
   { ucHeap, CONFIG_HEAP1_SIZE },
   { NULL,   0                     }
 };
+// Since heap-5 requires increasing addr seq. in the setup routine: vPortDefineHeapRegions()
+// Need to re-order heap to support EXT3 (SRAM)
 
 static HeapRegion_t xHeapRegionsDMA[] = {
 #ifdef CONFIG_N22_ONLY
+  { ucHeapx3, CONFIG_HEAP4_SIZE },
   { ucHeapx1, CONFIG_HEAP2_SIZE },
   { ucHeapx2, CONFIG_HEAP3_SIZE },
+  { ucHeapx3, CONFIG_HEAP4_SIZE },
 #endif
   { NULL,   0                     }
 };
@@ -95,8 +101,10 @@ static HeapRegion_t xHeapRegionsDMA[] = {
 static HeapRegion_t xHeapRegions[] = {
   { ucHeap, CONFIG_HEAP1_SIZE },
 #ifdef CONFIG_N22_ONLY
+  { ucHeapx3, CONFIG_HEAP4_SIZE },
   { ucHeapx1, CONFIG_HEAP2_SIZE },
   { ucHeapx2, CONFIG_HEAP3_SIZE },
+  { ucHeapx3, CONFIG_HEAP4_SIZE },
 #endif
   { NULL,   0                     }
 };
@@ -113,20 +121,31 @@ void heap_init(void)
 
 	xHeapRegions[0].start = (unsigned char *)__heap_start;
 	xHeapRegions[0].size = __heap_end - __heap_start;
+	xHeapRegions[1].start = NULL;
+	xHeapRegions[1].size = 0;
+
 #ifdef CONFIG_N22_ONLY
-	xHeapRegionsDMA[0].start = (unsigned char *)__heapext1_start;
-	xHeapRegionsDMA[0].size = __heapext1_end - __heapext1_start;
-	xHeapRegionsDMA[1].start = (unsigned char *)__heapext2_start;
-	xHeapRegionsDMA[1].size = __heapext2_end - __heapext2_start;
+	xHeapRegionsDMA[0].start = (unsigned char *)__heapext3_start;
+	xHeapRegionsDMA[0].size = __heapext3_end - __heapext3_start;
+	xHeapRegionsDMA[1].start = (unsigned char *)__heapext1_start;
+	xHeapRegionsDMA[1].size = __heapext1_end - __heapext1_start;
+	xHeapRegionsDMA[2].start = (unsigned char *)__heapext2_start;
+	xHeapRegionsDMA[2].size = __heapext2_end - __heapext2_start;
+	xHeapRegionsDMA[3].start = NULL;
+	xHeapRegionsDMA[3].size = 0;
 #endif
 #else
 	xHeapRegions[0].start = (unsigned char *)__heap_start;
 	xHeapRegions[0].size = __heap_end - __heap_start;
 #ifdef CONFIG_N22_ONLY
-	xHeapRegions[1].start = (unsigned char *)__heapext1_start;
-	xHeapRegions[1].size = __heapext1_end - __heapext1_start;
-	xHeapRegions[2].start = (unsigned char *)__heapext2_start;
-	xHeapRegions[2].size = __heapext2_end - __heapext2_start;
+	xHeapRegions[1].start = (unsigned char *)__heapext3_start;
+	xHeapRegions[1].size = __heapext3_end - __heapext3_start;
+	xHeapRegions[2].start = (unsigned char *)__heapext1_start;
+	xHeapRegions[2].size = __heapext1_end - __heapext1_start;
+	xHeapRegions[3].start = (unsigned char *)__heapext2_start;
+	xHeapRegions[3].size = __heapext2_end - __heapext2_start;
+	xHeapRegions[4].start = NULL;
+	xHeapRegions[4].size = 0;
 #endif
 
 #endif
@@ -156,6 +175,7 @@ void heap_init(void)
 		vPortDefineHeapRegionsDMA (xHeapRegionsDMA);
 	}
 #endif
+
 }
 
 #endif
