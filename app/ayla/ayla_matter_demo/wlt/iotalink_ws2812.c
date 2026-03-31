@@ -489,13 +489,12 @@ void  Array_Color_Move_Back (u8 x ,u8 y,u8 * array)
 	      sb_bk[led] = 0;
 	  }
  }
-//跳变RGG 数据输出 
  void iotalink_write_rgb_bk_buffer(void )
  {
 	u8 i=0;
 	 for (i = 0; i<RGB_LED_NUM ; i++)
 	 {			
-		 rgb_colorful_buffer_set(i ,sr[i], sg[i], sb[i]); //写入当前点rgb	  
+		 rgb_colorful_buffer_set(i ,sr_bk[i], sg_bk[i], sb_bk[i]); //写入当前点rgb	    
 	 }	
 	 rgb_value_sync(); //输出数据	
  }
@@ -518,11 +517,24 @@ void  iotalink_hsv_breath(void)
    
 		for (i = 0; i<RGB_LED_NUM ; i++)   
 		{
-			if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+			if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 			{
-				magicunit_bak = sg_light_ctrl_data.magicunit; 
-				 return ;
+				if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+					 return ;
+				}
 			}
+			else if(sg_light_ctrl_data.mode == SCENE_MODE)
+			{
+				if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.magicunit; 
+					return ;
+				}
+			}
+			else return;
+
 			hsv_to_rgb(&r, &g, &b, sh[i], ss[i], sv_temp);		
 			rgb_colorful_buffer_set(i , r,	g, b ); 		
 		}
@@ -536,10 +548,21 @@ void  iotalink_hsv_breath(void)
    {
 		for (i = 0; i<RGB_LED_NUM ; i++)   
 		{
-			if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+			if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 			{
-				magicunit_bak = sg_light_ctrl_data.magicunit; 
-				 return ;
+				if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+					 return ;
+				}
+			}
+			else if(sg_light_ctrl_data.mode == SCENE_MODE)
+			{
+				if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.magicunit; 
+					return ;
+				}
 			}
 			hsv_to_rgb(&r, &g, &b, sh[i], ss[i], sv_temp);		
 			rgb_colorful_buffer_set(i , r,	g, b ); 			
@@ -566,11 +589,24 @@ static void iotalink_rgb_relax(void)
    {		   
 			for (k=0;k<RGB_LED_NUM;k++)
 			{
-				if (magicunit_bak != sg_light_ctrl_data.magicunit)
+				if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 				{
-					magicunit_bak = sg_light_ctrl_data.magicunit; 
-					 return ;
+					if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+					{
+						 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+						 return ;
+					}
 				}
+				else if(sg_light_ctrl_data.mode == SCENE_MODE)
+				{
+					if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+					{
+						 magicunit_bak = sg_light_ctrl_data.magicunit; 
+						return ;
+					}
+				}
+			   else return;
+
 
 			   //实时rgb 差值
 				diff_red   = sr[k] - sr_bk[k];
@@ -623,7 +659,7 @@ static void iotalink_rgb_relax(void)
 			   iotalink_write_rgb_bk_buffer();
 				break;//关灯不及时问题
 			}
-		   wlt_ms_delay(magic_rate*0.4+8);
+		   wlt_ms_delay(magic_rate+50);
 		   iotalink_write_rgb_bk_buffer();					
    }while((diff_green != 0)||(diff_red != 0)||(diff_blue!= 0));
 }
@@ -639,11 +675,24 @@ static void iotalink_rgb_relax(void)
 	   static u8 magicunit_bak = 0;
 	   for (i=1;i<step;i++)
 	   {
-			if (magicunit_bak != sg_light_ctrl_data.magicunit)
+			if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 			{
-			    magicunit_bak = sg_light_ctrl_data.magicunit; 
-				return ;
-		    }
+				if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+					return ;
+				}
+			}
+			else if(sg_light_ctrl_data.mode == SCENE_MODE)
+			{
+				if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.magicunit; 
+					return ;
+				}
+			}
+			else return;
+
 			for (k=0;k<RGB_LED_NUM;k++)
 			{
 				   //实际rgb差值
@@ -667,7 +716,7 @@ static void iotalink_rgb_relax(void)
 							return ;
 					}  
 			}//magic_rate/10+20
-			wlt_ms_delay(20/(102-magic_rate)+10);
+			wlt_ms_delay(magic_rate*0.2+10);
 			rgb_value_sync(); //输出数据
 			
 	   }   
@@ -688,11 +737,22 @@ static void iotalink_rgb_relax(void)
 	   static u8 magicunit_bak = 0;
 	   for (i=1;i<step;i++)
 	   {
-			if (magicunit_bak != sg_light_ctrl_data.custome_unit)
+			if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 			{
-			    magicunit_bak = sg_light_ctrl_data.custome_unit; 
-				return ;
-		    }
+				if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+					 return ;
+				}
+			}
+			else if(sg_light_ctrl_data.mode == SCENE_MODE)
+			{
+				if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.magicunit; 
+					return ;
+				}
+			}
 			for (k=0;k<RGB_LED_NUM;k++)
 			{
 				   //实际rgb差值
@@ -1258,12 +1318,23 @@ void  iotalink_magic_scene_relax(int segment ,int    local_change_mode)
 	
 	   for (j= 0; j<num ; j++)//分5区，40/2/5 == 每组4个
 	   {
-
-		    if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+			if(sg_light_ctrl_data.mode == CUSTOME_MODE)
 			{
-			  	 magicunit_bak = sg_light_ctrl_data.magicunit; 
-				return ;
-		    }
+				if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+					 return ;
+				}
+			}
+			else if(sg_light_ctrl_data.mode == SCENE_MODE)
+			{
+				if (magicunit_bak != sg_light_ctrl_data.magicunit||LOCAL_MAGIC_MODE==0)
+				{
+					 magicunit_bak = sg_light_ctrl_data.magicunit; 
+					return ;
+				}
+			}
+	
 		   switch(local_change_mode)
 		   {
 			   case MAGIC_SCENE_RELAX://协同颜色亮度渐变	   
@@ -1298,8 +1369,7 @@ void  iotalink_magic_scene_relax(int segment ,int    local_change_mode)
 				   
 				   break;
 			   case MAGIC_SCENE_TWINKLE://闪烁(跳变中间加灭灯)
-				   //iotalink_write_rgb_buffer();
-				  // iotalink_write_hsv_buffer();
+				   iotalink_write_hsv_buffer();
 				   wlt_ms_delay(magic_rate*18);
 				   singleColor(0, 0, 0);
 				   rgb_value_sync();
@@ -2342,7 +2412,7 @@ void haoyida_curtain_effect( int mode)
 
 }
 //77-82 追光
-void hoayida_Following_light( int mode)
+void haoyida_Following_light( int mode)
 {
 
 	mode_k++;
@@ -2368,7 +2438,7 @@ void hoayida_Following_light( int mode)
 
 }
 // 83-88 飘动
-void hoayida_83_88_effect( int mode)
+void haoyida_83_88_effect( int mode)
 {
 	
 
@@ -2391,7 +2461,7 @@ void hoayida_83_88_effect( int mode)
 
 }
 // 89-112 跑动
-void hoayida_89_112_effect( int mode)
+void haoyida_89_112_effect( int mode)
 {
 	
 	mode_k++;
@@ -2457,7 +2527,7 @@ void hoayida_89_112_effect( int mode)
 	}
 }
 // 113_142 带底色跑动
-void hoayida_113_142_effect( int mode)
+void haoyida_113_142_effect( int mode)
 {
 	mode_k++;
 	if(mode_k>RGB_LED_NUM/2)//
@@ -2518,21 +2588,314 @@ void hoayida_113_142_effect( int mode)
 	}	
 
 }
-// 流动
-void hoayida_143_167_effect( int mode)
+// YXXY流动
+void haoyida_143_166_effect( int mode)
 {
+	if(mode%2)		 
+	{
+
+		Move_Back();
+	}
+	else 
+		Move_Pre();
+
+
+	rgb_value_sync(); 
+	wlt_ms_delay(magic_rate+100);
+
+
+}
+//  
+void haoyida_167_180_effect( int mode)
+{
+	if(mode%2)		 
+	{
+		Move_Back();
+	}
+	else 
+		Move_Pre();
+	
+	rgb_value_sync(); 
+	wlt_ms_delay(magic_rate+100);
+
+}
+
+
+void haoyida_181_186_effect( int mode)
+{
+	int mode_i_2;
+	
+
+	if(mode%2)		
+    {
+		mode_i_2 = mode_i-1;
+
+		if(mode_i_2<0) mode_i_2= MAGIC_SCENE_DATA.magicallcnt-1;
+
+		index_colorful_buffer_Move_Back(0, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+			wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+		
+    	index_colorful_buffer_Move_Back(0, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+		wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+
+	
+		mode_k++;
+		if(mode_k>RGB_LED_NUM/2)	//刷完2色 下一色
+		{
+			mode_k=0;
+			mode_i++;
+			
+			if(mode_i>=MAGIC_SCENE_DATA.magicallcnt) mode_i=0;
+			rgbsingleColor(MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+			wlt_ms_delay(magic_rate+50);
+			rgb_value_sync(); //输出数据			
+		}	
+	}
+	else
+	{
+		mode_i_2 = mode_i-1;
+		
+		if(mode_i_2<0) mode_i_2= MAGIC_SCENE_DATA.magicallcnt-1;
+		
+		index_colorful_buffer_Move_Pre(0, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+			wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+		
+		index_colorful_buffer_Move_Pre(0, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+		wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+		
+		
+		mode_k++;
+		if(mode_k>RGB_LED_NUM/2)	//刷完2色 下一色
+		{
+			mode_k=0;
+			mode_i++;
+			if(mode_i>=MAGIC_SCENE_DATA.magicallcnt) mode_i=0;
+			rgbsingleColor(MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+			wlt_ms_delay(magic_rate+50);
+			rgb_value_sync(); //输出数据			
+		}
+
+
+	}
+
+
 
 
 
 }
-//  带底色流动
-void hoayida_168_180_effect( int mode)
+
+void haoyida_187_192_effect( int mode)
 {
+	int mode_i_2;
+	
+	if(mode%2)		
+    {
+		mode_i_2 = mode_i-1;
+		if(mode_i_2<0) mode_i_2= MAGIC_SCENE_DATA.magicallcnt-1;
 
+		index_colorful_buffer_Move_Back(0, RGB_LED_NUM/2,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+		index_colorful_buffer_Move_Pre( RGB_LED_NUM/2, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+			wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+		
+    	index_colorful_buffer_Move_Back(0, RGB_LED_NUM/2,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+		index_colorful_buffer_Move_Pre( RGB_LED_NUM/2, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
 
+		
+		wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+
+	
+		mode_k++;
+		if(mode_k>RGB_LED_NUM/4)	//刷完2色 下一色
+		{
+			mode_k=0;
+			mode_i++;
+			
+			if(mode_i>=MAGIC_SCENE_DATA.magicallcnt) mode_i=0;
+			rgbsingleColor(MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+			wlt_ms_delay(magic_rate+50);
+			rgb_value_sync(); //输出数据			
+		}	
+	}
+	else
+	{
+		mode_i_2 = mode_i-1;
+		
+		if(mode_i_2<0) mode_i_2= MAGIC_SCENE_DATA.magicallcnt-1;
+		
+		index_colorful_buffer_Move_Pre(0, RGB_LED_NUM/2,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+		index_colorful_buffer_Move_Back( RGB_LED_NUM/2, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].r,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].g,MAGIC_SCENE_DATA.magic_rgb[mode_i_2].b);
+			wlt_ms_delay(magic_rate+50);
+		rgb_value_sync(); //输出数据	
+		
+    	index_colorful_buffer_Move_Pre(0, RGB_LED_NUM/2,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+		index_colorful_buffer_Move_Back( RGB_LED_NUM/2, RGB_LED_NUM,MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+
+		mode_k++;
+		if(mode_k>RGB_LED_NUM/4)	//刷完2色 下一色
+		{
+			mode_k=0;
+			mode_i++;
+			if(mode_i>=MAGIC_SCENE_DATA.magicallcnt) mode_i=0;
+			rgbsingleColor(MAGIC_SCENE_DATA.magic_rgb[mode_i].r,MAGIC_SCENE_DATA.magic_rgb[mode_i].g,MAGIC_SCENE_DATA.magic_rgb[mode_i].b);
+			wlt_ms_delay(magic_rate+50);
+			rgb_value_sync(); //输出数据			
+		}
+	}
+
+}
+// 明暗过渡流水
+void  haoyida_214_220_effect(void)
+{
+	u8 step=10;
+	static	s32 gain_red,gain_green,gain_blue ;
+	static s32 diffRed ,diffGreen,diffBlue;
+	static u8 magicunit_bak = 0;
+
+	static u8 sv[] = {0,6, 20,50,20,6,0,
+					     6,20,50,20,6,0,
+					      6,20,50,20,6,0};
+	static int i ,j, k ;//颜色
+
+	Array_Color_Move_Back(0,sizeof(sv),sv);
+	for (i=0;i<RGB_LED_NUM;i++)
+	{
+		hsv_to_rgb(&sr[i], &sg[i], &sb[i], MAGIC_SCENE_DATA.magic_hsv[0].sh , 100, sv[i]/2);
+		//rgb_colorful_buffer_set(i ,r ,g  , b ); //写入当前点rgb	
+	}
+	for (i=1;i<step;i++)
+	{
+		if (magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+		{
+			 magicunit_bak = sg_light_ctrl_data.custome_unit; 
+			return ;
+		}	 
+		 for (k=0;k<RGB_LED_NUM;k++)
+		 {
+				//实际rgb差值
+				 diffRed   = sr[k] - sr_bk[k];
+				 diffGreen = sg[k] - sg_bk[k];
+				 diffBlue  = sb[k] - sb_bk[k];	
+				 
+				 //步长
+				 gain_red=diffRed/step;
+				 gain_green=diffGreen/step;
+				 gain_blue=diffBlue/step; 
+				 
+				 //目标数值  
+				 rgb_colorful_values[k][0]=sr_bk[k]+gain_red*i; 				 
+				 rgb_colorful_values[k][1]=sg_bk[k]+gain_green*i;
+				 rgb_colorful_values[k][2]=sb_bk[k]+gain_blue*i;
+				 //关灯
+				 if((LOCAL_MAGIC_MODE==false))
+				 {
+						 k=RGB_LED_NUM;
+						 return ;
+				 }	
+		 }//magic_rate/10+20
+		 wlt_ms_delay(2);
+		 rgb_value_sync(); //输出数据 
+	}	
+	memcpy(sr_bk,sr,sizeof(sr));
+	memcpy(sg_bk,sg,sizeof(sg));
+	memcpy(sb_bk,sb,sizeof(sb));
+	
+	wlt_ms_delay(magic_rate*0.1);
 
 }
 
+void haoyida_221_228_effect(void)
+{
+		unsigned int i = 0, j = 0;
+	static int magicunit_bak;
+
+	static unsigned char num = 6;      // 从中间1个点开始扩散
+	static unsigned char color_i = 0;      // 从中间1个点开始扩散
+	u8 interval = RGB_LED_NUM / 2;     // 中间位置
+	unsigned char r, g, b;
+
+	//hsv_to_rgb(&r, &g, &b, sh1, ss, sv);
+
+	// 从中间向两端扩散 i 代表扩散层数
+	for (i = 0; i < num; i++)
+	{
+		// 点亮：中间 ±i 位置
+		for (j = 0; j < 2; j++)
+		{
+			int pos;
+			if (j == 0)
+				pos = interval - i;    // 左侧
+			else
+				pos = interval + i;    // 右侧
+
+			// 边界保护，防止越界
+			if (pos >= 0 && pos < RGB_LED_NUM)
+				rgb_colorful_buffer_set(pos, MAGIC_SCENE_DATA.magic_rgb[color_i].r,MAGIC_SCENE_DATA.magic_rgb[color_i].g,MAGIC_SCENE_DATA.magic_rgb[color_i].b);
+		}
+		
+		rgb_value_sync();
+		wlt_ms_delay(magic_rate*2+10);
+		
+		//if ( magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+		if ( magicunit_bak != sg_light_ctrl_data.custome_unit||LOCAL_MAGIC_MODE==0)
+		{
+			magicunit_bak = sg_light_ctrl_data.custome_unit;
+			color_i = 0;
+			num = 1; 
+			return;
+		}
+
+		// 灭灯（移动效果用）
+		if (i < num-1)
+		{
+			for (j = 0; j < 2; j++)
+			{
+				int pos;
+				if (j == 0)
+					pos = interval - i;
+				else
+					pos = interval + i;
+
+				if (pos >= 0 && pos < RGB_LED_NUM)
+					rgb_colorful_buffer_set(pos, 0, 0, 0);
+			}
+		}
+		//增加闪烁感 
+		//rgb_value_sync();
+		//wlt_ms_delay(magic_rate*2+10);
+	}
+
+	num--;  // 扩散层数递减
+	// 一轮扩散完成，切换颜色
+	if (num == 0)
+	{
+		num = interval;  // 最大扩散到两端
+		color_i++;
+		if(color_i>=MAGIC_SCENE_DATA.magicallcnt) color_i=0;
+		rgb_colorful_buffer_clean();
+	}
+
+	// 保持当前扩散终点常亮
+	for (j = 0; j < 2; j++)
+	{
+		int pos;
+		if (j == 0)
+			pos = interval - num;    // 左侧当前终点
+		else
+			pos = interval + num;    // 右侧当前终点
+
+		if (pos >= 0 && pos < RGB_LED_NUM)
+			rgb_colorful_buffer_set(pos, MAGIC_SCENE_DATA.magic_rgb[color_i].r,MAGIC_SCENE_DATA.magic_rgb[color_i].g,MAGIC_SCENE_DATA.magic_rgb[color_i].b);
+	}
+
+	rgb_value_sync();
+	wlt_ms_delay(magic_rate*2+10);
+}
 
 //------------------------------------------------------------------------------------------------//
 
@@ -2542,9 +2905,8 @@ void haoyida_234_mode_deal( int modeunite)
 	switch (modeunite)
 	{
 		case 0://自动循环
-			
-		case 1://正向幻彩
-			
+			break;
+		case 1://正向幻彩			
 		case 2://反向幻彩
 			haoyida_magic_flow_effect(modeunite%2);
 			break;
@@ -2641,7 +3003,7 @@ void haoyida_234_mode_deal( int modeunite)
 		case 80://反向红绿蓝追光
 		case 81://正向黄青紫追光
 		case 82://反向黄青紫追光		
-			hoayida_Following_light(modeunite);
+			haoyida_Following_light(modeunite);
 			break;
 
 		case 83://七彩飘动 一个一色点
@@ -2650,7 +3012,7 @@ void haoyida_234_mode_deal( int modeunite)
 		case 86:
 		case 87:
 		case 88:
-			hoayida_83_88_effect(modeunite);
+			haoyida_83_88_effect(modeunite);
 			break;
 //---------- 89-112 跑动---------------
 		case 89:
@@ -2677,7 +3039,7 @@ void haoyida_234_mode_deal( int modeunite)
 		case 110:
 		case 111:
 		case 112:
-			 hoayida_89_112_effect(modeunite);
+			 haoyida_89_112_effect(modeunite);
 		 	break;
 		case 113:
 		case 114:
@@ -2709,7 +3071,7 @@ void haoyida_234_mode_deal( int modeunite)
 		case 140:
 		case 141:
 		case 142:
-			hoayida_113_142_effect(modeunite);
+			haoyida_113_142_effect(modeunite);
 			break;
 		case 143:
 		case 144:
@@ -2736,10 +3098,8 @@ void haoyida_234_mode_deal( int modeunite)
 		case 165:
 		case 166:
 		case 167:
-			hoayida_143_167_effect(modeunite);
+			haoyida_143_166_effect(modeunite);
 
-
-		
 		case 168:
 		case 169:
 		case 170:
@@ -2753,7 +3113,7 @@ void haoyida_234_mode_deal( int modeunite)
 		case 178:
 		case 179:
 		case 180:
-			hoayida_168_180_effect(modeunite);
+			haoyida_167_180_effect(modeunite);
 			break;
 		case 181:
 		case 182:
@@ -2761,41 +3121,70 @@ void haoyida_234_mode_deal( int modeunite)
 		case 184:
 		case 185:
 		case 186:
-		case 187:
+			haoyida_181_186_effect(modeunite);
+			break;
+		case 187://闭幕拉幕2 同刷色 起点不一致 
 		case 188:
 		case 189:
 		case 190:
 		case 191:
 		case 192:
-		case 193:
+			haoyida_187_192_effect(modeunite);
+
+
+			break;
+		case 193://跳变
 		case 194:
 		case 195:
-		case 196:
+			iotalink_magic_scene_relax(1,MAGIC_SCENE_JUMP);
+		
+			break;
+		
+		case 196://频闪
 		case 197:
 		case 198:
-		case 199:
+			iotalink_magic_scene_relax(1,MAGIC_SCENE_TWINKLE);
+	 		
+			break;
+		
+		case 199://渐变
 		case 200:
 		case 201:
 		case 202:
 		case 203:
 		case 204:
-		case 205:
+			iotalink_magic_scene_relax(1,MAGIC_SCENE_BREATHE);//
+			break;
+		case 205://跑马
 		case 206:
 		case 207:
 		case 208:
 		case 209:
 		case 210:
 		case 211:
-		case 212:
-		case 213:
-		case 214:
+
+			Move_Pre();
+			rgb_value_sync(); 
+			wlt_ms_delay(magic_rate*1+20);	
+			break;
+		case 212://七彩能量->就是七彩跳变
+			iotalink_magic_scene_relax(1,MAGIC_SCENE_JUMP);
+			break;
+		case 213://特别七色-->就是七色开幕
+			haoyida_curtain_effect(modeunite+1);
+			break;
+		case 214://过渡流水  	
 		case 215:
 		case 216:
 		case 217:
 		case 218:
 		case 219:
 		case 220:
-		case 221:
+		//	haoyida_shade_light_transition(1);
+			haoyida_214_220_effect();
+
+			break;
+		case 221://堆砌 
 		case 222:
 		case 223:
 		case 224:
@@ -2803,16 +3192,15 @@ void haoyida_234_mode_deal( int modeunite)
 		case 226:
 		case 227:
 		case 228:
-		case 229:
-		case 230:
+			haoyida_221_228_effect();	
+			break;
+		case 229://七彩渐变
+		case 230:// 过渡
 		case 231:
 		case 232:
 		case 233:
-
-
-
+			iotalink_magic_scene_relax(1,MAGIC_SCENE_RELAX);//淡入淡出
 			break;
-			
 		default :
 		  	index_colorful_buffer_Move_Back(0, RGB_LED_NUM,modeunite ,modeunite,modeunite);
 			wlt_ms_delay(magic_rate*0.5+50);
@@ -2824,6 +3212,7 @@ void haoyida_234_mode_deal( int modeunite)
 
 }
 
+
 /*
 红 (Red)	0° / 360°
 橙 (Orange)	30°
@@ -2833,7 +3222,7 @@ void haoyida_234_mode_deal( int modeunite)
 蓝 (Blue)	240°
 紫 (Violet)	300 1,45°
 */
-unsigned char  default_mode[234][38]=
+unsigned char  default_mode[110][38]=
 {
 	{0,0,0,0,0},// 在几个模式下循环
 	{0,1,0,0,0},////正向幻彩 直接写
@@ -2866,7 +3255,7 @@ unsigned char  default_mode[234][38]=
 	{0,23,2,100,50, 0,0,100,0, 0,30,100,0, 0,60,100,0, 0,120,100,0, 0,180,100,0, 0,140,100,0 ,1,45,100,0},
 //	{0,24,2,100,50, 0,0,100,0, 0,30,100,0, 0,60,100,0, 0,120,100,0, 0,180,100,0, 0,140,100,0 ,1,45,100,0},
 //七彩
-	{0,24,2,100,50, 0,0,100,0, 0,60,100,0,    0,120,100,0, 0,180,100,0, 0,140,100,0 ,1,45,100,0 ,0,0,0,0,},
+	{0,24,2,100,50,  0,60,100,0,    0,120,100,0, 0,180,100,0, 0,140,100,0 ,1,45,100,0 ,0,0,0,0, 0,0,100,0},
 
 	
 	{0,25,2,100,50, 0,0,100,0 },
@@ -2950,8 +3339,75 @@ unsigned char  default_mode[234][38]=
 //正向白底七色跑动
 	{0,73,2,100,50,  0,0,0,0 , 0,0,100,0, 0,60,100,0,    0,120,100,0, 0,180,100,0, 0,140,100,0 ,1,45,100,0 ,0,0,0,0,},
 
+//-------------
+//白红白流动
+	{0,74,2,100,50,  0,0,0,0,   0,0,100,0},	
+//正向白绿白流动	
+	{0,75,2,100,50,  0,0,0,0,	0,120,100,0}, 
+//	白蓝白流动
+	{0,76,2,100,50,  0,0,0,0,	0,240,100,0}, 
+
+//反向白黄白流动
+	{0,77,2,100,50,  0,0,0,0,	0,60,100,0}, 
+
+//正向白青白流动
+	{0,78,2,100,50,  0,0,0,0,	0,180,100,0}, 
+//正向白紫白流动
+	{0,79,2,100,50,  0,0,0,0,	1,45,100,0}, 
+	
+//正向红白红流动
+	{0,80,2,100,50,     0,0,100,0, 0,0,0,0 },	
+//正向绿白绿流动
+//正向蓝白蓝流动
+//正向黄白黄流动
+//正向青白青流动
+//正向紫白紫流动
+	{0,81,2,100,50,   0,120,100,0, 0,0,0,0,}, 
+	{0,82,2,100,50,	  0,240,100,0,  0,0,0,0}, 
+	{0,83,2,100,50,   0,60,100,0,   0,0,0,0}, 
+	{0,84,2,100,50,   0,180,100,0,  0,0,0,0}, 
+	{0,85,2,100,50,   1,45,100,0,    0,0,0,0}, 
+//----------------------------------------------------
+//正向蓝底绿点跑动
+	{0,86,2,100,50,   0,240,100,0,	 0,120,100,0}, 
+//正向红底绿点跑动
+	{0,87,2,100,50,   0,0,100,0,	 0,120,100,0}, 
+//反向蓝底红点跑动
+	{0,88,2,100,50,   0,240,100,0,	 0,0,100,0}, 
+//反向黄底青点跑动
+	{0,89,2,100,50,   0,60,100,0,	 0,180,100,0},
+
+//反向紫底黄点跑动
+	{0,90,2,100,50,    1,45,100,0,	 0,60,100,0},
+//反向黄底白点跑动
+	{0,91,2,100,50,    0,60,100,0,	 0,0,0,0},
+//反向白底黄点跑动
+	{0,92,2,100,50,	 0,0,0,0 ,    0,60,100,0},
+//----------------------------------------------------
+//红黄交替渐变
+	{0,93,2,100,50,	 0,0,100,0 ,    0,60,100,0},		
+//红紫交替渐变
+	{0,94,2,100,50,	 0,0,100,0 ,    1,45,100,0},
+//绿青交替渐变
+	{0,95,2,100,50,  0,120,100,0 ,   0,180,100,0},
+
+//绿黄交替渐变
+	{0,96,2,100,50,  0,120,100,0 ,   0,60,100,0},
+
+//蓝紫交替渐变	
+	{0,97,2,100,50,  0,240,100,0 ,   1,45,100,0},
+
+//----------------------------------------------------
+//青蓝200
+	{0,98,2,100,50,  0,200,100,0 },
+//红橙 15
+	{0,99,2,100,50,  0,10,100,0 },
+
+	{0,100,2,100,50,  0,10,100,0 , 0,60,100,0}
+
 
 };
+
 
 // 初始化sh
 void  iotalink_234_mode_mode_init(void)
@@ -2979,15 +3435,13 @@ void  iotalink_234_mode_mode_init(void)
 
 void haoyida_234_mode_init( int modeunite)
 {
-	
 
 	switch (modeunite)
 	{
 
-	
 		case 0://自动循环
-		
-	
+			wlt_ble_remote_control(7);
+			break;
 		case 1://正向幻彩
 		
 	
@@ -3384,189 +3838,427 @@ void haoyida_234_mode_init( int modeunite)
 			}
 			break;
 
-//---------------------------------------	
+//---------------------------------------2026年3月22日	
 		case 143://正向白红白流动
-			break;
 		case 144://反向白红白流动
+			iotalink_color_transition(2,1,&default_mode[74] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
+			
 			break;
 		case 145://正向白绿白流动
-			break;
 		case 146://反向白绿白流动
+			iotalink_color_transition(2,1,&default_mode[75] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
+
 			break;
 		case 147://正向白蓝白流动
-			break;
 		case 148://反向白蓝白流动
+			iotalink_color_transition(2,1,&default_mode[76] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
+
 			break;
 		case 149://正向白黄白流动
-			break;
 		case 150://反向白黄白流动
+			iotalink_color_transition(2,1,&default_mode[77] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 151://正向白青白流动
-			break;
 		case 152://反向白青白流动
+			iotalink_color_transition(2,1,&default_mode[78] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 153://正向白紫白流动
-			break;
 		case 154://反向白紫白流动
+			iotalink_color_transition(2,1,&default_mode[79] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
+
 			break;
 		case 155://正向红白红流动
-			break;
 		case 156://反向红白红流动
+			iotalink_color_transition(2,1,&default_mode[80] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 157://正向绿白绿流动
-			break;
 		case 158://反向绿白绿流动
+			iotalink_color_transition(2,1,&default_mode[81] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 159://正向蓝白蓝流动
-			break;
 		case 160://反向蓝白蓝流动
+			iotalink_color_transition(2,1,&default_mode[82] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 161://正向黄白黄流动
-			break;
 		case 162://反向黄白黄流动
+			iotalink_color_transition(2,1,&default_mode[83] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
 			break;
 		case 163://正向青白青流动
-			break;
 		case 164://反向青白青流动
+			iotalink_color_transition(2,1,&default_mode[84] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+
+
 			break;
 		case 165://正向紫白紫流动
-			break;
 		case 166://反向紫白紫流动
+			iotalink_color_transition(2,1,&default_mode[85] , &MAGIC_SCENE_DATA);//解析出颜色
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(3,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			rgb_colorful_buffer_set(1,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);		
+			rgb_colorful_buffer_set(2,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
 			break;
+//--------------------------------------------------------------------------------------------------------			
 		case 167://正向蓝底绿点跑动
-			break;
 		case 168://反向蓝底绿点跑动
+
+			iotalink_color_transition(2,1,&default_mode[86] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
 			break;
 		case 169://正向红底绿点跑动
-			break;
 		case 170://反向红底绿点跑动
+			iotalink_color_transition(2,1,&default_mode[87] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
 		case 171://正向蓝底红点跑动
-			break;
 		case 172://反向蓝底红点跑动
+			iotalink_color_transition(2,1,&default_mode[88] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
 		case 173://正向黄底青点跑动
-			break;
 		case 174://反向黄底青点跑动
+			iotalink_color_transition(2,1,&default_mode[89] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
 		case 175://正向紫底黄点跑动
-			break;
 		case 176://反向紫底黄点跑动
+			iotalink_color_transition(2,1,&default_mode[90] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
 		case 177://正向黄底白点跑动
-			break;
 		case 178://反向黄底白点跑动
+			iotalink_color_transition(2,1,&default_mode[91] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
 		case 179://正向白底黄点跑动
-			break;
 		case 180://反向白底黄点跑动
+			iotalink_color_transition(2,1,&default_mode[92] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			rgb_colorful_buffer_set(0,MAGIC_SCENE_DATA.magic_rgb[1].r,MAGIC_SCENE_DATA.magic_rgb[1].g,MAGIC_SCENE_DATA.magic_rgb[1].b);
+			for (int i= 1; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r/5,MAGIC_SCENE_DATA.magic_rgb[0].g/5,MAGIC_SCENE_DATA.magic_rgb[0].b/5);
+			}
+
 			break;
+//--------------------------------------------------------------------------------------------------------	
+
 		case 181://正向七彩刷色
-			break;
 		case 182://反向七彩刷色
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
+
 			break;
 		case 183://正向红绿蓝刷色
-			break;
 		case 184://反向红绿蓝刷色
+			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
 			break;
 		case 185://正向黄青紫刷色
-			break;
 		case 186://反向黄青紫刷色
+			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色	
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
 			break;
+//--------------------------------------------------------------------------------------------------------	
+
 		case 187://七彩刷色闭幕
-			break;
 		case 188://七彩刷色拉幕
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
+
+		
 			break;
 		case 189://红绿蓝刷色闭幕
-			break;
 		case 190://红绿蓝刷色拉幕
+			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
+			
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
 			break;
+
 		case 191://黄青紫刷色闭幕
-			break;
 		case 192://黄青紫刷色拉幕
+			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色	
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+			}
 			break;
+//--------------------------------------------------------------------------------------------------------	
+
 		case 193://七色跳变
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 194://红绿蓝跳变
+			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 195://黄青紫跳变
+			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色	
 			break;
 		case 196://七色频闪
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 197://红绿蓝频闪
+			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 198://黄青紫频闪
+			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色	
 			break;
 		case 199://七色渐变
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 200://红黄交替渐变
+			iotalink_color_transition(2,1,&default_mode[93] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 201://红紫交替渐变
+			iotalink_color_transition(2,1,&default_mode[94] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 202://绿青交替渐变
+			iotalink_color_transition(2,1,&default_mode[95] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 203://绿黄交替渐变
+			iotalink_color_transition(2,1,&default_mode[96] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 204://蓝紫交替渐变
+			iotalink_color_transition(2,1,&default_mode[97] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
+//--------------------------------------------------------------------------------------------------------			
 		case 205://红色跑马
+			iotalink_color_transition(1,1,&default_mode[67] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
 			break;
 		case 206://绿色跑马
+			iotalink_color_transition(1,1,&default_mode[68] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
+
 			break;
 		case 207://蓝色跑马
+			iotalink_color_transition(1,1,&default_mode[69] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
 			break;
 		case 208://黄色跑马
+			iotalink_color_transition(1,1,&default_mode[70] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
 			break;
 		case 209://青色跑马
+			iotalink_color_transition(1,1,&default_mode[71] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
+
 			break;
 		case 210://紫色跑马
+			iotalink_color_transition(1,1,&default_mode[72] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
+
 			break;
 		case 211://白色跑马
+			iotalink_color_transition(1,1,&default_mode[73] , &MAGIC_SCENE_DATA);//解析出颜色
+			for (int i= 0; i<RGB_LED_NUM; i++)
+			{
+				if(i%2)
+				rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[0].r,MAGIC_SCENE_DATA.magic_rgb[0].g,MAGIC_SCENE_DATA.magic_rgb[0].b);
+				else rgb_colorful_buffer_set(i,0,0,0);
+			}
+
 			break;
 		case 212://七彩能量
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 213://特别七色25点开幕
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
-		case 214://红橙暗亮暗过渡流水
+		case 214://红橙暗亮暗过渡流水		
+			iotalink_color_transition(1,1,&default_mode[99] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 215://黄绿暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[70] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 216://绿色暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[68] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 217://青蓝暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[98] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 218://蓝色暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[71] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 219://紫色暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[72] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 220://红色暗亮暗过渡流水
+			iotalink_color_transition(1,1,&default_mode[67] , &MAGIC_SCENE_DATA);//解析出颜色	
 			break;
 		case 221://七色堆砌
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 222://橙色堆砌
+			iotalink_color_transition(1,1,&default_mode[99] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 223://黄绿堆砌
+			iotalink_color_transition(1,1,&default_mode[70] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 224://绿色堆砌
+			iotalink_color_transition(1,1,&default_mode[68] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 225://青蓝堆砌
+			iotalink_color_transition(1,1,&default_mode[98] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 226://蓝色堆砌
+			iotalink_color_transition(1,1,&default_mode[71] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 227://紫色堆砌
+			iotalink_color_transition(1,1,&default_mode[72] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 228://红色堆砌
+			iotalink_color_transition(1,1,&default_mode[67] , &MAGIC_SCENE_DATA);//解析出颜色	
 			break;
 		case 229://七彩渐变
-			break;
 		case 230://七彩过渡
+			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 231://红紫过渡
+			iotalink_color_transition(2,1,&default_mode[94] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 232://黄白过渡
+			iotalink_color_transition(2,1,&default_mode[92] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 233://黄橙过渡
+			iotalink_color_transition(2,1,&default_mode[100] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
+
 	}
 
 }
