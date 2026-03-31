@@ -53,7 +53,7 @@ typedef struct __attribute__((packed)){
 
 	u8 matter_state;
 
-    bool switch_status;             
+    u8 switch_status;             
     LIGHT_MODE_E mode;
     u8 bright;
 	
@@ -129,6 +129,12 @@ void auto_timer_cb(void *arv);
 void flash_timer_cb(void *arv);
 
 void auto_flash_operation_init(void);
+
+
+void wlt_ble_remote_control(u8 keyvalue);
+
+void set_auto_flag(u8 state);
+
 
 #endif
 

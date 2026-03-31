@@ -324,6 +324,7 @@ void iotalink_light_ctrl_process(void)
 void wlt_ble_app_control(u8 *buf, u16 length)
 {
 	printf("wlt_ble_app_control recv : \n");
+	set_auto_flag(0);
 
 	for (int i = 0; i < length; i++) 
 	{
@@ -417,7 +418,8 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 
 
 	}
-
+	
+	
 	iotalink_light_ctrl_process();
 	
 }
@@ -524,12 +526,13 @@ void iotalink_auto_flash_operation_task(void *arg)
 						#endif
 						break;
                     case 2: // flash 操作
+                    
                     	taskENTER_CRITICAL();
                         scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096);
                         scm_partition_write(FLASH_PARTITION_TMP, 0, &sg_light_ctrl_data, sizeof(sg_light_ctrl_data));
-					     taskEXIT_CRITICAL();
+					    taskEXIT_CRITICAL();
 
-						 my_printf("scm_partition_write OK \n");
+						my_printf("scm_partition_write OK \n");
 						 
                         break;
 
@@ -575,7 +578,7 @@ void auto_timer_cb(void *arg)
 	
 #if 1 
     op_param_t op_param = {
-        .op_type = 1,  // flash 操作
+        .op_type = 1,  // auto_timer_cb 操作
     };
     // 软件定时器→服务线程上下文→用xQueueSend（非FromISR）
     BaseType_t xQueueStatus = xQueueSend(  xFlashMsgQueue, &op_param,0  );// 非阻塞发送
@@ -622,6 +625,10 @@ void flash_timer_cb(void *arg)
 }
 
 
+void set_auto_flag(u8 state)
+{
+	auto_flag = state;
+}
 
 
 void wlt_ble_remote_control(u8 keyvalue)
@@ -641,9 +648,10 @@ void wlt_ble_remote_control(u8 keyvalue)
 		case HYD_KEY_R1_M://AUTO
 		
 			auto_flag =1;
-			//先默认10s切一次
+			sg_light_ctrl_data.magicunit =0;
+			//先默认20s切一次
 			auto_timer_cb(NULL);
-			osTimerStart(auto_timer, MS_TO_TICKS(10000)) ;
+			osTimerStart(auto_timer, MS_TO_TICKS(20000)) ;
 			
 			break;
 		case HYD_KEY_R2_L://1H  倒计时关？？？
