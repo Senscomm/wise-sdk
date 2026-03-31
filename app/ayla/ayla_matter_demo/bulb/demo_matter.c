@@ -1076,11 +1076,11 @@ static void demo_matter_event_cb(enum adm_event_id id)
 #if 1//定制
 		scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		printf("=========================> state: 0x%02x\n", state);
-		if (state == 0xAA) 
-		{
+		if (state == 0xAA) {
 			scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
-		}
-		else break;
+		} else {
+            break;
+        }
 #endif
     {
         int i;
@@ -1239,7 +1239,7 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 
     demo_post_light_event(*value ? kLightAction_On : kLightAction_Off, 0);
 
-	log_put(LOG_DEBUG "%s on_off %u", __func__, *value);
+	log_put(LOG_INFO "%s on_off %u", __func__, *value);
 
 	return AE_OK;
 }
@@ -1264,6 +1264,8 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 		    __func__, size, value);
 		return AE_INVAL_VAL;
 	}
+
+    log_put(LOG_INFO "%s level_control %u", __func__, *value);
 
     if (*value <= 1) 
 	{
@@ -1291,8 +1293,6 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
     }
 
     demo_post_light_event(kLightAction_Level, *value);
-
-	log_put(LOG_DEBUG "%s level_control %u", __func__, *value);
 
 	return AE_OK;
 }
@@ -1352,7 +1352,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Color, val);
 
-        log_put(LOG_DEBUG "New XY color: %u|%u", xy.x, xy.y);
+        log_put(LOG_INFO "New XY color: %u|%u", xy.x, xy.y);
     }
     /* HSV color space */
     else if (attribute == ADM_COLOR_CONTROL_CURRENT_HUE_AID ||
@@ -1405,7 +1405,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Color, val);
 
-        log_put(LOG_DEBUG "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
+        log_put(LOG_INFO "New HSV color: %u|%u|%u, RGB: %u|%u|%u", hsv.h, hsv.s, hsv.v, rgb.r, rgb.g, rgb.b);
     }
     /* Color temperature */
     else if (attribute == ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID)
@@ -1432,7 +1432,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Temp, (uint32_t)temp);
 
-        log_put(LOG_DEBUG "%s: mireds %u, temp %d", __func__, mireds, temp);
+        log_put(LOG_INFO "%s: mireds %u, temp %d", __func__, mireds, temp);
     }
     /* Color mode */
     else if (attribute == ADM_COLOR_CONTROL_COLOR_MODE_AID)
@@ -1451,7 +1451,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Mode2, 1);
 
-        log_put(LOG_DEBUG "color mode: %u", *value);
+        log_put(LOG_INFO "color mode: %u", *value);
     }
     else
     {
@@ -1544,7 +1544,6 @@ void demo_init(void)
     adb_wifi_cfg_svc_register(NULL);
     adb_conn_svc_register(NULL);
 
-    printf("ayla svc + conn + wifi cfg!!\n");
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.
@@ -1571,6 +1570,10 @@ void demo_init(void)
     if (!mf_remove_timer) {
         mf_remove_timer = osTimerNew(mf_remove_handle, osTimerOnce, NULL, NULL);
     }
+
+    /* For HYD Case, we need to initiate light manager early. */
+    log_put(LOG_INFO "Set light manager state to ON.");
+    demo_post_light_event(kLightAction_On, 1);
 #endif
 }
 
