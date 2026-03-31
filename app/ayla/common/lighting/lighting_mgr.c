@@ -213,32 +213,32 @@ bool lighting_mgr_initiate_action(struct lighting_mgr *lm, int32_t actor, Action
 
         if (lm->state == kState_OnInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: turn on");
+            log_put(LOG_INFO "LightingManager: turn on");
             led_widget_set(&g_led, true);
         }
         else if (lm->state == kState_OffInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: turn off");
+            log_put(LOG_INFO "LightingManager: turn off");
             led_widget_set(&g_led, false);
         }
         else if (lm->state == kState_ModeInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set mode %d", *value);
+            log_put(LOG_INFO "LightingManager: set mode %d", *value);
             led_widget_mode(&g_led, *value != 0);
         }
         else if (lm->state == kState_TempInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set temp %d", *value);
+            log_put(LOG_INFO "LightingManager: set temp %d", *value);
             led_widget_set_temp(&g_led, *value);
         }
         else if (lm->state == kState_LevelInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set level %d", *value);
+            log_put(LOG_INFO "LightingManager: set level %d", *value);
             led_widget_set_level(&g_led, *value);
         }
         else if (lm->state == kState_ColorInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set color(%d,%d,%d)", rgb.r, rgb.g, rgb.b);
+            log_put(LOG_INFO "LightingManager: set color(%d,%d,%d)", rgb.r, rgb.g, rgb.b);
             led_widget_color(&g_led, rgb);
         }
     }
