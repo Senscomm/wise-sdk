@@ -488,4 +488,23 @@ void matter_wlt_light_set_rgbcw(unsigned short cold, unsigned short warm,unsigne
 
 }
 
+void matter_wlt_light_set_rgbcw_2(uint16_t red, uint16_t green, uint16_t blue, uint16_t cold, uint16_t warm)
+{
+    light_power_set(1);
+    light_mode_set(MATTER_MODE);
+    iotalink_light_ctrl_process();
 
+    if ((cold != 0) || (warm != 0)) {
+        wlt_led_pwm_set_duty(0, warm);
+        printf("WLT SET CW: %u|%u.\n", cold, warm);
+        rgbsingleColor(cold, cold, cold);
+        rgb_value_sync();
+        cwrgb_target_val_set (cold, warm, 0, 0, 0);
+    } else {
+        wlt_led_pwm_set_duty(0,0);
+        rgbsingleColor(red, green ,blue);
+        rgb_value_sync();
+		printf("WLT SET RGB: %u|%u|%u.\n", red, green, blue);
+        cwrgb_target_val_set (0, 0, red, green, blue);
+    }
+}

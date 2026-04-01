@@ -362,13 +362,6 @@ int bp5758d_set_cw_channel(uint16_t value_c, uint16_t value_w)
 
 int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value_b, uint16_t value_c, uint16_t value_w)
 {
-
-
-	printf("-----------> 1  set  rgbcw %d %d %d %d %d \n ",value_r,value_g,value_b ,value_c,value_w);	
-	matter_wlt_light_set_rgbcw(value_c,value_w ,value_r,value_g,value_b);
-	return 0;
-
-
 	uint8_t value[11] = { 0, };
 	int ret;
 
@@ -383,7 +376,7 @@ int bp5758d_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t value
 		}
 	}
 
-#if 1
+#if 0
 	printf("[%s, %d] r: %d, g: %d, b: %d, c: %d, w: %d\n", __func__, __LINE__,
             value_r, value_g, value_b, value_c, value_w);
 #endif

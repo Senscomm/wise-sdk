@@ -23,6 +23,8 @@
 #include "led_widget.h"
 
 #include "bp5758d.h"
+#include "wlt_ws2812_spi.h"
+#include "iotalink_control.h"
 
 void TimerHandler(TimerHandle_t xTimer)
 {
@@ -97,7 +99,12 @@ void led_widget_do_set(struct led_widget *lw, bool state)
     switch (lw->led)
     {
     case LED_LIGHT:
+#ifdef USE_BP5758D_MODULE
         bp5758d_set_standby(!state);
+#else
+        /* Use WLT Module APIs. Note: Matter Also need to control ON/OFF */
+        light_power_set(state);
+#endif
         break;
     case LED_STATUS:
 #ifdef __no_stub__
@@ -106,13 +113,6 @@ void led_widget_do_set(struct led_widget *lw, bool state)
         break;
     }
     lw->state = state;
-	
-	if(state ==0) 
-	light_power_set(0);
-
-	// bp5758d_set_rgbcw_channel(0, 0, 0, 0, 0);
-
-	
 }
 
 void led_widget_set(struct led_widget *lw, bool state)
@@ -145,7 +145,6 @@ void led_widget_blink(struct led_widget *lw, int duration)
 
 void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
 {
-    uint32_t r, g, b;
     HsvColor_t hsv;
 
     lw->rgb = rgb;
@@ -157,14 +156,21 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
     hsv = RgbToHsv(rgb.r, rgb.g, rgb.b);
     lw->level = hsv.v;
 
+#ifdef USE_BP5758D_MODULE
+    uint32_t r, g, b;
     r = (rgb.r * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     g = (rgb.g * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     b = (rgb.b * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
-
+#endif
     switch (lw->led)
     {
     case LED_LIGHT:
+#ifdef USE_BP5758D_MODULE
         bp5758d_set_rgbcw_channel(r, g, b, 0, 0);
+#else
+        /* Use WLT Module APIs */
+        matter_wlt_light_set_rgbcw_2(rgb.r, rgb.g, rgb.b, 0, 0);
+#endif
         break;
     case LED_STATUS:
         break;
@@ -176,20 +182,25 @@ static void led_widget_control_white(struct led_widget *lw)
     uint32_t target = 0;
     uint16_t cool, warm;
 
+#ifdef USE_BP5758D_MODULE
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
+#else
+    target = lw->level;
+#endif
     cool = (uint16_t)((target * lw->temp) / 100);
     warm = (uint16_t)((target * (100 - lw->temp)) / 100);
 
     if (lw->led == LED_LIGHT)
     {
+#ifdef USE_BP5758D_MODULE
         bp5758d_set_rgbcw_channel(0, 0, 0, cool, warm);
-    }
-    else if (lw->led == LED_STATUS)
-    {
-    }
-    else
-    {
+#else
+        /* Use WLT Module APIs */
+        matter_wlt_light_set_rgbcw_2(0, 0, 0, cool, warm);
+#endif
+    } else if (lw->led == LED_STATUS) {
+    } else {
         assert(0);
     }
 }
@@ -200,19 +211,16 @@ void led_widget_set_level(struct led_widget *lw, uint8_t level)
         lw->level = level;
         led_widget_control_white(lw);
     } else {
-        u8 r = lw->rgb.r;
-        u8 g = lw->rgb.g;
-        u8 b = lw->rgb.b;
-
-        r = (r * level) / lw->level;
-        g = (g * level) / lw->level;
-        b = (b * level) / lw->level;
-
-        lw->rgb.r = r;
-        lw->rgb.g = g;
-        lw->rgb.b = b;
+        // For matter, level means hsv.v
+        // 1. use RGB convert to HSV
+        // 2. use same hsv.h, hsv.s, level convert to RGB
+        HsvColor_t cur_hsv;
+        cur_hsv = RgbToHsv(lw->rgb.r, lw->rgb.g, lw->rgb.b);
+        cur_hsv.v = level;
+        printf("Old RGB: %u|%u|%u.\n", lw->rgb.r, lw->rgb.g, lw->rgb.b);
+        lw->rgb = HsvToRgb(cur_hsv);
+        printf("NEW RGB: %u|%u|%u.\n", lw->rgb.r, lw->rgb.g, lw->rgb.b);
         lw->level = level;
-
         led_widget_color(lw, lw->rgb);
     }
 }

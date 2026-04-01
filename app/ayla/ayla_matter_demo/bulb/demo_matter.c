@@ -466,11 +466,13 @@ static void demo_evt_handler(struct app_event *evt)
         u8 on_only = (u8)evt->light_event.value;
         demo_light_bulb_do_action(ON_ACTION, 0, true);
         need_set = on_only != 0 ? false : true;
+        printf("[ON]need set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode2:
     {
         need_set = true;
+        printf("[Mode2] set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode:
@@ -509,6 +511,7 @@ static void demo_evt_handler(struct app_event *evt)
     }
 
     if (need_set) {
+        printf("NEED SET!!!\n");
         demo_set_light_bulb();
     }
 }
@@ -1057,6 +1060,17 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	log_put(LOG_DEBUG2 "%s %d", __func__, id);
 
 	switch (id) {
+    case ADM_EVENT_INITIALIZED:
+    {
+        /*
+         * For Some Conner Cases, we need to set light manager ON.
+         * One Case: Home APP still on color set page, but device already reboots,
+         * cached cmds cannot set color mode becasue light manager is OFF after rebooting.
+         */
+        log_put(LOG_INFO "Set light manager state to ON.");
+        demo_post_light_event(kLightAction_On, 1);
+        break;
+    }
 	case ADM_EVENT_IPV4_UP:
         if (ac_conn_timer) {
             log_put(LOG_INFO "IPV4 up, notify ADA after %d s!", AC_DELAY_TIMER_MSECS/1000);
@@ -1272,7 +1286,6 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
         /* XXX: what should we do? It seems to be the best to ignore it.
          */
         log_put(LOG_WARN "%s: level_control %d ignored", __func__, *value);
-	//	bp5758d_set_rgbcw_channel(0,0,0,0,0);
         return AE_OK;
     }
 
@@ -1451,7 +1464,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Mode2, 1);
 
-        log_put(LOG_INFO "color mode: %u", *value);
+        log_put(LOG_INFO "%s: color mode: %u", __func__, *value);
     }
     else
     {
@@ -1516,8 +1529,8 @@ void demo_init(void)
 	int rc;
 #endif
 
-	bp5758d_init();
-//	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+	// bp5758d_init();
+    // bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);
@@ -1570,13 +1583,8 @@ void demo_init(void)
     if (!mf_remove_timer) {
         mf_remove_timer = osTimerNew(mf_remove_handle, osTimerOnce, NULL, NULL);
     }
-
-    /* For HYD Case, we need to initiate light manager early. */
-    log_put(LOG_INFO "Set light manager state to ON.");
-    demo_post_light_event(kLightAction_On, 1);
 #endif
 }
-
 
 #define BUTTON_SHORT_PRESSED_PERIOD_MIN 80
 #define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
