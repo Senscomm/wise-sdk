@@ -204,6 +204,25 @@ static int scm_cli_spic_mode(int argc, char *argv[])
     return CMD_RET_SUCCESS;
 }
 
+static int scm_cli_spic_data_unit(int argc, char *argv[])
+{
+    int unit;
+
+    if (argc < 2) {
+        return CMD_RET_USAGE;
+    }
+
+    unit = atoi(argv[1]);
+    if (unit >= SCM_SPI_DATA_UNIT_END) {
+        return CMD_RET_USAGE;
+    }
+
+    scm_cli_spi_cfg.data_unit = unit;
+
+    return CMD_RET_SUCCESS;
+}
+
+
 static int scm_cli_spic_io_mode(int argc, char *argv[])
 {
     int data_io_mode;
@@ -329,6 +348,9 @@ static int scm_cli_spic_show_configure(int argc, char *argv[])
 {
     printf("role                   : %s\n", scm_cli_spi_cfg.role ? "slave" : "master");
     printf("mode                   : %s\n", active_mode[scm_cli_spi_cfg.mode]);
+    printf("unit                   : %s\n", scm_cli_spi_cfg.data_unit == SCM_SPI_DATA_UNIT_DW ? "dw" :
+                                            (scm_cli_spi_cfg.data_unit == SCM_SPI_DATA_UNIT_WORD ? "word" :
+                                            (scm_cli_spi_cfg.data_unit == SCM_SPI_DATA_UNIT_BYTE ? "byte" : "merge")));
     printf("io format              : %s\n", io_prop[scm_cli_spi_cfg.data_io_format]);
     printf("bit order              : %s\n", scm_cli_spi_cfg.bit_order ? "lsb" : "msb");
     printf("slave extra dummy cycle: %d\n", scm_cli_spi_cfg.slave_extra_dummy_cycle);
@@ -387,6 +409,7 @@ static const struct cli_cmd scm_cli_spic_cmd[] = {
     CMDENTRY(deinit, scm_cli_spic_deinit, "", ""),
     CMDENTRY(role, scm_cli_spic_role, "", ""),
     CMDENTRY(mode, scm_cli_spic_mode, "", ""),
+    CMDENTRY(unit, scm_cli_spic_data_unit, "", ""),
     CMDENTRY(io, scm_cli_spic_io_mode, "", ""),
     CMDENTRY(dma, scm_cli_spic_dma, "", ""),
     CMDENTRY(dmyc, scm_cli_spic_slave_dummy_cycle, "", ""),
@@ -420,6 +443,10 @@ CMD(spic, do_scm_cli_spi_config,
         "spic role <role> \n"
         "\t0: master\n"
         "\t1: slave" OR
+        "spic unit <data_unit> \n"
+        "\t0: byte\n"
+        "\t1: word\n"
+        "\t2: dw" OR
         "spic mode <mode>\n"
         "\t0: active high, odd  edge\n"
         "\t1: active high, even edge\n"
@@ -735,11 +762,19 @@ static int scm_cli_spim_set_tx_buf(int argc, char *argv[])
     if (!spi_ms_txbuf) {
         return CMD_RET_FAILURE;
     }
+    if (argc == 1) {
+        // Fill 0~2047 by default, if not specified
 
-    for (i = 1; i < argc; i++) {
-        spi_ms_txbuf[i - 1] = (uint32_t)strtol(argv[i], NULL , 16);
+        spi_ms_txbuf[0] = 0xff;
+        spi_ms_txbuf[1] = 0xff;
+        for (i = 2; i < SCM_SPI_TRANSFER_MAX_LEN; i++) {
+            spi_ms_txbuf[i] = i-2;
+        }
+    } else {
+        for (i = 1; i < argc; i++) {
+            spi_ms_txbuf[i - 1] = (uint32_t)strtol(argv[i], NULL , 16);
+        }
     }
-
     spi_ms_txbuf_set = 1;
 
     return CMD_RET_SUCCESS;
@@ -854,7 +889,8 @@ CMD(spim, do_scm_cli_spi_master,
 "\tif txbuf is not set by user, txbuf is filled increment data from 0" OR
 "spim clrbuf" OR
 "spim dump <len>\n"
-"\ttxbuf and rxbuf dump"
+"\ttxbuf and rxbuf dump" OR
+"ws2812 <length> <mode_dw>"
 );
 
 
@@ -1021,11 +1057,16 @@ static int scm_cli_spis_set_tx_buf(int argc, char *argv[])
     if (!spi_sl_txbuf) {
         return CMD_RET_FAILURE;
     }
-
-    for (i = 1; i < argc; i++) {
-        spi_sl_txbuf[i - 1] = (uint32_t)strtol(argv[i], NULL , 16);
+    if (argc == 1) {
+        // Fill 0~2047 by default, if not specified
+        for (i = 0; i < SCM_SPI_TRANSFER_MAX_LEN; i++) {
+            spi_sl_txbuf[i] = i;
+        }
+    } else {
+        for (i = 1; i < argc; i++) {
+            spi_sl_txbuf[i - 1] = (uint32_t)strtol(argv[i], NULL , 16);
+        }
     }
-
     spi_sl_txbuf_set = 1;
 
     return CMD_RET_SUCCESS;

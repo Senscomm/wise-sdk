@@ -100,6 +100,13 @@ enum spi_dummy_cycle {
     SPI_QUAD_IO_6_DUMMY_CYCLE 		= 3,
     SPI_QUAD_IO_8_DUMMY_CYCLE 		= 4,
 };
+enum spi_data_unit {
+    SPI_DATA_UNIT_BYTE                         = 0,
+    SPI_DATA_UNIT_WORD                         = 1,
+    SPI_DATA_UNIT_DW                           = 2,
+    SPI_DATA_UNIT_MERGE                        = 3, // merge mode for unit_byte
+};
+
 
 struct spi_cfg {
     enum spi_role role;
@@ -108,6 +115,7 @@ struct spi_cfg {
     enum spi_bit_order bit_order;
     enum spi_clk_src clk_src;
     enum spi_dummy_cycle slave_extra_dummy_cycle;
+	enum spi_data_unit data_unit;
     uint32_t master_cs_bitmap; /* Bitmap of (up to 32) GPIOs to select slaves. */
     uint8_t clk_div_2mul;
     uint8_t dma_en;

@@ -53,7 +53,10 @@
 
 #define ATCSPI_TRANS_ADDR_LEN(v)		(((v - 1) & 0x03) << 16)
 #define ATCSPI_TRANS_BYTE				(7 << 8)
-#define ATCSPI_TRANS_WORD				(7 << 8 | 1 << 7)
+#define ATCSPI_TRANS_MERGE				(7 << 8 | 1 << 7)
+#define ATCSPI_TRANS_WORD				(15 << 8)
+#define ATCSPI_TRANS_DW					(31 << 8)
+
 #define ATCSPI_TRANS_LSB_FIRST			(1 << 3)
 #define ATCSPI_TRANS_SLAVE_MODE			(1 << 2)
 
@@ -64,14 +67,32 @@
 #define ATCSPI_TRNAS_CTRL_ADDR_DATA		(0x01 << 28);
 #define ATCSPI_TRANS_CTRL_MODE(v)		((v & 0x0f) << 24)
 #define ATCSPI_TRANS_CTRL_IO_FORMAT(v)	((v & 0x03) << 22)
-#define ATCSPI_TRANS_CTRL_TX_LEN(v)		((v - 1) << 12)
 #define ATCSPI_TRANS_CTRL_DUMMY_CNT(v)	(((v - 1) & 0x03) << 9);
-#define ATCSPI_TRANS_CTRL_RX_LEN(v)		(v - 1)
+
+#define ATCSPI_TRANS_CTRL_TX_COUNT(v)		((v - 1) << 12)
+#define ATCSPI_TRANS_CTRL_RX_COUNT(v)		(v - 1)
+
+#define LEN_TO_COUNT(priv, v)	( \
+        priv->data_unit == SPI_DATA_UNIT_DW ? (v>>2): \
+        (priv->data_unit == SPI_DATA_UNIT_WORD ? (v>>1): v))
+#define COUNT_TO_LEN(priv, v)	( \
+                priv->data_unit == SPI_DATA_UNIT_DW ? (v<<2): \
+                (priv->data_unit == SPI_DATA_UNIT_WORD ? (v<<1): v))
+
+#define DATA_UNIT_STR(priv)	( \
+        priv->data_unit == SPI_DATA_UNIT_DW ? "dw": \
+        (priv->data_unit == SPI_DATA_UNIT_WORD ? "word": \
+        (priv->data_unit == SPI_DATA_UNIT_BYTE ? "byte":"merge")))
+
+
+#define ATCSPI_TRANS_CTRL_TX_LEN(priv, v) ATCSPI_TRANS_CTRL_TX_COUNT(LEN_TO_COUNT(priv,v))
+#define ATCSPI_TRANS_CTRL_RX_LEN(priv, v) ATCSPI_TRANS_CTRL_RX_COUNT(LEN_TO_COUNT(priv,v))
 
 #define ATCSPI_TRANS_CTRL_MODE_MASK		(0x0f)
 #define ATCSPI_TRANS_CTRL_DUMMY_MASK	(0x03)
 
-#define ATCSPI_TRANS_MAX_LEN			512
+#define ATCSPI_TRANS_MAX_COUNT		512
+#define ATCSPI_TRANS_MAX_LEN  		(ATCSPI_TRANS_MAX_COUNT * 4) // 512 DW = 2048 bytes
 
 #define ATCSPI_CTRL_TX_FIFO_THRES		(8 << 16)
 #define ATCSPI_CTRL_RX_FIFO_THRES		(8 << 8)
@@ -181,6 +202,7 @@ struct spi_driver_data {
     uint8_t dev_busy;
 
     enum spi_role role;
+	enum spi_data_unit data_unit;
     bool dma_enable;
     bool not_support_quad;
     uint8_t slave_extra_dummy_cycle;
@@ -250,17 +272,49 @@ static void atcspi_release_bus(struct device *dev)
 }
 #endif
 
+
+static int atcspi_trans_len_invalid(struct spi_driver_data *priv, int len)
+{
+    int count = LEN_TO_COUNT(priv, len);
+    if (count > ATCSPI_TRANS_MAX_COUNT) {
+        printk("The len(%d) bytes over max(%d) count in unit of %s\n", len, ATCSPI_TRANS_MAX_COUNT, DATA_UNIT_STR(priv));
+        return 1;
+    }
+    return 0;
+}
+
 static void atcspi_tx_pio(struct device *dev, struct spi_trans_ctrl *trans_ctrl)
 {
     int i;
+    struct spi_driver_data *priv = dev->driver_data;
 
     for (i = trans_ctrl->tx_buf_oft; i < trans_ctrl->tx_len + trans_ctrl->tx_len_extra; i++) {
         if (spi_read(ATCSPI_STATUS) & ATCSPI_TXFIFO_FULL) {
             break;
         }
 
-        spi_write(trans_ctrl->tx_buf[trans_ctrl->tx_buf_oft], ATCSPI_DATA);
-        trans_ctrl->tx_buf_oft++;
+        if (priv->data_unit == SPI_DATA_UNIT_BYTE) {
+            spi_write(trans_ctrl->tx_buf[trans_ctrl->tx_buf_oft], ATCSPI_DATA);
+            trans_ctrl->tx_buf_oft++;
+        } else if (priv->data_unit == SPI_DATA_UNIT_WORD) {
+            int idx = trans_ctrl->tx_buf_oft;
+            u32 data = (trans_ctrl->tx_buf[idx+1]) ;
+            data |= (trans_ctrl->tx_buf[idx]) << 8;
+
+            spi_write(data, ATCSPI_DATA);
+            trans_ctrl->tx_buf_oft += 2;
+            i++;
+        } else { // for SPI_DATA_UNIT_DW / SPI_DATA_UNIT_MERGE
+            int idx = trans_ctrl->tx_buf_oft;
+            u32 data = (trans_ctrl->tx_buf[idx+3]);
+            data |= (trans_ctrl->tx_buf[idx+2]) << 8;
+            data |= (trans_ctrl->tx_buf[idx+1]) << 16;
+            data |= (trans_ctrl->tx_buf[idx])   << 24;
+
+            spi_write(data, ATCSPI_DATA);
+            trans_ctrl->tx_buf_oft += 4;
+            i+=3;
+        }
 
         if (trans_ctrl->tx_buf_oft == trans_ctrl->tx_len) {
             trans_ctrl->tx_buf = trans_ctrl->extra_buf;
@@ -271,14 +325,37 @@ static void atcspi_tx_pio(struct device *dev, struct spi_trans_ctrl *trans_ctrl)
 static void atcspi_rx_pio(struct device *dev, struct spi_trans_ctrl *trans_ctrl)
 {
     int i;
+    struct spi_driver_data *priv = dev->driver_data;
 
     for (i = trans_ctrl->rx_buf_oft; i < trans_ctrl->rx_len + trans_ctrl->rx_len_extra; i++) {
         if (spi_read(ATCSPI_STATUS) & ATCSPI_RXFIFO_EMPTY) {
             break;
         }
 
-        trans_ctrl->rx_buf[trans_ctrl->rx_buf_oft] = spi_read(ATCSPI_DATA) & 0xff;
-        trans_ctrl->rx_buf_oft++;
+        if (priv->data_unit == SPI_DATA_UNIT_BYTE) {
+            trans_ctrl->rx_buf[trans_ctrl->rx_buf_oft] = spi_read(ATCSPI_DATA) & 0xff;
+            trans_ctrl->rx_buf_oft++;
+        } else if (priv->data_unit == SPI_DATA_UNIT_WORD) {
+            int idx = trans_ctrl->rx_buf_oft;
+            u32 data = spi_read(ATCSPI_DATA);
+
+            trans_ctrl->rx_buf[idx]     = data & 0xff;
+            trans_ctrl->rx_buf[idx+1]   = (data >> 8) & 0xff;
+
+            trans_ctrl->rx_buf_oft += 2;
+            i++;
+        } else { // for SPI_DATA_UNIT_DW / SPI_DATA_UNIT_MERGE
+            int idx = trans_ctrl->rx_buf_oft;
+            u32 data = spi_read(ATCSPI_DATA);
+
+            trans_ctrl->rx_buf[idx]     = (data >> 24) & 0xff;
+            trans_ctrl->rx_buf[idx+1]   = (data >> 16) & 0xff;
+            trans_ctrl->rx_buf[idx+2]   = (data >> 8) & 0xff;
+            trans_ctrl->rx_buf[idx+3]   = data & 0xff;
+
+            trans_ctrl->rx_buf_oft += 4;
+            i+=3;
+        }
 
         if (trans_ctrl->rx_buf_oft == trans_ctrl->rx_len) {
             trans_ctrl->rx_buf = trans_ctrl->extra_buf;
@@ -357,7 +434,7 @@ static int atcspi_trans_cmd_config(struct device *dev, struct spi_cmd_cfg *cmd_c
         trans_ctrl->tx_buf = buf;
         trans_ctrl->tx_buf_oft = 0;
 
-        v |= ATCSPI_TRANS_CTRL_TX_LEN(len);
+        v |= ATCSPI_TRANS_CTRL_TX_LEN(priv, len);
     } else {
         trans_ctrl->rx_len = len;
         trans_ctrl->rx_len_extra = 0;
@@ -368,7 +445,7 @@ static int atcspi_trans_cmd_config(struct device *dev, struct spi_cmd_cfg *cmd_c
         trans_ctrl->tx_buf = NULL;
         trans_ctrl->tx_buf_oft = 0;
 
-        v |= ATCSPI_TRANS_CTRL_RX_LEN(len);
+        v |= ATCSPI_TRANS_CTRL_RX_LEN(priv, len);
     }
 
     if (cmd_cfg->addr_len != SPI_ADDR_NONE) {
@@ -463,8 +540,8 @@ static int atcspi_trans_config(struct device *dev, uint8_t trx_mode, uint8_t *tx
                 trans_ctrl->rx_len_extra = tx_len - rx_len;
             }
 
-            v |= ATCSPI_TRANS_CTRL_RX_LEN(len);
-            v |= ATCSPI_TRANS_CTRL_TX_LEN(len);
+            v |= ATCSPI_TRANS_CTRL_RX_LEN(priv, len);
+            v |= ATCSPI_TRANS_CTRL_TX_LEN(priv, len);
 
             /* write and read at the same time */
             v |= ATCSPI_TRANS_CTRL_MODE(WRITE_READ_SAMETIME);
@@ -475,8 +552,8 @@ static int atcspi_trans_config(struct device *dev, uint8_t trx_mode, uint8_t *tx
                 v |= ATCSPI_TRANS_CTRL_MODE(READ_AND_WRITE);
             }
 
-            v |= ATCSPI_TRANS_CTRL_RX_LEN(rx_len);
-            v |= ATCSPI_TRANS_CTRL_TX_LEN(tx_len);
+            v |= ATCSPI_TRANS_CTRL_RX_LEN(priv, rx_len);
+            v |= ATCSPI_TRANS_CTRL_TX_LEN(priv, tx_len);
         }
 
 
@@ -488,7 +565,7 @@ static int atcspi_trans_config(struct device *dev, uint8_t trx_mode, uint8_t *tx
         trans_ctrl->rx_ready = 1;
 
     } else if (tx_len) {
-        v |= ATCSPI_TRANS_CTRL_TX_LEN(tx_len);
+        v |= ATCSPI_TRANS_CTRL_TX_LEN(priv, tx_len);
 
         if (priv->role == SPI_ROLE_SLAVE && priv->slave_extra_dummy_cycle) {
             /* dummy, write */
@@ -505,7 +582,7 @@ static int atcspi_trans_config(struct device *dev, uint8_t trx_mode, uint8_t *tx
 
         trans_ctrl->tx_ready = 1;
     } else if (rx_len) {
-        v |= ATCSPI_TRANS_CTRL_RX_LEN(rx_len);
+        v |= ATCSPI_TRANS_CTRL_RX_LEN(priv, rx_len);
 
         if (priv->role == SPI_ROLE_SLAVE && priv->slave_extra_dummy_cycle) {
             /* dummy, read */
@@ -559,6 +636,7 @@ static int atcspi_configure(struct device *dev, struct spi_cfg *cfg, spi_cb cb, 
 
     priv->mode = cfg->mode;
     priv->role = cfg->role;
+    priv->data_unit  = cfg->data_unit;
     priv->dma_enable = cfg->dma_en;
     priv->slave_extra_dummy_cycle = cfg->slave_extra_dummy_cycle;
 
@@ -573,7 +651,13 @@ static int atcspi_configure(struct device *dev, struct spi_cfg *cfg, spi_cb cb, 
     if (cfg->bit_order == SPI_BIT_LSB_FIRST) {
         v |= ATCSPI_TRANS_LSB_FIRST;
     }
-    v |= ATCSPI_TRANS_BYTE; /* DataLen: byte-wise transfer */
+    // v |= ATCSPI_TRANS_BYTE; /* DataLen: byte-wise transfer */
+	v |= (cfg->data_unit == SPI_DATA_UNIT_DW ? ATCSPI_TRANS_DW :
+		(cfg->data_unit == SPI_DATA_UNIT_WORD ? ATCSPI_TRANS_WORD :
+		(cfg->data_unit == SPI_DATA_UNIT_BYTE ? ATCSPI_TRANS_BYTE :
+		ATCSPI_TRANS_MERGE))); /* DataLen: dw/word/byte-wise transfer */
+	printk("TRANS FORMAT CR [0x%x]=0x%x\n", ATCSPI_TRANS_FORMAT, v);
+
     spi_write(v, ATCSPI_TRANS_FORMAT);
 
     /* setup SPI control */
@@ -719,6 +803,42 @@ static int atcspi_reset(struct device *dev)
     return 0;
 }
 
+/**
+ * @brief Byte Swap
+ * @param src input u8 array (need 4-byte for better performance)
+ * @param dst output u8 array
+ * @param count len of input u8 array
+ */
+static void fast_array_rev32(const uint8_t *src, uint8_t *dst, size_t count) {
+    // u8 to u32 pointer，to fetch 4 bytes per read
+    const uint32_t *src32 = (const uint32_t *)src;
+    count = (count+3) / 4; // count by u32, always + 1 when not multiple of 4
+
+    for (size_t i = 0; i < count; i++) {
+        uint32_t val = src32[i];
+#if 0
+        uint32_t swapped;
+        // FIXME: if Andes N22 supports V5 opcode：REVB.W
+        __asm__ volatile ("revb.w %0, %1" : "=r" (swapped) : "r" (val));
+#endif
+        ((uint32_t *)dst)[i] = ((val & 0xff000000u) >> 24) |
+               ((val & 0x00ff0000u) >> 8)  |
+               ((val & 0x0000ff00u) << 8)  |
+               ((val & 0x000000ffu) << 24);
+    }
+}
+static void fast_array_rev16(const uint8_t *src, uint8_t *dst, size_t count) {
+    // u8 to u16 pointer，to fetch 2 bytes per read
+    const uint16_t *src16 = (const uint16_t *)src;
+    count = (count+1) / 2; // count by u16, always + 1 when not multiple of 2
+
+    for (size_t i = 0; i < count; i++) {
+        uint16_t val = src16[i];
+        ((uint16_t *)dst)[i] = ((val & 0xff00u) >> 8) |
+               ((val & 0x00ffu) << 8);
+    }
+}
+
 static int atcspi_dma_configure(struct device *dev, uint8_t *tx_buf, int tx_len,
         uint8_t *rx_buf, int rx_len)
 {
@@ -744,8 +864,30 @@ static int atcspi_dma_configure(struct device *dev, uint8_t *tx_buf, int tx_len,
         ctrl.dst_req = priv->tx_dma_hw_req;
         ctrl.src_addr_ctrl = DMA_ADDR_CTRL_INCREMENT;
         ctrl.dst_addr_ctrl = DMA_ADDR_CTRL_FIXED;
-        ctrl.src_width = DMA_WIDTH_BYTE;
-        ctrl.dst_width = DMA_WIDTH_BYTE;
+        if (priv->data_unit == SPI_DATA_UNIT_BYTE) {
+            ctrl.src_width = DMA_WIDTH_BYTE;
+            ctrl.dst_width = DMA_WIDTH_BYTE;
+        } else if (priv->data_unit == SPI_DATA_UNIT_WORD) { // 16bits
+            ctrl.src_width = DMA_WIDTH_BYTE;
+            ctrl.dst_width = DMA_WIDTH_HWORD;
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev16(tx_buf, tx_buf, tx_len);
+            fast_array_rev16(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.tx_len_extra);
+        } else { // SPI_DATA_UNIT_DWORD -> 32 bits, or SPI_DATA_UNIT_MERGE
+            ctrl.src_width = DMA_WIDTH_BYTE;
+            ctrl.dst_width = DMA_WIDTH_WORD;
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev32(tx_buf, tx_buf, tx_len);
+            fast_array_rev32(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.tx_len_extra);
+        }
         ctrl.intr_mask = DMA_INTR_TC_MASK | DMA_INTR_ABT_MASK;
         ctrl.src_burst_size = DMA_SRC_BURST_SIZE_8;
 
@@ -780,10 +922,34 @@ static int atcspi_dma_configure(struct device *dev, uint8_t *tx_buf, int tx_len,
         ctrl.dst_req = 0;
         ctrl.src_addr_ctrl = DMA_ADDR_CTRL_FIXED;
         ctrl.dst_addr_ctrl = DMA_ADDR_CTRL_INCREMENT;
-        ctrl.src_width = DMA_WIDTH_BYTE;
-        ctrl.dst_width = DMA_WIDTH_BYTE;
+        if (priv->data_unit == SPI_DATA_UNIT_BYTE) {
+            ctrl.src_width = DMA_WIDTH_BYTE;
+            ctrl.dst_width = DMA_WIDTH_BYTE;
+            ctrl.src_burst_size = DMA_SRC_BURST_SIZE_8;
+        } else if (priv->data_unit == SPI_DATA_UNIT_WORD) { // 16bits
+            ctrl.src_width = DMA_WIDTH_HWORD;
+            ctrl.dst_width = DMA_WIDTH_BYTE;
+            ctrl.src_burst_size = DMA_SRC_BURST_SIZE_4;
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev16(rx_buf, rx_buf, rx_len);
+            fast_array_rev16(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.rx_len_extra);
+        } else { // SPI_DATA_UNIT_DWORD -> 32 bits, or SPI_DATA_UNIT_MERGE
+            ctrl.src_width = DMA_WIDTH_WORD;
+            ctrl.dst_width = DMA_WIDTH_BYTE;
+            ctrl.src_burst_size = DMA_SRC_BURST_SIZE_2;
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev32(rx_buf, rx_buf, rx_len);
+            fast_array_rev32(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.rx_len_extra);
+        }
         ctrl.intr_mask = DMA_INTR_TC_MASK | DMA_INTR_ABT_MASK;
-        ctrl.src_burst_size = DMA_SRC_BURST_SIZE_8;
 
         dma_desc[0].src_addr  = (uint32_t)(dev->base[0] + ATCSPI_DATA);
         dma_desc[0].dst_addr = (uint32_t)rx_buf;
@@ -839,7 +1005,7 @@ static int atcspi_master_transfer(struct device *dev, int slave, uint8_t trx_mod
         return -EINPROGRESS;
     }
 
-    if (tx_len > ATCSPI_TRANS_MAX_LEN || rx_len > ATCSPI_TRANS_MAX_LEN) {
+    if (atcspi_trans_len_invalid(priv, tx_len) || atcspi_trans_len_invalid(priv, rx_len)) {
         return -EINVAL;
     }
 
@@ -874,7 +1040,6 @@ static int atcspi_master_transfer(struct device *dev, int slave, uint8_t trx_mod
     atcspi_master_control_cs(dev, slave, 0);
 
     spi_write(ATCSPI_START_TRIGGER, ATCSPI_CMD);
-
     return 0;
 }
 
@@ -908,7 +1073,7 @@ static int atcspi_master_transfer_with_cmd(struct device *dev, int slave,
         return -EINPROGRESS;
     }
 
-    if (len > ATCSPI_TRANS_MAX_LEN) {
+    if (atcspi_trans_len_invalid(priv, len)) {
         return -EINVAL;
     }
 
@@ -997,7 +1162,7 @@ static int atcspi_slave_trans_prepare(struct device *dev, uint8_t trx_mode, uint
         return -EIO;
     }
 
-    if (tx_len > ATCSPI_TRANS_MAX_LEN || rx_len > ATCSPI_TRANS_MAX_LEN) {
+    if (atcspi_trans_len_invalid(priv, tx_len) || atcspi_trans_len_invalid(priv, rx_len)) {
         return -EINVAL;
     }
 
@@ -1079,6 +1244,40 @@ static int atcspi_slave_set_uesr_state(struct device *dev, uint16_t user_state)
 
     return 0;
 }
+
+
+static void atcspi_complete_post(void *data)
+{
+    struct device *dev = data;
+    struct spi_driver_data *priv = dev->driver_data;
+    struct spi_trans_ctrl *trans_ctrl = &priv->trans_ctrl;
+
+    /*
+     * SWAP if:
+     *  1. RX DMA mode, and
+     *  2. data unit 16/32
+     */
+    if (trans_ctrl->rx_len > 0 && priv->dma_enable) {
+        if (priv->data_unit == SPI_DATA_UNIT_WORD) {
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev16(trans_ctrl->rx_buf, trans_ctrl->rx_buf, trans_ctrl->rx_len);
+            fast_array_rev16(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.rx_len_extra);
+        } else if (priv->data_unit == SPI_DATA_UNIT_DW) { // SPI_DATA_UNIT_DWORD -> 32 bits, or SPI_DATA_UNIT_MERGE
+            /*
+             * Since DMA always takes word as highest-as-MSB byte-order
+             * but SPI sends data out as MSB-first byte-order, which causes RX-side order reversed
+             * So we have to swap before DMA/SPI send out
+             */
+            fast_array_rev32(trans_ctrl->rx_buf, trans_ctrl->rx_buf, trans_ctrl->rx_len);
+            fast_array_rev32(priv->trans_ctrl.extra_buf, priv->trans_ctrl.extra_buf, priv->trans_ctrl.rx_len_extra);
+        }
+    }
+}
+
 
 static int atcspi_irq(int irq, void *data)
 {
@@ -1165,13 +1364,10 @@ static int atcspi_irq(int irq, void *data)
             spi_write(v, ATCSPI_SLAVE_STATUS);
 
             v = spi_read(ATCSPI_SLAVE_DATA_COUNT);
-            event->data.sl_cmpl.rx_amount = v & 0x3FF;
-            event->data.sl_cmpl.tx_amount = (v >> 16) & 0x3FF;
+            event->data.sl_cmpl.rx_amount = v & 0x1FF;
+            event->data.sl_cmpl.tx_amount = (v >> 16) & 0x1FF;
 
-            if (event->data.sl_cmpl.rx_amount > ATCSPI_TRANS_MAX_LEN ||
-                    event->data.sl_cmpl.tx_amount > ATCSPI_TRANS_MAX_LEN) {
-                event->data.sl_cmpl.err |= SPI_SLAVE_ERR_INVALID_LEN;
-            }
+            atcspi_complete_post(data);
         } else {
             event->type = SPI_EVENT_MASTER_TRANS_CMPL;
         }

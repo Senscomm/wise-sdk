@@ -17,7 +17,8 @@
 
 #include "wise_err.h"
 
-#define SCM_SPI_TRANSFER_MAX_LEN	512
+#define SCM_SPI_TRANSFER_MAX_LEN        (512 * 4) // 512 DW = 2048 bytes
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -96,6 +97,14 @@ enum scm_spi_dummy_cycle {
     SCM_SPI_DUMMY_CYCLE_QUAD_IO_8	 = 4,
 };
 
+enum scm_spi_data_unit {
+    SCM_SPI_DATA_UNIT_BYTE                             = 0,
+    SCM_SPI_DATA_UNIT_WORD                             = 1,
+    SCM_SPI_DATA_UNIT_DW                               = 2,
+    SCM_SPI_DATA_UNIT_MERGE                            = 3,
+    SCM_SPI_DATA_UNIT_END                              = 4,
+};
+
 /**
  * SPI device properties
  */
@@ -106,6 +115,8 @@ struct scm_spi_cfg {
     enum scm_spi_mode mode;
     /* data io format */
     enum scm_spi_data_io_format data_io_format;
+	/* datalen unit: byte/word/dw */
+	enum scm_spi_data_unit data_unit;
     /* bit order */
     enum scm_spi_bit_order bit_order;
     /* Extend SPI dummy clock cycle when slave mode.

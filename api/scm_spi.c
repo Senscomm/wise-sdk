@@ -136,6 +136,7 @@ int scm_spi_configure(enum scm_spi_idx idx, struct scm_spi_cfg *cfg, scm_spi_not
 
     spi_cfg.role = (enum spi_role)cfg->role;
     spi_cfg.mode = (enum spi_mode)cfg->mode;
+	spi_cfg.data_unit = (enum spi_data_unit)cfg->data_unit;
     spi_cfg.data_io_format = (enum spi_data_io_format)cfg->data_io_format;
     spi_cfg.bit_order = (enum spi_bit_order)cfg->bit_order;
     spi_cfg.slave_extra_dummy_cycle = (enum spi_dummy_cycle)cfg->slave_extra_dummy_cycle;
@@ -211,6 +212,7 @@ int scm_spi_master_tx(enum scm_spi_idx idx, int slave, uint8_t *tx_buf,
     spi_data[idx].sync = 1;
 
     ret = scm_spi_master_transfer(&spi_data[idx], &arg, IOCTL_SPI_MASTER_TX, timeout);
+
     return ret;
 }
 

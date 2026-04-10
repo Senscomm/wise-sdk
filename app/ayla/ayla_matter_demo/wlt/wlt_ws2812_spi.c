@@ -43,6 +43,30 @@ typedef struct ws2812_pixel
 	
 } ws2812_pixel_t;
 
+#define SPI_EVENT_DEMO_ENABLE	(0)
+#if SPI_EVENT_DEMO_ENABLE
+#define SPI_EVENT_QUE_DEPTH		(15)
+xQueueHandle g_spi_tx_evt_q = (xQueueHandle)NULL;
+struct spi_event
+{
+    uint8_t type;
+	ws2812_pixel_t rgb[WS2812_PIXEL_NUM];
+};
+
+void spi_event_post(const struct spi_event * event)
+{
+    BaseType_t status;
+
+    status = xQueueSend(g_spi_tx_evt_q, event, 1);
+    if (!status) {
+        // log_put(LOG_ERR "Failed to post event to app task event queue");
+		printf("Failed to post event to app task event queue!\n");
+    }
+}
+
+static void spi_evt_run_demo(void);
+#endif
+
 
 /**
  * @brief 初始化硬件SPI（按WS2812时序要求配置）
@@ -107,6 +131,9 @@ int ws2812_spi_init(void) {
     printf("WS2812 SPI init success! ");
     printf("Note: Ensure 3.3V->5V level shifter and hot-plug resistor are connected.\n");
 
+#if SPI_EVENT_DEMO_ENABLE
+	spi_evt_run_demo();
+#endif
     return 0;
 }
 
@@ -185,6 +212,7 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
  * @return 0：发送成功；非0：发送失败
  */
 int ws2812_spi_send( uint8_t *spi_buf) {
+	int ret;
     if (spi_buf == NULL) 
 	{
         return -1;
@@ -196,13 +224,11 @@ int ws2812_spi_send( uint8_t *spi_buf) {
 
 	//if (send_len % 4) send_dw_len += 1;
 
-    if (scm_spi_master_tx(SPI2_IDX , 0 , spi_buf, send_len, WS2812_SPI_TIMEOUT_MS) != 0) 
-
- //   if (scm_spi_master_tx(SPI2_IDX , 0 , spi_buf, send_dw_len, WS2812_SPI_TIMEOUT_MS) != 0) 
-    {
-        printf("WS2812 SPI send failed! %d\n",scm_spi_master_tx(SPI2_IDX , 0 , spi_buf, send_len, WS2812_SPI_TIMEOUT_MS));
-        return -2;
-    }
+	ret = scm_spi_master_tx(SPI2_IDX , 0 , spi_buf, send_len, WS2812_SPI_TIMEOUT_MS);
+	if (ret) {
+		printf("WS2812 spi master tx error %x\n", ret);
+		return -2;
+	}
 
 
     // 3. 发送复位信号（≥280us低电平，文档5.1节RESET码要求）
@@ -400,9 +426,20 @@ extern u8 rgb_colorful_values[100+1][3];
 
 void rgb_value_sync(void)
 { 
-
+#if SPI_EVENT_DEMO_ENABLE
+	// 将 rgb_colorful_values 中的值转成 event
+	struct spi_event evt;
+	evt.type = 120;
+	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
+		evt.rgb[pixel_idx].red = rgb_colorful_values[pixel_idx][0];
+		evt.rgb[pixel_idx].green = rgb_colorful_values[pixel_idx][1];
+		evt.rgb[pixel_idx].blue = rgb_colorful_values[pixel_idx][2];
+	}
+	spi_event_post(&evt);
+#else
 	ws2812_rgb_to_spi((const ws2812_pixel_t*)rgb_colorful_values, g_ws2812_spi_buf);
 	ws2812_spi_send(g_ws2812_spi_buf);
+#endif
 }
 
 
@@ -508,3 +545,41 @@ void matter_wlt_light_set_rgbcw_2(uint16_t red, uint16_t green, uint16_t blue, u
         cwrgb_target_val_set (0, 0, red, green, blue);
     }
 }
+
+#if SPI_EVENT_DEMO_ENABLE
+/* SPI send by event */
+void spi_event_dispatch(struct spi_event * event)
+{
+	ws2812_rgb_to_spi(event->rgb, g_ws2812_spi_buf);
+	ws2812_spi_send(g_ws2812_spi_buf);
+}
+
+void spi_event_dispatch_handle()
+{
+	struct spi_event event;
+
+	while (1) {
+		BaseType_t eventReceived = xQueueReceive(g_spi_tx_evt_q, &event, pdMS_TO_TICKS(10));
+		while (eventReceived == pdTRUE) {
+			spi_event_dispatch(&event);
+			eventReceived = xQueueReceive(g_spi_tx_evt_q, &event, 0);
+		}
+	}
+}
+
+static void spi_evt_run_demo(void)
+{
+	g_spi_tx_evt_q = xQueueCreate(SPI_EVENT_QUE_DEPTH, sizeof(struct spi_event));
+	assert(g_spi_tx_evt_q != NULL);
+
+	osThreadAttr_t attr = {
+		.name 		= "spi-evt-demo",
+		.stack_size = 1024,
+		.priority 	= osPriorityNormal,
+	};
+
+	if (osThreadNew(spi_event_dispatch_handle, NULL, &attr) == NULL) {
+		printf("spi_evt_run_demo start failed\n");
+	}
+}
+#endif
