@@ -1090,20 +1090,6 @@ _ble_phy_rx_set_start_time(uint32_t cputime, uint8_t rem_usecs)
 
     ble_phy_rx();
 
-    /* XXX: no need to delay Rx for g_ble_ll_sched_offset_ticks
-     * just to allow a period of being deaf.
-     */
-    /* XXX: we don't want to patch ROM library functions for this.
-     *      Instead, we will just remove g_ble_ll_sched_offset_ticks here
-     *      except the case of DTM.
-     */
-
-	if (ble_ll_state_get() != BLE_LL_STATE_DTM) {
-        if (cputime > g_ble_ll_sched_offset_ticks) {
-            cputime -= g_ble_ll_sched_offset_ticks;
-        }
-    }
-
     start_time = cputime - os_cputime_usecs_to_ticks(LL_RX_SETTLE + LL_RX_OFFSET);/* Temporary */
     start_time -= os_cputime_usecs_to_ticks(g_ble_phy_data.pta_delay);
 
@@ -1398,6 +1384,10 @@ _ble_phy_disable(void)
     g_ble_phy_data.phy_state = BLE_PHY_STATE_IDLE;
     rf_set_tx_rx_off_auto_mode();
     rf_set_tx_rx_off();
+    /* Clear stale RF IRQs to prevent them firing in the next context. */
+    reg_rf_irq_status = (FLD_RF_IRQ_RX | FLD_RF_IRQ_TX |
+                         FLD_RF_IRQ_FIRST_TIMEOUT | FLD_RF_IRQ_RX_TIMEOUT |
+                         FLD_RF_IRQ_WIFI_DENY);
 
     pm_relax(PM_DEVICE_BLE);
 }

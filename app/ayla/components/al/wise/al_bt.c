@@ -853,7 +853,8 @@ int al_bt_process_gap_event(void *input)
 			// rc = ble_gap_update_params(event->connect.conn_handle, &params);
 			// printf("Slave update conn params, rc:%d!!!\n", rc);
 #endif
-			al_bt_scan_special_event_handle();
+			printf("[BT]Close stopping passive scan workround!\n");
+			// al_bt_scan_special_event_handle();
 		}
 		break;
 
