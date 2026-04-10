@@ -435,9 +435,7 @@ static void demo_set_light_bulb(void)
     }
     demo_light_bulb_do_action(MODE_ACTION, &color, true);
     if (!color) {
-        level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
         temp = color_temp; /* no conversion needed */
-        demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
         demo_light_bulb_do_action(TEMP_ACTION, &temp, true);
     } else {
         rgb.r = (((u32)color_select) >> 16) & 0xff;
@@ -445,6 +443,9 @@ static void demo_set_light_bulb(void)
         rgb.b = (((u32)color_select) >>  0) & 0xff;
         demo_light_bulb_do_action(COLOR_ACTION, (u8 *)&rgb, true);
     }
+    /* No matter which Mode, Level should be the last. That means recover temp or color, then level. */
+    level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
+    demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
 }
 
 static void demo_evt_handler(struct app_event *evt)
