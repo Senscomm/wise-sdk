@@ -126,14 +126,14 @@ extern light_ctrl_data_t sg_light_ctrl_data;
 int iotalink_button_event_handle(unsigned char btn, unsigned int press_time, unsigned char pressed)
 {
 
+
+	printf ("--------------> %d %d %d\n",btn,press_time,pressed);
+#if 1
+	extern void demo_button_toggle(unsigned long pressed, unsigned long released);
+	demo_button_toggle(1,press_time+1);
+#else
 	bool _switch = sg_light_ctrl_data.switch_status;	
-
-
 	u8 mode =  sg_light_ctrl_data.mode;
-	printf ("%d %d %d\n",btn,press_time,pressed);
-
-	
-	
 	/************************>>双击开关灯<<********************************/
 	if (pressed==1)
 	{
@@ -213,6 +213,7 @@ int iotalink_button_event_handle(unsigned char btn, unsigned int press_time, uns
 		ada_conf_reset(1);
 		//wise_restart();
 	}
+#endif
 
 }
 
@@ -256,7 +257,7 @@ void iotalink_button_init(void )
 		.priority 	= osPriorityNormal,    //osPriorityNormal        = 24,osPriorityRealtime,//osPriorityLowcon
 	};
 	/* run the demo in a new thread to allow further CLI */
-//	osThreadNew(iotalink_button_process, NULL, &attr);
+	osThreadNew(iotalink_button_process, NULL, &attr);
 	
 
 }

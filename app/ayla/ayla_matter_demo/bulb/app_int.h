@@ -9,13 +9,13 @@
 #ifndef __AYLA_APP_H__
 #define __AYLA_APP_H__
 
-#define APP_VER         "1.0.8"
+#define APP_VER         "1.1.0"
 #define APP_NAME        "hdy_matter_floor_lamp"
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 
 #define DEMO_OEM_ID	            "ec85a8df" /* may be set to your Ayla OEM ID */
-#define DEMO_OEM_MODEL	        "floor-lamp-dev" /* may be set to your OEM model name */
+#define DEMO_OEM_MODEL	        "floor-lamp" /* may be set to your OEM model name */
 #define DEMO_TEMPLATE_VERSION   "floor_lamp 1.0.4" /* demo template version */
 
 

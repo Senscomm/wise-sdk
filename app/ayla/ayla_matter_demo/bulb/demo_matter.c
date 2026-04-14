@@ -733,6 +733,8 @@ static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, 
 	int ret = 0;
 	static unsigned int ack_count;
 	
+	
+	
 	//printf("%s: %d  %s \r\n",__func__,sprop->type, sprop->name);
 
 	if (sprop->type == ATLV_BOOL) //bool
@@ -756,7 +758,9 @@ static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, 
 
 	else if (sprop->type == ATLV_INT || sprop->type == ATLV_CENTS) //整形
 	{
-	 
+
+	 	
+  
 		s32 val = *(s32 *)buf;
 
 		switch (sprop->val_len)
@@ -791,13 +795,13 @@ static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, 
 		}
 		else if(sprop->val == &scene)
 		{
-
 			light_magicunit_set(scene);			
 			my_printf("[int]%s: set to %d\r\n", sprop->name, scene);
 					
 		}
 		else if(sprop->val == &custome)
 		{
+
 			light_custome_unit_set(custome);
 
 		}
@@ -836,8 +840,11 @@ static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, 
 	
 	if(sprop->val != &brightness && sprop->val != &speed) 
 	{
+		if( sprop->val != &power) set_auto_flag(0);//除开关亮度速度 先把AUTO置0
+		
 		iotalink_light_ctrl_process();	
 	}
+
 		
 
 	return AE_OK;
@@ -1587,11 +1594,11 @@ void demo_init(void)
 #endif
 }
 
-#define BUTTON_SHORT_PRESSED_PERIOD_MIN 80
-#define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
+#define BUTTON_SHORT_PRESSED_PERIOD_MIN 10
+#define BUTTON_SHORT_PRESSED_PERIOD_MAX 800
 #define BUTTON_LONG_PRESSED_PERIOD 3000
 
-static void demo_button_toggle(unsigned long pressed, unsigned long released)
+void demo_button_toggle(unsigned long pressed, unsigned long released)
 {
 	uint8_t state = 0xAA;
 	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX))
@@ -1636,7 +1643,7 @@ void demo_idle(void)
 	{
 
         // todo: use you own gpio api!!
-
+#if 0
 		scm_gpio_read(GPIO_BOOT_BUTTON,&gpio_level);
 	
         if (gpio_level == 0)
@@ -1654,12 +1661,12 @@ void demo_idle(void)
 			{
 				button_released = time_now();
 				log_put(LOG_DEBUG "Button released");
-				demo_button_toggle(button_pressed,
-				    button_released);
+				demo_button_toggle(button_pressed,button_released);
 				button_pressed = 0;
 				button_released = 0;
 			}
 		}
+#endif
         BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
         while (eventReceived == pdTRUE)
 		{

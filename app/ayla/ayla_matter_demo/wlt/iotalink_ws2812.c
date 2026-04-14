@@ -3441,6 +3441,8 @@ void haoyida_234_mode_init( int modeunite)
 
 		case 0://自动循环
 			wlt_ble_remote_control(7);
+			
+			printf(" ---init ------> AUTO \n");
 			break;
 		case 1://正向幻彩
 		
