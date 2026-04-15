@@ -1637,6 +1637,7 @@ namespace chip {
 namespace Logging {
 namespace Platform {
 
+#if 1
 void LogV(const char * module, uint8_t category, const char * msg, va_list v)
 {
 	enum log_sev sev;
@@ -1668,8 +1669,59 @@ void LogV(const char * module, uint8_t category, const char * msg, va_list v)
 	}
 
 	snprintf(format, sizeof(format), "matter[%s]: %s", module, msg);
-	log_put_va_sev(MOD_LOG_CLIENT, sev, format, v);
+	// log_put_va_sev(MOD_LOG_CLIENT, sev, format, v);
 }
+#else
+void LogV(const char * module, uint8_t category, const char * aFormat, va_list v)
+{
+#if 1
+    if (IsCategoryEnabled(category))
+    {
+        char formattedMsg[CHIP_CONFIG_LOG_MESSAGE_MAX_SIZE];
+        size_t formattedMsgLen;
+
+        // len for Category string + "[" + Module name + "] " (Brackets and space =3)
+        // constexpr size_t maxPrefixLen = kMaxCategoryStrLen + chip::Logging::kMaxModuleNameLen + 3;
+        // static_assert(sizeof(formattedMsg) > maxPrefixLen); // Greater than to at least accommodate a ending Null Character
+
+        switch (category)
+        {
+        case kLogCategory_Error:
+            strcpy(formattedMsg, "<err>");
+            break;
+        case kLogCategory_Progress:
+        default:
+            strcpy(formattedMsg, "<info>");
+            break;
+        case kLogCategory_Detail:
+            strcpy(formattedMsg, "<detail>");
+            break;
+        }
+
+        formattedMsgLen = strlen(formattedMsg);
+
+        // Form the log prefix, e.g. "[DL] "
+        snprintf(formattedMsg + formattedMsgLen, sizeof(formattedMsg) - formattedMsgLen, "[%s] ", module);
+        formattedMsg[sizeof(formattedMsg) - 1] = 0;
+        formattedMsgLen                        = strlen(formattedMsg);
+
+        size_t len = vsnprintf(formattedMsg + formattedMsgLen, sizeof formattedMsg - formattedMsgLen, aFormat, v);
+
+        if (len >= sizeof formattedMsg - formattedMsgLen)
+        {
+            formattedMsg[sizeof formattedMsg - 1] = '\0';
+        }
+
+        // PrintLog(formattedMsg);
+		printf("%s\n", formattedMsg);
+    }
+
+    // Let the application know that a log message has been emitted.
+    // chip::DeviceLayer::OnLogOutput();
+#endif // SCM1612S_LOG_ENABLED && _CHIP_USE_LOGGING
+}
+
+#endif
 
 } // namespace Platform
 } // namespace Logging

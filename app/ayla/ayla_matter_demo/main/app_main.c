@@ -89,9 +89,9 @@ void app_main()
 #ifdef CONFIG_AYLA_BULB
     check_power_cycle_count();
 #endif
-    ada_client_command_func_register(app_cmd_exec);
-    AYLA_ASSERT(demo_client_start() == 0);
-    demo_ota_init();
+    // ada_client_command_func_register(app_cmd_exec);
+    // AYLA_ASSERT(demo_client_start() == 0);
+    // demo_ota_init();
     demo_init();
     demo_idle();
 }

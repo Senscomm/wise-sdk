@@ -783,6 +783,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 {
 	log_put(LOG_DEBUG2 "%s %d", __func__, id);
 
+    printf("ADM Event:%d\n", id);
 	switch (id) {
 	case ADM_EVENT_IPV4_UP:
 		ada_client_ip_up();
@@ -912,6 +913,7 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 {
 	enum ada_err err;
 
+    printf("%s %d\n", __func__, __LINE__);
 	if (type != ZCL_BOOLEAN_ATTRIBUTE_TYPE) {
 		log_put(LOG_ERR "%s: invalid type %u", __func__, type);
 		return AE_INVAL_TYPE;
@@ -935,7 +937,7 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 
     demo_post_light_event(*value ? kLightAction_On : kLightAction_Off, 0);
 
-	log_put(LOG_DEBUG "%s on_off %u", __func__, *value);
+	log_put(LOG_INFO "%s on_off %u", __func__, *value);
 
 	return AE_OK;
 }
@@ -950,6 +952,7 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 {
     enum ada_err err;
 
+    printf("%s %d\n", __func__, __LINE__);
 	if (type != ZCL_INT8U_ATTRIBUTE_TYPE) {
 		log_put(LOG_ERR "%s: invalid type %u", __func__, type);
 		return AE_INVAL_TYPE;
@@ -1002,6 +1005,8 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
     enum ada_err err;
     RgbColor_t rgb;
     u32 val;
+
+    printf("%s %d\n", __func__, __LINE__);
 
 	if (value == NULL) {
 		log_put(LOG_ERR "%s: invalid value data %p",
@@ -1189,6 +1194,10 @@ void demo_init(void)
 	int rc;
 #endif
 
+	log_mask_init_min((enum log_mask)BIT(LOG_SEV_INFO), LOG_DEFAULT);
+	log_thread_id_set("m");	/* calling from main thread */
+	log_buf_init();
+
 	bp5758d_init();
 	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
 
@@ -1228,20 +1237,20 @@ void demo_init(void)
 	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
 
-	ada_sprop_mgr_register("demo_matter",
-	    demo_props, ARRAY_LEN(demo_props));
+	// ada_sprop_mgr_register("demo_matter",
+	//     demo_props, ARRAY_LEN(demo_props));
 }
 
 void demo_idle(void)
 {
 	struct app_event event;
 
-    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
+    // host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
 
-	prop_send_by_name("oem_host_version");
-	prop_send_by_name("version");
+    // prop_send_by_name("oem_host_version");
+    // prop_send_by_name("version");
 
-	wise_task_wdt_add(NULL);
+    wise_task_wdt_add(NULL);
 
 	while (1) {
         BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
