@@ -68,6 +68,6 @@ void wlt_light_set_rgbcw(unsigned short cold, unsigned short warm,unsigned short
 
 void matter_wlt_light_set_rgbcw(unsigned short cold, unsigned short warm,unsigned short red, unsigned short green,unsigned short blue);
 
-void matter_wlt_light_set_rgbcw_2(uint16_t red, uint16_t green, uint16_t blue, uint16_t cold, uint16_t warm);
+void matter_wlt_light_set_rgbcw_2(uint16_t r, uint16_t g, uint16_t b, uint16_t c, uint16_t w);
 
 #endif // __WS2812_SPI_H__

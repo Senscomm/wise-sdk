@@ -43,7 +43,7 @@ typedef struct ws2812_pixel
 	
 } ws2812_pixel_t;
 
-#define SPI_EVENT_DEMO_ENABLE	(0)
+#define SPI_EVENT_DEMO_ENABLE	(1)
 #if SPI_EVENT_DEMO_ENABLE
 #define SPI_EVENT_QUE_DEPTH		(15)
 xQueueHandle g_spi_tx_evt_q = (xQueueHandle)NULL;
@@ -59,7 +59,6 @@ void spi_event_post(const struct spi_event * event)
 
     status = xQueueSend(g_spi_tx_evt_q, event, 1);
     if (!status) {
-        // log_put(LOG_ERR "Failed to post event to app task event queue");
 		printf("Failed to post event to app task event queue!\n");
     }
 }
@@ -525,24 +524,20 @@ void matter_wlt_light_set_rgbcw(unsigned short cold, unsigned short warm,unsigne
 
 }
 
-void matter_wlt_light_set_rgbcw_2(uint16_t red, uint16_t green, uint16_t blue, uint16_t cold, uint16_t warm)
+/* 复用 WLT接口, 与灯控逻辑保持一致 */
+void matter_wlt_light_set_rgbcw_2(uint16_t r, uint16_t g, uint16_t b, uint16_t c, uint16_t w)
 {
-    light_power_set(1);
-    light_mode_set(MATTER_MODE);
-    iotalink_light_ctrl_process();
-
-    if ((cold != 0) || (warm != 0)) {
-        wlt_led_pwm_set_duty(0, warm);
-        printf("WLT SET CW: %u|%u.\n", cold, warm);
-        rgbsingleColor(cold, cold, cold);
+	u8 w_convert;
+    if ((c != 0) || (w != 0)) {
+		// c, w 的传入值为 [0 - 254]且已参考了亮度值, 需要做百分比转换, c直接使用为RGB值
+		w_convert = (w * 100) / 254;
+        wlt_led_pwm_set_duty(0, w);
+        rgbsingleColor(c, c, c);
         rgb_value_sync();
-        cwrgb_target_val_set (cold, warm, 0, 0, 0);
     } else {
         wlt_led_pwm_set_duty(0,0);
-        rgbsingleColor(red, green ,blue);
+        rgbsingleColor(r, g ,b);
         rgb_value_sync();
-		printf("WLT SET RGB: %u|%u|%u.\n", red, green, blue);
-        cwrgb_target_val_set (0, 0, red, green, blue);
     }
 }
 

@@ -4,6 +4,7 @@
 #include "iotalink.h"
 #include "scm_flash.h"
 #include "queue.h"
+#include "wlt_ws2812_spi.h"
 
 
 bool MUSIC_LOCAL_MODE;	
@@ -303,7 +304,15 @@ void iotalink_light_ctrl_process(void)
 				MUSIC_LOCAL_MODE = 1;
 				break;
 			case MATTER_MODE://临时显示
-				wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,sg_light_ctrl_data.target_val.red,sg_light_ctrl_data.target_val.green,sg_light_ctrl_data.target_val.blue);
+				printf("[Matter] wlt set r|g|b|c(255)|w(255)|w(100): %u|%u|%u|%u|%u|%u.\n", sg_light_ctrl_data.target_val.red,
+						sg_light_ctrl_data.target_val.green, sg_light_ctrl_data.target_val.blue,
+						sg_light_ctrl_data.target_val.white, sg_light_ctrl_data.target_val.warm, 
+						(sg_light_ctrl_data.target_val.warm * 100) / 254);
+				matter_wlt_light_set_rgbcw_2(sg_light_ctrl_data.target_val.red, 
+						sg_light_ctrl_data.target_val.green, sg_light_ctrl_data.target_val.blue,
+						sg_light_ctrl_data.target_val.white, sg_light_ctrl_data.target_val.warm);
+				break;
+				// wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,sg_light_ctrl_data.target_val.red,sg_light_ctrl_data.target_val.green,sg_light_ctrl_data.target_val.blue);
 			default:
 				
 				break;
@@ -847,14 +856,18 @@ void wlt_ble_remote_control(u8 keyvalue)
 }
 
 
+void light_matter_rgbcw_set(u16 r, u16 g, u16 b, u16 c, u16 w)
+{
+	/* Normally 'power' (on/off) was already set by Matter APP. */
+	light_power_set(1);
+    light_mode_set(MATTER_MODE);
+	cwrgb_target_val_set(c, w, r, g, b);
+	/* Better to use event queue to control the light seqs. */
+    iotalink_light_ctrl_process();
+}
 
 //	osTimerStart(countdown_timer,   MS_TO_TICKS(60*60*1000)) ;
 
 
 	//	osTimerStop(countdown_timer);
 	//	osTimerStart(my_test_timer, MS_TO_TICKS(10));
-
-
-
-
-

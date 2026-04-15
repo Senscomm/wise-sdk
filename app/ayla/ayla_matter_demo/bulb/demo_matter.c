@@ -467,13 +467,13 @@ static void demo_evt_handler(struct app_event *evt)
         u8 on_only = (u8)evt->light_event.value;
         demo_light_bulb_do_action(ON_ACTION, 0, true);
         need_set = on_only != 0 ? false : true;
-        printf("[ON]need set:%d\n", need_set);
+        log_put(LOG_INFO "[kLightAction_On] need set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode2:
     {
         need_set = true;
-        printf("[Mode2] set:%d\n", need_set);
+        log_put(LOG_INFO "[kLightAction_Mode2] need set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode:
@@ -512,7 +512,6 @@ static void demo_evt_handler(struct app_event *evt)
     }
 
     if (need_set) {
-        printf("NEED SET!!!\n");
         demo_set_light_bulb();
     }
 }
@@ -657,7 +656,6 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
         }
     }
 
-    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
 
 	return AE_OK;
@@ -701,7 +699,6 @@ static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
         demo_post_light_event(kLightAction_Mode2, (uint32_t)color);
     }
 
-    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
 
 	return AE_OK;
@@ -1651,7 +1648,7 @@ void demo_idle(void)
 			if (button_pressed == 0)
 			{
 				button_pressed = time_now();
-				my_printf("Button pressed");
+                log_put(LOG_INFO "Button pressed");
 			}
 		//	my_printf("gpio_level %d\n",gpio_level);
 		} 
