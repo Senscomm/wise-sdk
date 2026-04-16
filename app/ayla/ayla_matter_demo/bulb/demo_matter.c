@@ -40,89 +40,6 @@
 #include "bp5758d.h"
 #include "build.h"
 
-#include "ftm.h"
-
-#include "host_prop_mgr.h"
-
-static struct {
-    s32 brightness;
-    s32 color_bright;
-    s32 color_saturation;
-    s32 color_select;
-    s32 color_temp;
-    char mode[32];
-} prop_conf_val_map = {
-    /* string must have no zero len value */
-    .mode = "null"
-};
-
-static struct prop_conf_metadata prop_conf_table[] = {
-    {
-        .prop_name = "brightness",
-        .token =CT_brightness, 
-        .item = {
-            .name = "prop/brightness", 
-            .type = ATLV_INT, 
-            .val = &(prop_conf_val_map.brightness),
-            .len = sizeof(prop_conf_val_map.brightness)
-        }
-    },
-    {
-        .prop_name = "color_bright",
-        .token =CT_color_bright, 
-        .item = {
-            .name = "prop/color_bright", 
-            .type = ATLV_INT, 
-            .val = &prop_conf_val_map.color_bright, 
-            .len = sizeof(prop_conf_val_map.color_bright)
-        }
-    },
-    {
-        .prop_name = "color_saturation",
-        .token =CT_color_saturation, 
-        .item = {
-            .name = "prop/color_saturation",
-            .type = ATLV_INT, 
-            .val = &prop_conf_val_map.color_saturation,
-            .len = sizeof(prop_conf_val_map.color_saturation)
-        }
-    },
-    {
-        .prop_name = "color_select",
-        .token =CT_color_select,
-        .item = {
-            .name = "prop/color_select",
-            .type = ATLV_INT,
-            .val = &prop_conf_val_map.color_select,
-            .len = sizeof(prop_conf_val_map.color_select)
-        }
-    },
-    {
-        .prop_name = "color_temp",
-        .token =CT_color_temp, 
-        .item = {
-            .name = "prop/color_temp",
-            .type = ATLV_INT,
-            .val = &prop_conf_val_map.color_temp,
-            .len = sizeof(prop_conf_val_map.color_temp)
-        }
-    },
-    {
-        .prop_name = "mode",
-        .token =CT_mode, 
-        .item = {
-            .name = "prop/mode",
-            .type = ATLV_UTF8,
-            .val = prop_conf_val_map.mode,
-            .len = sizeof(prop_conf_val_map.mode)
-        }
-    },
-    /* must be the last, we do not pass the table size */
-    {
-        .prop_name = NULL,
-    }
-};
-
 #define DEMO_ENDPOINT_LIGHTING	1
 
 #define DEMO_SYNC_RETRY_MAX	10
@@ -244,10 +161,6 @@ static const uint8_t demo_test_cert_declaration[539] = {
  * the Matter fabric is reconnected.
  * For now, we assume that default attribute values come before ADS is connected.
  */
-static bool demo_sprop_is_ready(void)
-{
-    return (ada_sprop_dest_mask & NODES_ADS) ? true : false;
-}
 
 /*
  * Range converter
@@ -408,263 +321,6 @@ static void demo_post_light_event(uint8_t action, uint32_t value)
     app_event_post(&evt);
 }
 
-/*
- * Demo set function for bool properties.
- */
-static enum ada_err demo_bool_set(struct ada_sprop *sprop, const void *buf,
-        size_t len)
-{
-	enum ada_err err;
-
-	err = ada_sprop_set_bool(sprop, buf, len);
-	if (err) {
-		return err;
-	}
-
-    if (!strcmp(sprop->name, "power")) {
-
-        demo_post_light_event(*(uint8_t *)sprop->val ? kLightAction_On
-                : kLightAction_Off, 0);
-
-        err = adm_write_boolean(DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID,
-                ADM_ON_OFF_AID, power);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: %s to matter %d OK", __func__, sprop->name, power);
-        }
-    }
-
-	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(uint8_t *)sprop->val);
-
-	return AE_OK;
-}
-
-/*
- * Demo set function for integer and decimal properties.
- */
-static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
-        size_t len)
-{
-	enum ada_err err;
-
-	err = ada_sprop_set_int(sprop, buf, len);
-	if (err) {
-		return err;
-	}
-
-    if (!strcmp(sprop->name, "brightness")) {
-        u8 level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
-
-        demo_post_light_event(kLightAction_Level, (uint32_t)level);
-
-        err = adm_write_u8(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
-            ADM_CURRENT_LEVEL_AID, level);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: %s to matter %d OK", __func__, sprop->name, level);
-        }
-    } else if (!strcmp(sprop->name, "color_temp")) {
-        u16 mireds = demo_convert_temp_to_mireds(color_temp);
-
-        demo_post_light_event(kLightAction_Temp, (uint32_t)color_temp);
-
-        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-            ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID, mireds);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: %s to matter %d OK", __func__, sprop->name, color_temp);
-        }
-    } else if (!strcmp(sprop->name, "color_select")) {
-        u8 r = color_select >> 16;
-        u8 g = color_select >> 8;
-        u8 b = color_select >> 0;
-
-        demo_post_light_event(kLightAction_Color, (uint32_t)color_select);
-
-        hsv = RgbToHsv(r, g, b);
-        xy = RgbToXy(r, g, b);
-
-        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-            ADM_COLOR_CONTROL_CURRENT_HUE_AID, hsv.h);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: CurrentHue to matter %d OK", __func__, hsv.h);
-        }
-
-        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-            ADM_COLOR_CONTROL_CURRENT_SATURATION_AID, hsv.s);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: CurrentSaturation to matter %d OK", __func__, hsv.s);
-        }
-
-        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-            ADM_COLOR_CONTROL_CURRENT_X_AID, xy.x);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: CurrentX to matter %d OK", __func__, xy.x);
-        }
-
-        err = adm_write_u16(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-            ADM_COLOR_CONTROL_CURRENT_Y_AID, xy.y);
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: CurrentY to matter %d OK", __func__, xy.y);
-        }
-
-        if (!strncmp(mode, "color", sizeof(mode))) {
-            err = adm_write_u8(DEMO_ENDPOINT_LIGHTING, ADM_LEVEL_CONTROL_CID,
-                ADM_CURRENT_LEVEL_AID, hsv.v);
-            if (err) {
-                log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-            } else {
-                log_put(LOG_DEBUG "%s: CurrentLevel to matter %d OK", __func__, hsv.v);
-            }
-        }
-    }
-
-    host_prop_unsync_tag(sprop, prop_conf_table);
-	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
-
-	return AE_OK;
-}
-
-/*
- * Demo set function for string properties.
- */
-static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
-        size_t len)
-{
-	enum ada_err err;
-    u8 color;
-
-	err = ada_sprop_set_string(sprop, buf, len);
-	if (err) {
-		return err;
-	}
-
-    if (!strcmp(sprop->name, "mode")) {
-        if (!strncmp(buf, "white", len)) {
-            color = 0;
-        } else if (!strncmp(buf, "color", len)) {
-            color = 1;
-        } else {
-            return AE_INVAL_VAL;
-        }
-
-        err = adm_write_enum8(DEMO_ENDPOINT_LIGHTING, ADM_COLOR_CONTROL_CID,
-                ADM_COLOR_CONTROL_COLOR_MODE_AID, color ? 0 : 2); /* XXX: XY ? */
-        if (err) {
-            log_put(LOG_WARN "%s: matter write err %d", __func__, err);
-        } else {
-            log_put(LOG_DEBUG "%s: %s to matter %d OK", __func__, sprop->name, color ? 0 : 2);
-        }
-
-        demo_post_light_event(kLightAction_Mode2, (uint32_t)color);
-    }
-
-    host_prop_unsync_tag(sprop, prop_conf_table);
-	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
-
-	return AE_OK;
-}
-
-/*
- * Demo set function for command property.
- */
-static enum ada_err demo_cmd_set(struct ada_sprop *sprop, const void *buf,
-	size_t len)
-{
-	if (sprop->type != ATLV_UTF8) {
-		return AE_INVAL_TYPE;
-	}
-
-	if (len > sizeof(_log) - 1) {
-		len = sizeof(_log) - 1;
-	}
-	memcpy(_log, buf, len);
-	_log[len] = '\0';
-	ada_sprop_send_by_name("log");
-	return AE_OK;
-}
-
-static struct ada_sprop demo_props[] = {
-	/*
-	 * version properties
-	 * oem_host_version is the template version and must be sent first.
-	 */
-	{ "oem_host_version", ATLV_UTF8,
-		template_version, sizeof(template_version),
-		ada_sprop_get_string, NULL},
-	{ "version", ATLV_UTF8, &version[0], sizeof(version),
-		ada_sprop_get_string, NULL},
-	{ "factory_name", ATLV_UTF8,
-		factory_name, sizeof(factory_name),
-		ada_sprop_get_string, NULL},
-	{ "device_id", ATLV_UTF8, &device_id[0], sizeof(device_id),
-		ada_sprop_get_string, NULL},
-	{ "purchase_order", ATLV_UTF8,
-		purchase_order, sizeof(purchase_order),
-		ada_sprop_get_string, NULL},
-	{ "led_driver", ATLV_UTF8, &led_driver[0], sizeof(led_driver),
-		ada_sprop_get_string, NULL},
-	{ "mode", ATLV_UTF8, mode, sizeof(mode),
-		ada_sprop_get_string, demo_string_set},
-	{ "device_rename", ATLV_UTF8, &device_rename[0], sizeof(device_rename),
-		ada_sprop_get_string, demo_string_set},
-
-	/*
-	 * boolean properties.
-	 */
-	{ "alexa_enabled", ATLV_BOOL, &alexa_enabled, sizeof(alexa_enabled),
-		ada_sprop_get_bool, demo_bool_set},
-	{ "google_enable", ATLV_BOOL, &google_enable, sizeof(google_enable),
-		ada_sprop_get_bool, demo_bool_set },
-	{ "local_voice_enable", ATLV_BOOL, &local_voice_enable, sizeof(local_voice_enable),
-		ada_sprop_get_bool, demo_bool_set },
-	{ "power", ATLV_BOOL, &power, sizeof(power),
-		ada_sprop_get_bool, demo_bool_set },
-
-	/*
-	 * Integer properties.
-	 */
-	{ "brightness", ATLV_INT, &brightness, sizeof(brightness),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_bright", ATLV_INT, &color_bright, sizeof(color_bright),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_saturation", ATLV_INT, &color_saturation, sizeof(color_saturation),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_select", ATLV_INT, &color_select, sizeof(color_select),
-		ada_sprop_get_int, demo_int_set },
-	{ "color_temp", ATLV_INT, &color_temp, sizeof(color_temp),
-		ada_sprop_get_int, demo_int_set },
-	{ "wifi_rssi", ATLV_INT, &wifi_rssi, sizeof(wifi_rssi),
-		ada_sprop_get_int, demo_int_set },
-
-	/*
-	 * String properties.
-	 */
-	{ "cmd", ATLV_UTF8, "", 0, ada_sprop_get_string, demo_cmd_set },
-	{ "log", ATLV_UTF8, _log, sizeof(_log), ada_sprop_get_string, NULL },
-};
-
-static void prop_send_by_name(const char *name)
-{
-	enum ada_err err;
-
-	err = ada_sprop_send_by_name(name);
-	if (err) {
-		log_put(LOG_ERR "demo: %s: send of %s: err %d",
-				__func__, name, err);
-	}
-}
 
 static void demo_lc_completed(bool timeout)
 {
@@ -685,6 +341,7 @@ static void demo_lc_do_sync(u32 timeout)
     u16 mireds;
 	enum ada_err err;
 
+#if 0
     /* Synchronize to ADA properties
      */
 
@@ -730,7 +387,7 @@ static void demo_lc_do_sync(u32 timeout)
         log_put(LOG_DEBUG "%s: send color_temp  %d OK", __func__,
                 color_temp);
     }
-
+#endif
     /* Synchronize to cluster attributes
      */
 
@@ -927,14 +584,6 @@ static enum ada_err demo_on_off_cb(u8 post_change, u16 endpoint,
 
     power = *value;
 
-    if (demo_sprop_is_ready()) {
-        err = ada_sprop_send_by_name("power");
-        if (err) {
-            log_put(LOG_ERR "%s: send power: err %d",
-                __func__, err);
-        }
-    }
-
     demo_post_light_event(*value ? kLightAction_On : kLightAction_Off, 0);
 
 	log_put(LOG_INFO "%s on_off %u", __func__, *value);
@@ -973,19 +622,6 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 
     /* XXX: why do they have to differ? */
     brightness = color_bright = (int)demo_convert_range(*value, 0, 254, 0, 100);
-
-    if (demo_sprop_is_ready()) {
-        err = ada_sprop_send_by_name("brightness");
-        if (err) {
-            log_put(LOG_ERR "%s: send brightness: err %d",
-                __func__, err);
-        }
-        err = ada_sprop_send_by_name("color_bright");
-        if (err) {
-            log_put(LOG_ERR "%s: send color_bright: err %d",
-                __func__, err);
-        }
-    }
 
     demo_post_light_event(kLightAction_Level, *value);
 
@@ -1040,14 +676,6 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
         val = (0 << 24 | rgb.r << 16 | rgb.g << 8 | rgb.b);
 
         color_select = (int)val;
-        if (demo_sprop_is_ready()) {
-            err = ada_sprop_send_by_name("color_select");
-            if (err) {
-                log_put(LOG_ERR "%s: send color_select: err %d",
-                    __func__, err);
-            }
-            /* XXX: update color_saturation ? */
-        }
 
         demo_post_light_event(kLightAction_Color, val);
 
@@ -1083,21 +711,6 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
             color_saturation = demo_convert_range(hsv.s, 0, 254, 0, 100);
         }
 
-        if (demo_sprop_is_ready()) {
-            err = ada_sprop_send_by_name("color_select");
-            if (err) {
-                log_put(LOG_ERR "%s: send color_select: err %d",
-                    __func__, err);
-            }
-            if (attribute == ADM_COLOR_CONTROL_CURRENT_SATURATION_AID) {
-                err = ada_sprop_send_by_name("color_saturation");
-                if (err) {
-                    log_put(LOG_ERR "%s: send color_saturation: err %d",
-                        __func__, err);
-                }
-            }
-        }
-
         demo_post_light_event(kLightAction_Color, val);
 
         log_put(LOG_DEBUG "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
@@ -1117,14 +730,6 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         color_temp = temp;
 
-        if (demo_sprop_is_ready()) {
-            err = ada_sprop_send_by_name("color_temp");
-            if (err) {
-                log_put(LOG_ERR "%s: send color_temp: err %d",
-                    __func__, err);
-            }
-        }
-
         demo_post_light_event(kLightAction_Temp, (uint32_t)temp);
 
         log_put(LOG_DEBUG "%s: mireds %u, temp %d", __func__, mireds, temp);
@@ -1135,13 +740,6 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
         if (((*value == 0 || *value == 1) && strcmp(mode, "color"))
                 || (*value == 2 && strcmp(mode, "white"))) {
             strncpy(mode, *value == 2 ? "white" : "color", sizeof(mode));
-            if (demo_sprop_is_ready()) {
-                err = ada_sprop_send_by_name("mode");
-                if (err) {
-                    log_put(LOG_ERR "%s: send mode: err %d",
-                        __func__, err);
-                }
-            }
         }
 
         demo_post_light_event(kLightAction_Mode2, 1);
@@ -1171,34 +769,14 @@ static void init_ayla_clusters(void)
     MatterAylaLocalControlPluginServerInitCallback();
 }
 
-static int demo_run_ftm(void)
-{
-    struct app_event evt;
-
-    if (!ftm_is_enabled()) {
-        return 0;
-    }
-
-    evt.type = kEventType_Install;
-    evt.install_event.callback = ftm_run;
-    evt.install_event.arg = 0;
-
-    app_event_post(&evt);
-
-    return 1;
-}
-
 void demo_init(void)
 {
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	int rc;
 #endif
 
-	log_mask_init_min((enum log_mask)BIT(LOG_SEV_INFO), LOG_DEFAULT);
-	log_thread_id_set("m");	/* calling from main thread */
-	log_buf_init();
-
-	bp5758d_init();
+    /* 替换成其他IC驱动 */
+    bp5758d_init();
 	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
 
     app_event_init();
@@ -1207,14 +785,6 @@ void demo_init(void)
 
     lighting_mgr_init(LightMgr());
     lighting_ctrl_init();
-
-    ftm_init();
-    if (demo_run_ftm()) {
-        /* This is FTM mode.
-         * Skip everything else and go directly to the event loop.
-         */
-        return;
-    }
 
 	adm_init();
     init_ayla_clusters();
@@ -1236,19 +806,11 @@ void demo_init(void)
 	adm_attribute_change_cb_register(&demo_on_off_cb_entry);
 	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
-
-	// ada_sprop_mgr_register("demo_matter",
-	//     demo_props, ARRAY_LEN(demo_props));
 }
 
 void demo_idle(void)
 {
 	struct app_event event;
-
-    // host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
-
-    // prop_send_by_name("oem_host_version");
-    // prop_send_by_name("version");
 
     wise_task_wdt_add(NULL);
 

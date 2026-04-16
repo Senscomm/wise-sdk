@@ -222,6 +222,7 @@ int ada_init(void)
 		printf("lock creation failed\n");
 	}
 	ASSERT(client_mutex);
+#if 0
 	client_callback_lock = al_os_lock_create();
 	ASSERT(client_callback_lock);
 
@@ -251,6 +252,7 @@ int ada_init(void)
 
 #ifdef AYLA_METRICS_SUPPORT
 	client_metrics_init();
+#endif
 #endif
 	return 0;
 }

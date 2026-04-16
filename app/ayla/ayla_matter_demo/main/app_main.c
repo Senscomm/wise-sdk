@@ -91,6 +91,8 @@ void app_main()
 #endif
     // ada_client_command_func_register(app_cmd_exec);
     // AYLA_ASSERT(demo_client_start() == 0);
+    printf("Simple ada init!\n");
+    ada_init();
     // demo_ota_init();
     demo_init();
     demo_idle();
