@@ -113,7 +113,7 @@ void light_music_update(uint32_t value);
 void light_sensitivity_update(uint32_t value);
 void light_rgb_sequence_update(uint32_t value);
 
-void light_matter_rgbcw_set(u16 r, u16 g, u16 b, u16 c, u16 w);
+
 
 
 
@@ -137,3 +137,4 @@ void set_auto_flag(u8 state);
 
 
 #endif
+

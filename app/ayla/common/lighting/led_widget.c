@@ -23,6 +23,7 @@
 #include "led_widget.h"
 
 #include "bp5758d.h"
+#include "wlt_ws2812_spi.h"
 #include "iotalink_control.h"
 
 void TimerHandler(TimerHandle_t xTimer)
@@ -168,7 +169,7 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
         bp5758d_set_rgbcw_channel(r, g, b, 0, 0);
 #else
         /* Use WLT Module APIs */
-        light_matter_rgbcw_set(rgb.r, rgb.g, rgb.b, 0, 0);
+        matter_wlt_light_set_rgbcw_2(rgb.r, rgb.g, rgb.b, 0, 0);
 #endif
         break;
     case LED_STATUS:
@@ -185,7 +186,6 @@ static void led_widget_control_white(struct led_widget *lw)
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
 #else
-    /* Consider level, but level is in range 0-254. Change to 0-100 by device interface. */
     target = lw->level;
 #endif
     cool = (uint16_t)((target * lw->temp) / 100);
@@ -197,7 +197,7 @@ static void led_widget_control_white(struct led_widget *lw)
         bp5758d_set_rgbcw_channel(0, 0, 0, cool, warm);
 #else
         /* Use WLT Module APIs */
-        light_matter_rgbcw_set(0, 0, 0, cool, warm);
+        matter_wlt_light_set_rgbcw_2(0, 0, 0, cool, warm);
 #endif
     } else if (lw->led == LED_STATUS) {
     } else {
