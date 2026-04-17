@@ -37,7 +37,8 @@
 #include "lighting_mgr.h"
 #include "lighting_ctrl.h"
 
-#include "bp5758d.h"
+// #include "bp5758d.h"
+#include "bp1638cj.h"
 #include "build.h"
 
 #define DEMO_ENDPOINT_LIGHTING	1
@@ -776,8 +777,10 @@ void demo_init(void)
 #endif
 
     /* 替换成其他IC驱动 */
-    bp5758d_init();
-	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+    // bp5758d_init();
+	// bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+    bp1638cj_init();
+    bp1638cj_set_rgbcw_channel(0, 0, 0, 156, 44);
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);

@@ -13,6 +13,7 @@ ccflags-y += -I$(src)/components/jsmn
 ccflags-y += -I$(src)/components/paho/MQTTPacket/src
 ccflags-y += -I$(src)/ayla_demo/main
 ccflags-y += -I$(src)/common/driver/bp5758d
+ccflags-y += -I$(src)/common/driver/bp1638cj
 ccflags-y += -I$(src)/common/event
 ccflags-y += -I$(src)/common/lighting
 ccflags-y += -I$(src)/common/ftm
@@ -298,6 +299,7 @@ obj-$(CONFIG_AYLA) += \
 obj-$(CONFIG_AYLA_BULB) += \
 	ayla_demo/bulb/demo.o \
 	common/driver/bp5758d/bp5758d.o \
+	common/driver/bp1638cj/bp1638cj.o \
 	common/lighting/color_format.o \
 	common/lighting/led_widget.o \
 	common/lighting/lighting_ctrl.o \
@@ -309,4 +311,5 @@ obj-$(CONFIG_AYLA_BULB) += \
 obj-$(CONFIG_AYLA_LEDEVB) += \
 	ayla_demo/led_demo/demo.o \
 	common/driver/bp5758d/bp5758d.o \
+	common/driver/bp1638cj/bp1638cj.o \
 	common/host_prop_mgr/host_prop_mgr.o \

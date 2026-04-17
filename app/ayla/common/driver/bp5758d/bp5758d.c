@@ -36,7 +36,7 @@ struct bp5758d_ctx {
 	bool sleep_mode;
 };
 
-struct bp5758d_ctx *g_ctx = NULL;
+static struct bp5758d_ctx * g_ctx = NULL;
 
 static int check_initialized(void)
 {
