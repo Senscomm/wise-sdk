@@ -43,9 +43,10 @@ typedef struct ws2812_pixel
 	
 } ws2812_pixel_t;
 
-#define SPI_EVENT_DEMO_ENABLE	(0)
+#define SPI_EVENT_DEMO_ENABLE	(1)
 #if SPI_EVENT_DEMO_ENABLE
 #define SPI_EVENT_QUE_DEPTH		(15)
+uint8_t spi_event_task_state = 0;
 xQueueHandle g_spi_tx_evt_q = (xQueueHandle)NULL;
 struct spi_event
 {
@@ -132,6 +133,7 @@ int ws2812_spi_init(void) {
     printf("Note: Ensure 3.3V->5V level shifter and hot-plug resistor are connected.\n");
 
 #if SPI_EVENT_DEMO_ENABLE
+	printf("Use spi event task demo!\n");
 	spi_evt_run_demo();
 #endif
     return 0;
@@ -427,15 +429,19 @@ extern u8 rgb_colorful_values[100+1][3];
 void rgb_value_sync(void)
 { 
 #if SPI_EVENT_DEMO_ENABLE
-	// 将 rgb_colorful_values 中的值转成 event
-	struct spi_event evt;
-	evt.type = 120;
-	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
-		evt.rgb[pixel_idx].red = rgb_colorful_values[pixel_idx][0];
-		evt.rgb[pixel_idx].green = rgb_colorful_values[pixel_idx][1];
-		evt.rgb[pixel_idx].blue = rgb_colorful_values[pixel_idx][2];
+	if (spi_event_task_state) {
+		struct spi_event evt;
+		evt.type = 120;
+		for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
+			evt.rgb[pixel_idx].red = rgb_colorful_values[pixel_idx][0];
+			evt.rgb[pixel_idx].green = rgb_colorful_values[pixel_idx][1];
+			evt.rgb[pixel_idx].blue = rgb_colorful_values[pixel_idx][2];
+		}
+		spi_event_post(&evt);
+	} else {
+		ws2812_rgb_to_spi((const ws2812_pixel_t*)rgb_colorful_values, g_ws2812_spi_buf);
+		ws2812_spi_send(g_ws2812_spi_buf);
 	}
-	spi_event_post(&evt);
 #else
 	ws2812_rgb_to_spi((const ws2812_pixel_t*)rgb_colorful_values, g_ws2812_spi_buf);
 	ws2812_spi_send(g_ws2812_spi_buf);
@@ -580,6 +586,9 @@ static void spi_evt_run_demo(void)
 
 	if (osThreadNew(spi_event_dispatch_handle, NULL, &attr) == NULL) {
 		printf("spi_evt_run_demo start failed\n");
+		spi_event_task_state = 0;
 	}
+
+	spi_event_task_state = 1;
 }
 #endif

@@ -193,7 +193,7 @@ int al_matter_unique_id_config_set(const char *unique_id, u8 overwrite)
 
 void al_matter_config_reset(void)
 {
-	printf("12");
+	printf("%s reset track stub1\n", __func__);
 	/* Erase all values in the chip-config NVS namespace */
 	SCM1612SConfig::ClearNamespace(SCM1612SConfig::kConfigNamespace_ChipConfig);
 
@@ -202,9 +202,10 @@ void al_matter_config_reset(void)
 
 #if CHIP_DEVICE_CONFIG_ENABLE_WIFI
 	/* Erase Wi-Fi config */
-    scm_wifi_clear_config(WIFI_IF_STA);
+	/* This operation is not mandatory and it may cause abnormalities during the reset restart process. */
+    // scm_wifi_clear_config(WIFI_IF_STA);
 #endif
-	printf("34\n");
+	printf("%s reset track stub2\n", __func__);
 	/* Erase all key-values including fabric info */
 	PersistedStorage::KeyValueStoreMgrImpl().ErasePartition();
 }
