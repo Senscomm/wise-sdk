@@ -52,6 +52,12 @@ struct bp1638cj_ctx {
 
 static struct bp1638cj_ctx *g_ctx = NULL;
 
+inline static uint32_t value_to_pwm_high(uint16_t value)
+{
+    uint32_t ratio = ((value * 100 + 1) / (bp1638cj_get_max_level()-bp1638cj_get_min_level())); // round up
+    return (ratio * PWM_CYCLE_PERIOD_IN_US) / 100; 
+}
+
 static int check_initialized(void)
 {
 	if (!g_ctx) {
@@ -197,6 +203,7 @@ int bp1638cj_shutdown(void)
 int bp1638cj_set_standby(bool enable)
 {
 	int ret = 0;
+	uint16_t high, low;
 
 	if (check_initialized() < 0) {
 		return -1;
@@ -208,11 +215,35 @@ int bp1638cj_set_standby(bool enable)
 	if (enable) {
 		// DISABLE_ALL_OUT;
 		g_ctx->sleep_mode = true;
-        ret = bp1638cj_set_rgbcw_channel(0, 0, 0, 0, 0);
+        // ret = bp1638cj_set_rgbcw_channel(0, 0, 0, 0, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_R, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_G, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_B, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_T, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_L, 0);
+		high = value_to_pwm_high(0);
+    	low = PWM_CYCLE_PERIOD_IN_US - high;
+		ret += send_pwm(BP1638CJ_CHANNEL_R, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_G, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_B, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_T, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_L, high, low);
 	} else {
 		// ENABLE_ALL_OUT;
 		g_ctx->sleep_mode = false;
-        ret = bp1638cj_set_rgbcw_channel(100, 100, 100, 100, 100);
+        // ret = bp1638cj_set_rgbcw_channel(100, 100, 100, 100, 100);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_R, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_G, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_B, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_T, 0);
+		// bp1638cj_set_channel(BP1638CJ_CHANNEL_L, 0);
+		high = value_to_pwm_high(100);
+    	low = PWM_CYCLE_PERIOD_IN_US - high;
+		ret += send_pwm(BP1638CJ_CHANNEL_R, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_G, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_B, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_T, high, low);
+		ret += send_pwm(BP1638CJ_CHANNEL_L, high, low);
 	}
 
 	if (ret) {
@@ -230,12 +261,6 @@ int bp1638cj_get_max_level()
 int bp1638cj_get_min_level()
 {
     return 0;
-}
-
-inline static uint32_t value_to_pwm_high(uint16_t value)
-{
-    uint32_t ratio = ((value * 100 + 1) / (bp1638cj_get_max_level()-bp1638cj_get_min_level())); // round up
-    return (ratio * PWM_CYCLE_PERIOD_IN_US) / 100; 
 }
 
 
@@ -425,10 +450,12 @@ int bp1638cj_set_rgbcw_channel(uint16_t value_r, uint16_t value_g, uint16_t valu
 	}
 #endif
 
+/* No need for bp1638cj */
+#if 0
 	if (value_r == 0 && value_g == 0 && value_b == 0 &&
 	    value_t == 0 && value_l == 0) {
 		ret = bp1638cj_set_standby(true);
 	}
-
+#endif
 	return ret;
 }

@@ -454,6 +454,8 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
     {
+        // printf("[1]Do nothing now!!!!\n");
+        // break;
         int i;
         struct app_event evt[] = {
             {
@@ -511,7 +513,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(-1, 180000/* 3 min. */, demo_lc_completed);
+        lighting_ctrl_run(-1, 60000/* 3 min. */, demo_lc_completed);
 
         onboarding = true;
     }
@@ -521,6 +523,8 @@ static void demo_matter_event_cb(enum adm_event_id id)
         break;
 	case ADM_EVENT_COMMISSIONING_COMPLETE:
     {
+        // printf("[2]Do nothing now!!!!\n");
+        // break;
         int i;
         struct app_event evt[] = {
             {
@@ -780,7 +784,7 @@ void demo_init(void)
     // bp5758d_init();
 	// bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
     bp1638cj_init();
-    bp1638cj_set_rgbcw_channel(0, 0, 0, 156, 44);
+    bp1638cj_set_rgbcw_channel(0, 0, 0, 77, 44);
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);
@@ -826,3 +830,55 @@ void demo_idle(void)
 	    wise_task_wdt_reset(NULL);
 	}
 }
+
+#if 1
+// cli cmd control NVC
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <cli.h>
+
+static int do_nvc_test(int argc, char *argv[])
+{
+    const char *format;
+	int value_r, value_g, value_b;
+
+	if (argc != 5) {
+		return CMD_RET_USAGE;
+	}
+
+    format = argv[1];
+	value_r = atoi(argv[2]);
+	value_g = atoi(argv[3]);
+	value_b = atoi(argv[4]);
+
+	if (value_r > 255 || value_g > 255 || value_b > 255) {
+		return CMD_RET_USAGE;
+	}
+
+    printf("Input V:[%d][%d][%d]\n", value_r, value_g, value_b);
+    if (!strcmp(format, "color")) {
+        bp1638cj_set_rgbcw_channel(value_r, value_g, value_b, 0, 0);
+    } else if (!strcmp(format, "white")) {
+        bp1638cj_set_rgbcw_channel(0, 0, 0, value_r, value_g);
+    } else if (!strcmp(format, "onoff")) {
+        // bp1638cj_set_standby(value_r);
+        if (value_r != 0) {
+            bp1638cj_set_rgbcw_channel(100, 100, 100, 0, 0);
+        } else {
+            bp1638cj_set_rgbcw_channel(0, 0, 0, 0, 0);
+        }
+    } else {
+        return CMD_RET_USAGE;
+    }
+
+	return CMD_RET_SUCCESS;
+}
+
+CMD(nvc, do_nvc_test,
+		"Test nvc Bulb control",
+		"nvc <color|white|onoff> <r/c/on-off> <g/w/0> <b/0/0>"
+   );
+#endif

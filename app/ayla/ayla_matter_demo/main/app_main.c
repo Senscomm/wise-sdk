@@ -87,6 +87,7 @@ void app_main()
 
     printf("\r\n\n%s\r\n", APP_NAME " " BUILD_STRING);
 #ifdef CONFIG_AYLA_BULB
+    printf("check_power_cycle_count:ON!\n");
     check_power_cycle_count();
 #endif
     // ada_client_command_func_register(app_cmd_exec);
