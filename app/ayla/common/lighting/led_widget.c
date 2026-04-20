@@ -22,7 +22,8 @@
 
 #include "led_widget.h"
 
-#include "bp5758d.h"
+// #include "bp5758d.h"
+#include "bp1638cj.h"
 
 void TimerHandler(TimerHandle_t xTimer)
 {
@@ -97,7 +98,11 @@ void led_widget_do_set(struct led_widget *lw, bool state)
     switch (lw->led)
     {
     case LED_LIGHT:
+#if 0
         bp5758d_set_standby(!state);
+#else
+        bp1638cj_set_standby(!state);
+#endif
         break;
     case LED_STATUS:
 #ifdef __no_stub__
@@ -150,14 +155,24 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
     hsv = RgbToHsv(rgb.r, rgb.g, rgb.b);
     lw->level = hsv.v;
 
+#if 0
     r = (rgb.r * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     g = (rgb.g * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     b = (rgb.b * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
+#else
+    r = (rgb.r * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    g = (rgb.g * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    b = (rgb.b * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+#endif
 
     switch (lw->led)
     {
     case LED_LIGHT:
+#if 0
         bp5758d_set_rgbcw_channel(r, g, b, 0, 0);
+#else
+        bp1638cj_set_rgbcw_channel(r, g, b, 0, 0);
+#endif
         break;
     case LED_STATUS:
         break;
@@ -168,15 +183,22 @@ static void led_widget_control_white(struct led_widget *lw)
 {
     uint32_t target = 0;
     uint16_t cool, warm;
-
+#if 0
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
+#else
+    target = (lw->level == 0) ? 0 :(((bp1638cj_get_max_level() - bp1638cj_get_min_level()) * lw->level) / 254);
+#endif
     cool = (uint16_t)((target * lw->temp) / 100);
     warm = (uint16_t)((target * (100 - lw->temp)) / 100);
 
     if (lw->led == LED_LIGHT)
     {
+#if 0
         bp5758d_set_rgbcw_channel(0, 0, 0, cool, warm);
+#else
+        bp1638cj_set_rgbcw_channel(0, 0, 0, cool, warm);
+#endif
     }
     else if (lw->led == LED_STATUS)
     {
