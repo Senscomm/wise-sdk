@@ -5,7 +5,7 @@
 
 #define button_cnt 1
 
-#define SHORT_PRESS_TIME_MS  40   //短按最长时间  20次*10ms
+#define SHORT_PRESS_TIME_MS  2  //短按最长时间  20次*10ms
 
 
  // 全局函数指针声明

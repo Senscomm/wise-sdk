@@ -950,6 +950,7 @@ void demo_send_prop(const char *name)
 
 static void demo_lc_completed(bool timeout)
 {
+#if 0
     struct app_event evt;
 
     evt.type = kEventType_Light;
@@ -960,6 +961,10 @@ static void demo_lc_completed(bool timeout)
     if (timeout) {
         onboarding = false;
     }
+#else
+	iotalink_light_ctrl_data_init();
+
+#endif
 }
 
 static void demo_lc_do_sync(u32 timeout)
@@ -1614,10 +1619,19 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
 	{
 	
 		log_put(LOG_INFO "Button long pressed");
+
         // write flash partition
         scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
         scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		/* Trigger factory reset */
+
+		demo_matter_event_cb(ADM_EVENT_COMMISSIONING_SESSION_STARTED);
+		osDelay( MS_TO_TICKS(2000));
+		
+        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
+        scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+
+		
 		ada_conf_reset(2);
 	}
 }

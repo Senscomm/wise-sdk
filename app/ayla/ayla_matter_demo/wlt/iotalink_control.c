@@ -35,7 +35,7 @@ int iotalink_light_ctrl_data_init(void)
 #if 1
 	//sg_light_ctrl_data.mode = SCENE_MODE;
 
-	sg_light_ctrl_data.mode =COLOR_MODE;
+	sg_light_ctrl_data.mode =WHITE_MODE;
 
 	sg_light_ctrl_data.magicunit = 1;
 	sg_light_ctrl_data.custome_unit= 1;//
