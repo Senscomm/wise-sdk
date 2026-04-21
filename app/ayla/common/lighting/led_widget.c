@@ -101,8 +101,8 @@ void led_widget_do_set(struct led_widget *lw, bool state)
 #if 0
         bp5758d_set_standby(!state);
 #else
-        /* No need for bp1638cj */
-        // bp1638cj_set_standby(!state);
+        /*  TODO: Only control on/off */
+        bp1638cj_set_standby(!state);
 #endif
         break;
     case LED_STATUS:
