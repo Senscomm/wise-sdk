@@ -257,11 +257,13 @@ static void demo_evt_handler(struct app_event *evt)
         u8 on_only = (u8)evt->light_event.value;
         demo_light_bulb_do_action(ON_ACTION, 0, true);
         need_set = on_only != 0 ? false : true;
+        printf("kLightAction_On, Need Set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode2:
     {
         need_set = true;
+        printf("kLightAction_Mode2, Need Set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode:
@@ -513,7 +515,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(-1, 60000/* 3 min. */, demo_lc_completed);
+        lighting_ctrl_run(-1, 30000/* 30s. */, demo_lc_completed);
 
         onboarding = true;
     }
@@ -606,7 +608,6 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 {
     enum ada_err err;
 
-    printf("%s %d\n", __func__, __LINE__);
 	if (type != ZCL_INT8U_ATTRIBUTE_TYPE) {
 		log_put(LOG_ERR "%s: invalid type %u", __func__, type);
 		return AE_INVAL_TYPE;
@@ -630,7 +631,7 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
 
     demo_post_light_event(kLightAction_Level, *value);
 
-	log_put(LOG_DEBUG "%s level_control %u", __func__, *value);
+	log_put(LOG_INFO "%s level_control %u", __func__, *value);
 
 	return AE_OK;
 }
@@ -646,8 +647,6 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
     enum ada_err err;
     RgbColor_t rgb;
     u32 val;
-
-    printf("%s %d\n", __func__, __LINE__);
 
 	if (value == NULL) {
 		log_put(LOG_ERR "%s: invalid value data %p",
@@ -684,7 +683,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Color, val);
 
-        log_put(LOG_DEBUG "New XY color: %u|%u", xy.x, xy.y);
+        log_put(LOG_INFO "New XY color: %u|%u", xy.x, xy.y);
     }
     /* HSV color space */
     else if (attribute == ADM_COLOR_CONTROL_CURRENT_HUE_AID ||
@@ -718,7 +717,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Color, val);
 
-        log_put(LOG_DEBUG "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
+        log_put(LOG_INFO "New HSV color: %u|%u|%u", hsv.h, hsv.s, hsv.v);
     }
     /* Color temperature */
     else if (attribute == ADM_COLOR_CONTROL_COLOR_TEMPERATURE_AID)
@@ -737,7 +736,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Temp, (uint32_t)temp);
 
-        log_put(LOG_DEBUG "%s: mireds %u, temp %d", __func__, mireds, temp);
+        log_put(LOG_INFO "%s: mireds %u, temp %d", __func__, mireds, temp);
     }
     /* Color mode */
     else if (attribute == ADM_COLOR_CONTROL_COLOR_MODE_AID)
@@ -749,7 +748,7 @@ static enum ada_err demo_color_control_cb(u8 post_change, u16 endpoint,
 
         demo_post_light_event(kLightAction_Mode2, 1);
 
-        log_put(LOG_DEBUG "color mode: %u", *value);
+        log_put(LOG_INFO "color mode: %u", *value);
     }
     else
     {

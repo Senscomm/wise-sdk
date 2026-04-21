@@ -161,9 +161,13 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
     g = (rgb.g * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     b = (rgb.b * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
 #else
-    r = (rgb.r * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
-    g = (rgb.g * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
-    b = (rgb.b * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    /* no need to convert if range in [0, 255] */
+    // r = (rgb.r * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    // g = (rgb.g * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    // b = (rgb.b * (bp1638cj_get_max_level() - bp1638cj_get_min_level())) / 255;
+    r = rgb.r;
+    g = rgb.g;
+    b = rgb.b;
 #endif
 
     switch (lw->led)
@@ -182,23 +186,27 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
 
 static void led_widget_control_white(struct led_widget *lw)
 {
+#if 0
     uint32_t target = 0;
     uint16_t cool, warm;
-#if 0
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
-#else
-    target = (lw->level == 0) ? 0 :(((bp1638cj_get_max_level() - bp1638cj_get_min_level()) * lw->level) / 254);
-#endif
     cool = (uint16_t)((target * lw->temp) / 100);
     warm = (uint16_t)((target * (100 - lw->temp)) / 100);
+#else
+    /* For bp1638cj, in white mode: two channel - temp & level. */
+    uint16_t temp_255;
+#endif
+
 
     if (lw->led == LED_LIGHT)
     {
 #if 0
         bp5758d_set_rgbcw_channel(0, 0, 0, cool, warm);
 #else
-        bp1638cj_set_rgbcw_channel(0, 0, 0, cool, warm);
+        /* temp in [0,100], level in [0, 254] */
+        temp_255 = lw->temp * 255 / 100;
+        bp1638cj_set_rgbcw_channel(0, 0, 0, temp_255, lw->level);
 #endif
     }
     else if (lw->led == LED_STATUS)
@@ -216,19 +224,16 @@ void led_widget_set_level(struct led_widget *lw, uint8_t level)
         lw->level = level;
         led_widget_control_white(lw);
     } else {
-        u8 r = lw->rgb.r;
-        u8 g = lw->rgb.g;
-        u8 b = lw->rgb.b;
-
-        r = (r * level) / lw->level;
-        g = (g * level) / lw->level;
-        b = (b * level) / lw->level;
-
-        lw->rgb.r = r;
-        lw->rgb.g = g;
-        lw->rgb.b = b;
+        // For matter, level means hsv.v
+        // 1. use RGB convert to HSV
+        // 2. use same hsv.h, hsv.s, level convert to RGB
+        HsvColor_t cur_hsv;
+        cur_hsv = RgbToHsv(lw->rgb.r, lw->rgb.g, lw->rgb.b);
+        cur_hsv.v = level;
+        printf("Old RGB: %u|%u|%u.\n", lw->rgb.r, lw->rgb.g, lw->rgb.b);
+        lw->rgb = HsvToRgb(cur_hsv);
+        printf("NEW RGB: %u|%u|%u.\n", lw->rgb.r, lw->rgb.g, lw->rgb.b);
         lw->level = level;
-
         led_widget_color(lw, lw->rgb);
     }
 }

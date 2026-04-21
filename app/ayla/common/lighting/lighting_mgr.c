@@ -161,21 +161,21 @@ bool lighting_mgr_initiate_action(struct lighting_mgr *lm, int32_t actor, Action
     case COLOR_ACTION_XY: {
         XyColor_t xy = *(XyColor_t *)(value);
         rgb          = XYToRgb(led_widget_get_level(&g_led), xy.x, xy.y);
-        log_put(LOG_DEBUG "LightingManager XY(%d,%d) to RGB(%d,%d,%d)", xy.x, xy.y, rgb.r, rgb.g, rgb.b);
+        log_put(LOG_INFO "LightingManager XY(%d,%d) to RGB(%d,%d,%d)", xy.x, xy.y, rgb.r, rgb.g, rgb.b);
     }
     break;
     case COLOR_ACTION_HSV: {
         HsvColor_t hsv = *(HsvColor_t *)(value);
         hsv.v          = led_widget_get_level(&g_led);
         rgb            = HsvToRgb(hsv);
-        log_put(LOG_DEBUG "LightingManager HSV(%d,%d) to RGB(%d,%d,%d)", hsv.h, hsv.s, rgb.r, rgb.g, rgb.b);
+        log_put(LOG_INFO "LightingManager HSV(%d,%d) to RGB(%d,%d,%d)", hsv.h, hsv.s, rgb.r, rgb.g, rgb.b);
     }
     break;
     case COLOR_ACTION_CT: {
         CtColor_t ct;
         ct.ctMireds = *(uint16_t *)(value);
         rgb         = CTToRgb(ct);
-        log_put(LOG_DEBUG "LightingManager CT(%d) to RGB(%d,%d,%d)", ct.ctMireds, rgb.r, rgb.g, rgb.b);
+        log_put(LOG_INFO "LightingManager CT(%d) to RGB(%d,%d,%d)", ct.ctMireds, rgb.r, rgb.g, rgb.b);
     }
     break;
     default:
@@ -213,32 +213,32 @@ bool lighting_mgr_initiate_action(struct lighting_mgr *lm, int32_t actor, Action
 
         if (lm->state == kState_OnInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: turn on");
+            log_put(LOG_INFO "LightingManager: turn on");
             led_widget_set(&g_led, true);
         }
         else if (lm->state == kState_OffInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: turn off");
+            log_put(LOG_INFO "LightingManager: turn off");
             led_widget_set(&g_led, false);
         }
         else if (lm->state == kState_ModeInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set mode %d", *value);
+            log_put(LOG_INFO "LightingManager: set mode %d", *value);
             led_widget_mode(&g_led, *value != 0);
         }
         else if (lm->state == kState_TempInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set temp %d", *value);
+            log_put(LOG_INFO "LightingManager: set temp %d", *value);
             led_widget_set_temp(&g_led, *value);
         }
         else if (lm->state == kState_LevelInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set level %d", *value);
+            log_put(LOG_INFO "LightingManager: set level %d", *value);
             led_widget_set_level(&g_led, *value);
         }
         else if (lm->state == kState_ColorInitiated)
         {
-            log_put(LOG_DEBUG "LightingManager: set color(%d,%d,%d)", rgb.r, rgb.g, rgb.b);
+            log_put(LOG_INFO "LightingManager: set color(%d,%d,%d)", rgb.r, rgb.g, rgb.b);
             led_widget_color(&g_led, rgb);
         }
     }
@@ -342,7 +342,7 @@ void lm_auto_turn_off_timer_event_handler(struct app_event * event)
 
     light->auto_turn_off_timer_armed = false;
 
-    log_put(LOG_DEBUG "Auto Turn Off has been triggered!");
+    log_put(LOG_INFO "Auto Turn Off has been triggered!");
 
     lighting_mgr_initiate_action(light, actor, OFF_ACTION, 0);
 }
@@ -400,7 +400,7 @@ void lm_actuator_movement_timer_event_handler(struct app_event * event)
 
             light->auto_turn_off_timer_armed = true;
 
-            log_put(LOG_DEBUG "Auto Turn off enabled. Will be triggered in %lu seconds", light->auto_turn_off_duration);
+            log_put(LOG_INFO "Auto Turn off enabled. Will be triggered in %lu seconds", light->auto_turn_off_duration);
         }
     }
 }

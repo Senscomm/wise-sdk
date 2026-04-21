@@ -339,7 +339,7 @@ int bp1638cj_set_channel(enum bp1638cj_channel channel, uint16_t ch_value)
     high = value_to_pwm_high(ch_value);
     low = PWM_CYCLE_PERIOD_IN_US - high;
 
-
+	printf("[PWM]:C:%d;H:%d;L:%d;\n", channel, high, low);
 	return send_pwm(channel, high, low);
 }
 
