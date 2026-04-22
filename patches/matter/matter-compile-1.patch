@@ -1,0 +1,76 @@
+diff --git a/.vscode/settings.json b/.vscode/settings.json
+index bfac435030..905aa90a84 100644
+--- a/.vscode/settings.json
++++ b/.vscode/settings.json
+@@ -127,7 +127,7 @@
+         "**/third_party/**": true
+     },
+     "files.eol": "\n",
+-    "editor.formatOnSave": true,
++    "editor.formatOnSave": false,
+     "better-comments.tags": [
+         {
+             "tag": "!",
+diff --git a/src/platform/senscomm/scm1612s/args.gni b/src/platform/senscomm/scm1612s/args.gni
+index b5bcf97e0a..89cbd20ce5 100644
+--- a/src/platform/senscomm/scm1612s/args.gni
++++ b/src/platform/senscomm/scm1612s/args.gni
+@@ -40,7 +40,7 @@ chip_enable_ota_requestor = true
+ 
+ #chip_stack_lock_tracking = "none"
+ 
+-chip_build_example_creds = true
++chip_build_example_creds = false
+ 
+ custom_toolchain = "${chip_root}/config/senscomm/toolchain:senscomm"
+ 
+diff --git a/third_party/senscomm/scm1612s/scm1612s_ayla.gni b/third_party/senscomm/scm1612s/scm1612s_ayla.gni
+index 6d5aadb9b4..b1d86fe456 100644
+--- a/third_party/senscomm/scm1612s/scm1612s_ayla.gni
++++ b/third_party/senscomm/scm1612s/scm1612s_ayla.gni
+@@ -73,7 +73,8 @@ template("scm1612s_ayla_sources") {
+ 
+     if (product_class == "led_demo" || product_class == "bulb") {
+       include_dirs += [
+-        "${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d",
++        #"${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d",
++        "${scm1612s_sdk_root}/app/ayla/common/driver/bp1638cj",
+         "${scm1612s_sdk_root}/app/ayla/common/lighting",
+         "${scm1612s_sdk_root}/app/ayla/common/event",
+         "${scm1612s_sdk_root}/app/ayla/common/ftm",
+@@ -283,7 +284,8 @@ template("scm1612s_ayla_sources") {
+     ]
+     if (product_class == "led_demo" || product_class == "bulb") {
+       sources += [
+-        "${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d/bp5758d.c",
++        #"${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d/bp5758d.c",
++        "${scm1612s_sdk_root}/app/ayla/common/driver/bp1638cj/bp1638cj.c",
+         "${scm1612s_sdk_root}/app/ayla/common/power_cycle_reset/power_cycle_reset.c",
+         "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm.c",
+         "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm_bulb.c",
+diff --git a/third_party/senscomm/scm1612s/scm1612s_sdk.gni b/third_party/senscomm/scm1612s/scm1612s_sdk.gni
+index bcc27058fc..9535518708 100644
+--- a/third_party/senscomm/scm1612s/scm1612s_sdk.gni
++++ b/third_party/senscomm/scm1612s/scm1612s_sdk.gni
+@@ -68,10 +68,10 @@ template("scm1612s_sdk_sources") {
+     }
+ 
+     # Build wise-sdk in-place with specified menuconfig.
+-    exec_script("${scm1612s_sdk_build_root}/build-wise-sdk.py",
+-            [ rebase_path("${scm1612s_sdk_build_root}", root_build_dir),
+-              "scm1612s_matter_defconfig",
+-            ])
++    #exec_script("${scm1612s_sdk_build_root}/build-wise-sdk.py",
++            #[ rebase_path("${scm1612s_sdk_build_root}", root_build_dir),
++              #"scm1612s_matter_defconfig",
++            #])
+ 
+     public_deps = []
+     if (defined(invoker.public_deps)) {
+diff --git a/third_party/senscomm/scm1612s/wise-sdk b/third_party/senscomm/scm1612s/wise-sdk
+index 04c20b2821..72e127e036 160000
+--- a/third_party/senscomm/scm1612s/wise-sdk
++++ b/third_party/senscomm/scm1612s/wise-sdk
+@@ -1 +1 @@
+-Subproject commit 04c20b2821806513a91096e4b75a7897b8fc802a
++Subproject commit 72e127e036829003af6e112dc67191add788aaf3
