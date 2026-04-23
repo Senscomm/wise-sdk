@@ -107,7 +107,9 @@ void app_main()
 	if(sg_light_ctrl_data.switch_status ==0xFF)iotalink_light_ctrl_data_init();
 		
 	iotalink_control_timer_init();
-	// wlt_init 
+	// wlt_init
+
+	wlt_uart_init();
 	wlt_ws2812_test();//spi Çý¶¯	
 	iotalink_light_driver_init();
 	iotalink_button_init();
@@ -115,6 +117,7 @@ void app_main()
 	
 	iotalink_light_ctrl_process();
 
+	
 
 	
     

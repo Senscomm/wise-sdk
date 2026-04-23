@@ -180,6 +180,12 @@ static void adb_hyd_notify_demo(void)
 	// al_bt_notify(hyd_notify_chr, (u8 *)msg, len);
 	// free(msg);
 }
+//雷达数据实时上报
+void wlt_radar_notify( u8 * msg, u8 len)
+{
+	 al_bt_notify(hyd_notify_chr, msg, len);
+}
+
 
 static const struct adb_attr hyd_svc_table[] = {
 	ADB_SERVICE("hyd_svc", &hyd_svc_uuid, &hyd_svc),
