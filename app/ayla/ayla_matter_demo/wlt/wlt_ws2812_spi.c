@@ -193,28 +193,47 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 	{
         const ws2812_pixel_t *curr_pixel = &pixels[pixel_idx];
 
-//GRB  5V 调试
 
-#if 0
-        // 1. 处理绿色分量（R7~R0，高位先发，文档5.2节24bit数据结构）
-        for (int8_t bit = 7; bit >= 0; bit--)
-		{
-            spi_buf[buf_idx++] = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
-        }
-        // 2. 处理红色分量（G7~G0，高位先发，文档5.2节24bit数据结构）
-        for (int8_t bit = 7; bit >= 0; bit--) 
-		{
-            spi_buf[buf_idx++] = (bright*(curr_pixel->red )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
-        }
 
-        // 3. 处理蓝色分量（B7~B0，高位先发，文档5.2节24bit数据结构）
-        for (int8_t bit = 7; bit >= 0; bit--)
-		{
-            spi_buf[buf_idx++] = (bright*(curr_pixel->blue )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
-        }
+#if 0 //GRB  5V 调试
+#if SPI_4BIT_CONVERT_TO_WS2812_1BIT
+		for (int8_t bit = 7; bit >= 0; bit -= 2) {
+			uint8_t high_bit  = (bright*(curr_pixel->greenr)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			uint8_t low_bit  =	(bright*(curr_pixel->greenr)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
+		}
+		for (int8_t bit = 7; bit >= 0; bit -= 2) {
+			uint8_t high_bit  = (bright*(curr_pixel->red)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			uint8_t low_bit  =	(bright*(curr_pixel->red)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
+		}
+		for (int8_t bit = 7; bit >= 0; bit -= 2) {
+			uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			uint8_t low_bit  =	(bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+			spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
+		}
+#else
+
+	for (int8_t bit = 7; bit >= 0; bit--)
+	{
+		spi_buf[buf_idx++] = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
+	}
+	// 2. 处理红色分量（G7~G0，高位先发，文档5.2节24bit数据结构）
+	for (int8_t bit = 7; bit >= 0; bit--) 
+	{
+		spi_buf[buf_idx++] = (bright*(curr_pixel->red )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
+	}
+	
+	// 3. 处理蓝色分量（B7~B0，高位先发，文档5.2节24bit数据结构）
+	for (int8_t bit = 7; bit >= 0; bit--)
+	{
+		spi_buf[buf_idx++] = (bright*(curr_pixel->blue )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
+	}
+
+#endif
+
+		
 #else	//RBG  落地灯
-
-	// 1. 处理红色分量
 
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
@@ -223,13 +242,13 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 
