@@ -24,7 +24,7 @@
 #define WS2812_LOGIC_0 0x3F/// 150*2 + 150*6 = 300ns + 900ns   0011 1111
 
 #endif
-#define WS2812_PIXEL_NUM        12 // 最多170个 170 × 12 = 2040?
+#define WS2812_PIXEL_NUM        36 // 36个WS2812B灯珠，每个IC控制1个LED
 
 #define SPI_4BIT_CONVERT_TO_WS2812_1BIT (1)
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
@@ -236,19 +236,23 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 #else	//RBG  落地灯
 
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
+	// WS2812B标准颜色顺序：GRB
+	// 1. 处理绿色分量
+	for (int8_t bit = 7; bit >= 0; bit -= 2) {
+		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
+	}
+	// 2. 处理红色分量
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
 		uint8_t high_bit  = (bright*(curr_pixel->red)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		uint8_t low_bit  =  (bright*(curr_pixel->red)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
+	// 3. 处理蓝色分量
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
 		uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
-	}
-	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 
@@ -257,21 +261,24 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 	// 	spi_buf[buf_idx++] = nibble_buffer;  // 低4位为0
 	// }
 #else
+	// WS2812B标准颜色顺序：GRB
+	// 1. 处理绿色分量
 	for (int8_t bit = 7; bit >= 0; bit--)
 	{
-		spi_buf[buf_idx++] = (bright*(curr_pixel->red)/100 & (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
+		spi_buf[buf_idx++] = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
 	}
-	// 2. 处理红色分量（G7~G0，高位先发，文档5.2节24bit数据结构）
+	// 2. 处理红色分量
 	for (int8_t bit = 7; bit >= 0; bit--) 
+	{
+		spi_buf[buf_idx++] = (bright*(curr_pixel->red )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
+	}
+	
+	// 3. 处理蓝色分量
+	for (int8_t bit = 7; bit >= 0; bit--)
 	{
 		spi_buf[buf_idx++] = (bright*(curr_pixel->blue )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
 	}
-	
-	// 3. 处理蓝色分量（B7~B0，高位先发，文档5.2节24bit数据结构）
-	for (int8_t bit = 7; bit >= 0; bit--)
-	{
-		spi_buf[buf_idx++] = (bright*(curr_pixel->green )/100& (1 << bit)) ? WS2812_LOGIC_1 : WS2812_LOGIC_0;
-	}
+
 #endif
 
 #endif
@@ -499,19 +506,30 @@ void wlt_light_set_cw(u16 cold, u16 warm)
 extern u8 rgb_colorful_values[120+1][3];
 
 void rgb_value_sync(void)
-{ 
+{
 #if SPI_EVENT_DEMO_ENABLE
 	// 将 rgb_colorful_values 中的值转成 event
 	struct spi_event evt;
 	evt.type = 120;
 	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
-		evt.rgb[pixel_idx].red = rgb_colorful_values[pixel_idx][0];
-		evt.rgb[pixel_idx].green = rgb_colorful_values[pixel_idx][1];
-		evt.rgb[pixel_idx].blue = rgb_colorful_values[pixel_idx][2];
+		// 实现1:3映射，将前12个像素的颜色数据复制到36个灯珠
+		uint8_t original_idx = pixel_idx / 3;
+		evt.rgb[pixel_idx].red = rgb_colorful_values[original_idx][0];
+		evt.rgb[pixel_idx].green = rgb_colorful_values[original_idx][1];
+		evt.rgb[pixel_idx].blue = rgb_colorful_values[original_idx][2];
 	}
 	spi_event_post(&evt);
 #else
-	ws2812_rgb_to_spi((const ws2812_pixel_t*)rgb_colorful_values, g_ws2812_spi_buf);
+	// 创建临时缓冲区，实现1:3映射
+	ws2812_pixel_t expanded_pixels[WS2812_PIXEL_NUM];
+	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
+		// 实现1:3映射，将前12个像素的颜色数据复制到36个灯珠
+		uint8_t original_idx = pixel_idx / 3;
+		expanded_pixels[pixel_idx].red = rgb_colorful_values[original_idx][0];
+		expanded_pixels[pixel_idx].green = rgb_colorful_values[original_idx][1];
+		expanded_pixels[pixel_idx].blue = rgb_colorful_values[original_idx][2];
+	}
+	ws2812_rgb_to_spi(expanded_pixels, g_ws2812_spi_buf);
 	ws2812_spi_send(g_ws2812_spi_buf);
 #endif
 }
