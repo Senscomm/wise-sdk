@@ -38,12 +38,12 @@
     0x0020	/**< indication support */
 #define AL_BT_AF_AUTH_SIGN \
     0x0040 /**< signed write support */
-#define AL_BT_AF_READ_ENC \
-    0x0200	/**< encryption required for reads */
+#define AL_BT_AF_READ_ENC 0
+    // 0x0200	/**< encryption required for reads */
 #define AL_BT_AF_READ_AUTHEN \
     0x0400	/**< authentication required for reads */
-#define AL_BT_AF_WRITE_ENC \
-    0x1000	/**< encryption required for writes */
+#define AL_BT_AF_WRITE_ENC 0
+    //0x1000	/**< encryption required for writes */
 #define AL_BT_AF_WRITE_AUTHEN \
     0x2000	/**< authentication required for writes */
 

@@ -206,21 +206,21 @@ static void al_bt_print_conn_desc(struct ble_gap_conn_desc *desc)
 
 	adb_snprint_addr(desc->our_ota_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "handle %d our_ota_addr type %d addr %s",
+	adb_log(LOG_ERR "handle %d our_ota_addr type %d addr %s",
 	    desc->conn_handle, desc->our_ota_addr.type, addr_str);
 	adb_snprint_addr(desc->our_id_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "our_id_addr type %d addr %s",
+	adb_log(LOG_ERR "our_id_addr type %d addr %s",
 	    desc->our_id_addr.type, addr_str);
 	adb_snprint_addr(desc->peer_ota_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "peer_ota_addr type %d addr %s",
+	adb_log(LOG_ERR "peer_ota_addr type %d addr %s",
 	    desc->peer_ota_addr.type, addr_str);
 	adb_snprint_addr(desc->peer_id_addr.val, addr_str,
 	    sizeof(addr_str));
-	adb_log(LOG_DEBUG "peer_id_addr type %d addr %s",
+	adb_log(LOG_ERR "peer_id_addr type %d addr %s",
 	    desc->peer_id_addr.type, addr_str);
-	adb_log(LOG_DEBUG
+	adb_log(LOG_ERR
 	    "conn itvl %d latency %d timeout %d "
 	    "enc %d auth %d bond %d",
 	    desc->conn_itvl, desc->conn_latency,
@@ -807,6 +807,110 @@ random:
 	} else {
 		adb_log(LOG_INFO "passkey %06d", pk.passkey);
 	}
+}
+
+u8 flag = 0;
+int al_bt_process_gap_event(void *input)
+{
+	int rc;
+	struct ble_gap_conn_desc desc;
+	struct ble_gap_event *event = (struct ble_gap_event *)input;
+	u8 mask;
+	const struct adb_attr *attr;
+	struct adb_chr_info *chr_info;
+
+	if (flag == 0) {
+		al_bt_mutex = osSemaphoreNew(1, 0, NULL);
+		osSemaphoreRelease(al_bt_mutex);
+		flag =1;
+	}
+
+	if (event->type != BLE_GAP_EVENT_NOTIFY_TX) {
+		printf("[BT]Process BLE GAP Event:%d!\n", event->type);
+	}
+
+	switch (event->type) {
+	case BLE_GAP_EVENT_CONNECT:
+		if (event->connect.status == 0) {
+			al_bt_connections++;
+			rc = al_bt_connection_add(event->connect.conn_handle);
+			rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+
+			char addr_str1[20], addr_str2[20];
+			adb_snprint_addr(desc.our_id_addr.val, addr_str1,sizeof(addr_str1));
+			adb_snprint_addr(desc.peer_id_addr.val, addr_str2,sizeof(addr_str2));
+			printf("our_id:%s, peer_id:%s, conn itvl:%d latency:%d timeout:%d enc:%d auth:%d bond:%d\n",
+				addr_str1, addr_str2, desc.conn_itvl, desc.conn_latency, desc.supervision_timeout,
+				desc.sec_state.encrypted, desc.sec_state.authenticated, desc.sec_state.bonded);
+		}
+		break;
+
+	case BLE_GAP_EVENT_DISCONNECT:
+		printf("disconnect reason %d\n",event->disconnect.reason);
+		rc = al_bt_connection_delete(event->disconnect.conn.conn_handle);
+		al_bt_connections--;
+		if (event->disconnect.reason == BLE_HS_ETIMEOUT_HCI) {
+			al_bt_controller_syncd = 0;
+			break;
+		}
+		break;
+
+	case BLE_GAP_EVENT_SUBSCRIBE:
+		printf("subscribe conn %d attr %d reason %d prevn %d curn %d previ %d curi %d\n",
+			event->subscribe.conn_handle, event->subscribe.attr_handle, 
+			event->subscribe.reason, event->subscribe.prev_notify, event->subscribe.cur_notify, 
+			event->subscribe.prev_indicate, event->subscribe.cur_indicate);
+
+		mask = al_bt_connection_mask(event->subscribe.conn_handle);
+
+		attr = al_bt_find_attr_by_handle(event->subscribe.attr_handle);
+		if (!attr || attr->type != ADB_ATTR_CHR) {
+			/*
+			 * Attributes that are outside of ADB, not known or not
+			 * characteristics. For Matter Attr already process ahead.
+			 */
+			break;
+		}
+		chr_info = attr->info;
+		printf("Subscribe, name :%s\n", attr->name);
+		if (event->subscribe.cur_notify) {
+			chr_info->notify_mask |= mask;
+		} else {
+			chr_info->notify_mask &= ~mask;
+		}
+		if (event->subscribe.cur_indicate) {
+			chr_info->indicate_mask |= mask;
+		} else {
+			chr_info->indicate_mask &= ~mask;
+		}
+		if (attr->subscribe_cb) {
+			attr->subscribe_cb(event->subscribe.conn_handle,event->subscribe.cur_notify,event->subscribe.cur_indicate);
+		}
+		break;
+	case BLE_GAP_EVENT_MTU:
+		adb_log(LOG_ERR "mtu update event conn_handle %d cid %d mtu %d", event->mtu.conn_handle, event->mtu.channel_id, event->mtu.value);
+		rc = al_bt_conn_mtu_update(event->mtu.conn_handle, event->mtu.value);
+		if (rc) {
+			adb_log(LOG_ERR "mtu update err %d", rc);
+		}
+		break;
+	case BLE_GAP_EVENT_PASSKEY_ACTION:
+		printf("passkey action event %d\n", event->passkey.params.action);
+		if (adb_pairing_mode_get() == ADB_PM_DISABLED) {
+			printf("attempt to pair while pairing disabled\n");
+			break;
+		}
+		if (event->passkey.params.action != BLE_SM_IOACT_DISP) {
+			printf("unsupported passkey action");
+			break;
+		}
+		al_bt_display_passkey(event->passkey.conn_handle);
+		break;
+	default:
+		break;
+	}
+
+	return rc;
 }
 
 /*

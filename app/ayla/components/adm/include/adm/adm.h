@@ -99,6 +99,15 @@ enum adm_event_id {
 	ADM_EVENT_BLE_ADVERTISING_START,
 	ADM_EVENT_BLE_ADVERTISING_STOP,
 	ADM_EVENT_ALL_FABRIC_REMOVED,
+	ADM_EVENT_WIFI_SCAN_DONE,
+	ADM_EVENT_WIFI_STA_START,
+	ADM_EVENT_WIFI_STA_CONNECTED,
+	ADM_EVENT_WIFI_STA_DISCONNECTED,
+	ADM_EVENT_WIFI_STA_STOP,
+	ADM_EVENT_WIFI_STA_GOT_IP,
+	ADM_EVENT_WIFI_STA_LOST_IP,
+	ADM_EVENT_WIFI_STA_GOT_IP6,
+	ADM_EVENT_WIFI_STA_NO_NETWORK,
 };
 
 /**
@@ -190,6 +199,10 @@ void adm_start(const u8 *cert_declaration, size_t cd_len);
  * \returns 0 if not initialized, 1 if initialized
  */
 int adm_initialized(void);
+void adm_post_event_to_plat(char *ssid, char *key, u8 auth);
+
+void adm_post_event_to_plat_for_test(void);
+
 
 /**
  * Generate and configure Matter onboarding credentials.

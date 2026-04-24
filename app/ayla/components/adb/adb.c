@@ -159,6 +159,7 @@ enum adb_att_err adb_chr_read_str(u16 conn, const struct adb_attr *attr,
 		*length = str_len;
 	}
 	memcpy(buf, chr_info->value, *length);
+	printf("Get Ayla DSN!!!!!!!!\n");
 
 	return ADB_ATT_SUCCESS;
 }
@@ -218,6 +219,11 @@ const char *adb_pairing_mode_name_get(void)
 		return "unknown";
 	}
 	return adb_pairing_mode_names[adb_pairing_mode];
+}
+
+void adb_process_gap_event_wrap(void *event)
+{
+	al_bt_process_gap_event(event);
 }
 
 #endif /* AYLA_BLUETOOTH_SUPPORT */

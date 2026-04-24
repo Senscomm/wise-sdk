@@ -41,6 +41,8 @@
 #include "adm_int.h"
 #include <al/al_os_mem.h>
 
+#include "wise_event.h"
+
 #if CONFIG_TEST_EVENT_TRIGGER_ENABLED
 #include <app/TestEventTriggerDelegate.h>
 #endif
@@ -463,6 +465,7 @@ static void adm_connectivity_change(const ChipDeviceEvent * event)
 static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 {
 	adm_log(LOG_DEBUG "%s type 0x%04x", __func__, event->Type);
+	// printf("Matter evt type:0x%04x!!!, WiFi Evt:%d\n", event->Type, event->Platform.SCMSystemEvent.event.event_id);
 
 	switch (event->Type) {
 	case DeviceEventType::kInternetConnectivityChange:
@@ -490,7 +493,7 @@ static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 
 	case DeviceEventType::kCommissioningComplete:
 		adm_log(LOG_DEBUG "Commissioning complete");
-		al_matter_fully_provisioned();
+		// al_matter_fully_provisioned();
 		adm_event_callback(ADM_EVENT_COMMISSIONING_COMPLETE);
 		break;
 
@@ -513,6 +516,35 @@ static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 			al_matter_ipv6_assigned();
 		}
 		break;
+	}
+
+	// add extra wifi events
+	if (event->Type == DeviceEventType::kSCMSystemEvent) {
+		switch (event->Platform.SCMSystemEvent.event.event_id) {
+		case SYSTEM_EVENT_SCAN_DONE:
+			adm_event_callback(ADM_EVENT_WIFI_SCAN_DONE);
+			break;
+		case SYSTEM_EVENT_STA_START:
+			break;
+		case SYSTEM_EVENT_STA_CONNECTED:
+			adm_event_callback(ADM_EVENT_WIFI_STA_CONNECTED);
+			break;
+		case SYSTEM_EVENT_STA_DISCONNECTED:
+			adm_event_callback(ADM_EVENT_WIFI_STA_DISCONNECTED);
+			break;
+		case SYSTEM_EVENT_STA_STOP:
+			adm_event_callback(ADM_EVENT_WIFI_STA_STOP);
+			break;
+		case SYSTEM_EVENT_STA_GOT_IP:
+			adm_event_callback(ADM_EVENT_WIFI_STA_GOT_IP);
+			break;
+		case SYSTEM_EVENT_STA_LOST_IP:
+		case SYSTEM_EVENT_GOT_IP6:
+		case SYSTEM_EVENT_STA_NO_NETWORK:
+			break;
+		default:
+			break;
+		}
 	}
 }
 
@@ -1047,13 +1079,43 @@ static void adm_init_server(intptr_t context)
 	fabric_table->AddFabricDelegate(&adm_fabric_delegate);
 
 	if (chip::Server::GetInstance().GetFabricTable().FabricCount() > 0) {
-		al_matter_fully_provisioned();
+		// al_matter_fully_provisioned();
 	}
 }
 
 int adm_initialized(void)
 {
 	return adm_matter_initialized;
+}
+
+void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
+{
+	ChipDeviceEvent e = { 0 };
+	e.Type = DeviceEventType::kSCMSystemEvent;
+
+	if (!ssid || !key) {
+		printf("Invalid inputs!!\n");
+		return;
+	}
+
+	e.Platform.test.ssidLen = strlen(ssid);
+	memcpy(e.Platform.test.ssid, ssid, e.Platform.test.ssidLen);
+	e.Platform.test.keyLen = strlen(key);
+	memcpy(e.Platform.test.key, key, e.Platform.test.keyLen);
+	e.Platform.test.auth = auth;
+	// reuse
+	e.Platform.test.event.event_id = SYSTEM_EVENT_MAX_RETRY;
+
+	printf("Send a event to plat!!!\n");
+	(void) PlatformMgr().PostEvent(&e);
+}
+
+void adm_post_event_to_plat_for_test(void)
+{
+    ChipDeviceEvent event;
+    event.Type                                           = DeviceEventType::kServiceProvisioningChange;
+    event.ServiceProvisioningChange.ServiceConfigUpdated = true;
+    (void) PlatformMgr().PostEvent(&event);
 }
 
 enum ada_err adm_onboard_config_generate(const char *secret)
