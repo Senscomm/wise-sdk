@@ -325,12 +325,15 @@ struct pmx_func pmx_functions[] = {
 #ifdef CONFIG_USE_TIMER1_PWM
 	pf("timer.1", timer1_pwm),
 #endif
+
 #ifdef CONFIG_USE_SPI0
 #ifdef CONFIG_USE_SPI0_FLASH
 	pf("atcspi200-xip.0", spi0),
 #else
 	pf("atcspi.0", spi0),
 #endif
+#endif
+
 #ifdef CONFIG_USE_SPI1
 #ifdef CONFIG_USE_SPI1_FLASH
 	pf("atcspi200-xip.1", spi1),
@@ -338,6 +341,7 @@ struct pmx_func pmx_functions[] = {
 	pf("atcspi.1", spi1),
 #endif
 #endif
+
 #ifdef CONFIG_USE_SPI2
 #ifdef CONFIG_USE_SPI2_FLASH
 	pf("atcspi200-xip.2", spi2),
@@ -345,7 +349,7 @@ struct pmx_func pmx_functions[] = {
 	pf("atcspi.2", spi2),
 #endif
 #endif
-#endif
+
 #ifdef CONFIG_SDIO
 	pf("sdio", sdio),
 #endif
