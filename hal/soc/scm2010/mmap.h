@@ -21,7 +21,8 @@
  *
  */
 
-#define FLASH_BASE		0x80000000
+#define FLASH0_BASE		0x80000000
+#define FLASH1_BASE		0x90000000
 #define FLASH_SZ		(4 * 0x100000)
 
 #define ILM_BASE		0x00000000
