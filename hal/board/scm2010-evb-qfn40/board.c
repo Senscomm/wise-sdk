@@ -94,13 +94,22 @@ static struct pinctrl_pin_map pin_map[] = {
 #endif
 
 #ifdef CONFIG_USE_SPI1
-	/* SPI1 */
+#ifdef CONFIG_USE_SPI1_FLASH
+    /* SPI1 */
+    pinmap(16, "atcspi200-xip.1", "clk", 0),
+    pinmap(15, "atcspi200-xip.1", "cs",  0),
+    pinmap(17, "atcspi200-xip.1", "mosi",0),
+    pinmap(18, "atcspi200-xip.1", "miso",0),
+    pinmap(19, "atcspi200-xip.1", "wp"  ,0),
+    pinmap(20, "atcspi200-xip.1", "hold",0),
+#else
     pinmap(16, "atcspi.1", "clk", 0),
     pinmap(15, "atcspi.1", "cs",  0),
     pinmap(17, "atcspi.1", "mosi",0), 	/* dat0 */
     pinmap(18, "atcspi.1", "miso",0), 	/* dat1 */
     pinmap(19, "atcspi.1", "wp",  0),   /* dat2 */
     pinmap(20, "atcspi.1", "hold",0),	/* dat3	*/
+#endif
 #endif
 
 #ifdef CONFIG_USE_SPI2

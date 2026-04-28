@@ -269,9 +269,11 @@ static declare_device_array(spi, 2) = {
 #ifdef CONFIG_USE_SPI0
     {
 #ifdef CONFIG_SPI_FLASH
+#ifdef CONFIG_USE_SPI0_FLASH
         .name = "atcspi200-xip.0",
         .base[0] = (void *) SPI0_BASE_ADDR,
-        .base[1] = (void *) FLASH_BASE,
+        .base[1] = (void *) FLASH0_BASE,
+#endif
 #else
         .name = "atcspi.0",
         .base[0] = (void *) SPI0_BASE_ADDR,
@@ -282,10 +284,18 @@ static declare_device_array(spi, 2) = {
 #endif
 #ifdef CONFIG_USE_SPI1
     {
+#ifdef CONFIG_SPI_FLASH
+#ifdef CONFIG_USE_SPI1_FLASH
+        .name = "atcspi200-xip.1",
+        .base[0] = (void *) SPI1_BASE_ADDR,
+        .base[1] = (void *) FLASH1_BASE,
+#endif
+#else
         .name = "atcspi.1",
         .base[0] = (void *) SPI1_BASE_ADDR,
 		.irq[0] = IRQn_SPI2,
 		.pri[0] = 1,
+#endif
     },
 #endif
 #ifdef CONFIG_USE_SPI2
