@@ -1002,6 +1002,8 @@ static int atcspi200_probe(struct device *dev)
 	int i = 0;
 	unsigned long rate;
 
+    printk("SPI dev(%s) probe...\n", dev->name);
+
 	if (bfield_get(v, 31, 12) != 0x02002)
 		return -EINVAL;
 
@@ -1035,6 +1037,7 @@ static int atcspi200_probe(struct device *dev)
 
 		pmap = pinctrl_lookup_platform_pinmap(dev, pins[i]);
 		if (pmap == NULL) {
+            printk("%s pmap not found\n", dev->name);
             if (i != ATCSPI200_WP && i != ATCSPI200_HOLD) {
                 /* WP and HOLD can be undefined when Quad mode is
                  * not supported.
@@ -1045,11 +1048,11 @@ static int atcspi200_probe(struct device *dev)
 		if (0 && i == ATCSPI200_CS) {
 			if (gpio_request(dev, pmap->id, pmap->pin) < 0 ||
 			    gpio_direction_output(pmap->pin, 1) < 0) {
-				err("failed to claim pin#%d as gpio\n", pmap->pin);
+				printk("failed to claim pin#%d as gpio\n", pmap->pin);
 				goto free_pin;
 			}
 		} else if (pmap && pinctrl_request_pin(dev, pmap->id, pmap->pin) < 0) {
-			err("failed to claim pin#%d for %s\n", pmap->pin, dev_name(dev));
+			printk("failed to claim pin#%d for %s\n", pmap->pin, dev_name(dev));
 			goto free_pin;
 		}
 		priv->pmap[i] = pmap;
@@ -1067,8 +1070,10 @@ static int atcspi200_probe(struct device *dev)
 	atcspi200_writel(v, dev, TransFmt);
 
 	flash = spi_flash_probe(dev);
+    printk("flash probe for %s\n", dev->name);
 	if (!flash)
 		return -ENODEV;
+    printk("Add flash:%d, SPI probe done\n", flash->id);
 
 	spi_flash_add_device(flash);
 	return 0;
