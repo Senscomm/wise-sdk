@@ -1540,7 +1540,7 @@ static int al_bt_uuid_cmp(const ble_uuid_any_t *uuid1,
 
 	switch (uuid1->u.type) {
 	case BLE_UUID_TYPE_16:
-		return uuid1->u16.value == uuid2->u16.value;
+		return (uuid1->u16.value == uuid2->u16.value) ? 0 : 1;
 	case BLE_UUID_TYPE_128:
 		return memcmp(&uuid1->u128.value, &uuid2->u128.value, 16);
 	default:
