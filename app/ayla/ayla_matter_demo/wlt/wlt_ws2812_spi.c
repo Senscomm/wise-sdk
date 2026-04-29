@@ -51,8 +51,13 @@ typedef struct ws2812_pixel
 	
 } ws2812_pixel_t;
 
+//uint8_t rgb_colorful_values[20][3];
+extern u8 rgb_colorful_values[120+1][3];
+
 #define SPI_EVENT_DEMO_ENABLE	(0)
 #if SPI_EVENT_DEMO_ENABLE
+#define SPI_EVENT_QUEUE_DEPTH	(15)
+bool g_spi_event_handle_state = false;
 xQueueHandle g_spi_tx_evt_q = (xQueueHandle)NULL;
 struct spi_event
 {
@@ -69,6 +74,20 @@ void spi_event_post(const struct spi_event * event)
         // log_put(LOG_ERR "Failed to post event to app task event queue");
 		printf("Failed to post event to app task event queue!\n");
     }
+}
+
+static void spi_event_build()
+{
+	struct spi_event evt;
+	evt.type = 120;
+	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
+		// 实现1:3映射，将前12个像素的颜色数据复制到36个灯珠
+		uint8_t original_idx = pixel_idx / 3;
+		evt.rgb[pixel_idx].red = rgb_colorful_values[original_idx][0];
+		evt.rgb[pixel_idx].green = rgb_colorful_values[original_idx][1];
+		evt.rgb[pixel_idx].blue = rgb_colorful_values[original_idx][2];
+	}
+	spi_event_post(&evt);
 }
 
 static void spi_evt_run_demo(void);
@@ -140,7 +159,7 @@ int ws2812_spi_init(void) {
 //	scm_spi_slave_set_rx_buf(1, sl_rx_buf, TEST_MSG_SIZE);
 
 
-    printf("WS2812 SPI init success121212, WS2812_PIXEL_NUM:%d\n", WS2812_PIXEL_NUM);
+    printf("WS2812 SPI init success, WS2812_PIXEL_NUM:%d\n", WS2812_PIXEL_NUM);
     printf("Note: Ensure 3.3V->5V level shifter and hot-plug resistor are connected.\n");
 
 #if SPI_EVENT_DEMO_ENABLE
@@ -148,27 +167,6 @@ int ws2812_spi_init(void) {
 #endif
     return 0;
 }
-
-#if SPI_4BIT_CONVERT_TO_WS2812_1BIT
-uint8_t nibble_buffer = 0;
-int nibble_cnt = 0;
-
-// 定义一个函数，将一个 WS2812 位的 4 位编码填入缓冲区
-void push_nibble(uint8_t bit_value, uint16_t loc, uint8_t *buf)
-{
-    uint8_t nibble = bit_value ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-    if (nibble_cnt == 0) {
-        // 第一个 nibble 放在高4位
-        nibble_buffer = nibble << 4;
-        nibble_cnt = 1;
-    } else {
-        // 第二个 nibble 放在低4位
-        nibble_buffer |= nibble;
-        buf[loc] = nibble_buffer;
-        nibble_cnt = 0;
-    }
-}
-#endif
 
 /**
  * @brief 将RGB像素数组转换为WS2812所需的SPI发送缓冲区
@@ -255,11 +253,6 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
-
-	// 保险起见
-	// if (nibble_cnt == 1) {
-	// 	spi_buf[buf_idx++] = nibble_buffer;  // 低4位为0
-	// }
 #else
 	// WS2812B标准颜色顺序：GRB
 	// 1. 处理绿色分量
@@ -501,24 +494,24 @@ void wlt_light_set_cw(u16 cold, u16 warm)
 
 }
 
-// 
-//uint8_t rgb_colorful_values[20][3];
-extern u8 rgb_colorful_values[120+1][3];
-
 void rgb_value_sync(void)
 {
 #if SPI_EVENT_DEMO_ENABLE
-	// 将 rgb_colorful_values 中的值转成 event
-	struct spi_event evt;
-	evt.type = 120;
-	for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
-		// 实现1:3映射，将前12个像素的颜色数据复制到36个灯珠
-		uint8_t original_idx = pixel_idx / 3;
-		evt.rgb[pixel_idx].red = rgb_colorful_values[original_idx][0];
-		evt.rgb[pixel_idx].green = rgb_colorful_values[original_idx][1];
-		evt.rgb[pixel_idx].blue = rgb_colorful_values[original_idx][2];
+	if (g_spi_event_handle_state) {
+		spi_event_build();
+	} else {
+		// 创建临时缓冲区，实现1:3映射
+		ws2812_pixel_t expanded_pixels[WS2812_PIXEL_NUM];
+		for (uint8_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++) {
+			// 实现1:3映射，将前12个像素的颜色数据复制到36个灯珠
+			uint8_t original_idx = pixel_idx / 3;
+			expanded_pixels[pixel_idx].red = rgb_colorful_values[original_idx][0];
+			expanded_pixels[pixel_idx].green = rgb_colorful_values[original_idx][1];
+			expanded_pixels[pixel_idx].blue = rgb_colorful_values[original_idx][2];
+		}
+		ws2812_rgb_to_spi(expanded_pixels, g_ws2812_spi_buf);
+		ws2812_spi_send(g_ws2812_spi_buf);
 	}
-	spi_event_post(&evt);
 #else
 	// 创建临时缓冲区，实现1:3映射
 	ws2812_pixel_t expanded_pixels[WS2812_PIXEL_NUM];
@@ -661,7 +654,7 @@ void spi_event_dispatch_handle()
 
 static void spi_evt_run_demo(void)
 {
-	g_spi_tx_evt_q = xQueueCreate(15, sizeof(struct spi_event));
+	g_spi_tx_evt_q = xQueueCreate(SPI_EVENT_QUEUE_DEPTH, sizeof(struct spi_event));
 	assert(g_spi_tx_evt_q != NULL);
 
 	osThreadAttr_t attr = {
@@ -672,6 +665,9 @@ static void spi_evt_run_demo(void)
 
 	if (osThreadNew(spi_event_dispatch_handle, NULL, &attr) == NULL) {
 		printf("spi_evt_run_demo start failed\n");
+		g_spi_event_handle_state = false;
+		return;
 	}
+	g_spi_event_handle_state = true;
 }
 #endif
