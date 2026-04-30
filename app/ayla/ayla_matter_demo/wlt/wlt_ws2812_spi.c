@@ -54,7 +54,7 @@ typedef struct ws2812_pixel
 //uint8_t rgb_colorful_values[20][3];
 extern u8 rgb_colorful_values[120+1][3];
 
-#define SPI_EVENT_DEMO_ENABLE	(0)
+#define SPI_EVENT_DEMO_ENABLE	(1)
 #if SPI_EVENT_DEMO_ENABLE
 #define SPI_EVENT_QUEUE_DEPTH	(15)
 bool g_spi_event_handle_state = false;
