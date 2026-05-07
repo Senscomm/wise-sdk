@@ -245,8 +245,9 @@ struct pinmux spi2_pin_mux[] = {
 	MUX("wp",19, 5),
 	MUX("hold",20, 5),
 
-	MUX("clk", 22, 5),
-	MUX("cs",  21, 5),
+//	MUX("clk", 6, 5),
+	MUX("clk", 3, 5),
+	MUX("cs",  8, 5),
 	MUX("mosi",23, 5),
 	MUX("miso",24, 5),
 };

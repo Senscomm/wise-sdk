@@ -24,7 +24,7 @@
 #define WS2812_LOGIC_0 0x3F/// 150*2 + 150*6 = 300ns + 900ns   0011 1111
 
 #endif
-#define WS2812_PIXEL_NUM        12 // 最多170个 170 × 12 = 2040?
+#define WS2812_PIXEL_NUM        77 // 最多170个 170 × 12 = 2040?
 
 #define SPI_4BIT_CONVERT_TO_WS2812_1BIT (1)
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
@@ -195,7 +195,7 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 
 //GRB  5V 调试
 
-#if 1
+#if 0
 		
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
 
@@ -403,7 +403,7 @@ void wlt_ms_delay( int ms)
 	   
 #define LED_PWM_CYCLE 1000
  
-#define USE_PWM_NUM 1
+#define USE_PWM_NUM 3
 
 
 static struct scm_timer_cfg ledc_config[USE_PWM_NUM];
@@ -444,26 +444,27 @@ static struct scm_timer_cfg ledc_config[USE_PWM_NUM];
 
 void wlt_led_pwm_set_duty(E_LED_PWM_CHANNEL ch, u8 duty)
 {
+	E_LED_PWM_CHANNEL ch_s = 2;//先写死2通道
     if(duty >= 100)
 	{
         duty = 99;
     }
-    ledc_config[ch].data.pwm.high = LED_PWM_CYCLE * duty / 100;
-    ledc_config[ch].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch].data.pwm.high;
+    ledc_config[ch_s].data.pwm.high = LED_PWM_CYCLE * duty / 100;
+    ledc_config[ch_s].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch].data.pwm.high;
 	
     // printf(" ch : %d ,higt : %d , low : %d \n",ch ,ledc_config[ch].data.pwm.high , ledc_config[ch].data.pwm.low);  
-    scm_timer_stop(SCM_TIMER_IDX_0,ch);
+    scm_timer_stop(SCM_TIMER_IDX_0,ch_s);
     // SCM_INFO_LOG(TAG,"TIMER PWM channel %d set duty = %d", ch, duty);
     if(duty > 0)
 	{
-        int ret = scm_timer_configure(SCM_TIMER_IDX_0, ch, &ledc_config[ch], NULL, NULL);
+        int ret = scm_timer_configure(SCM_TIMER_IDX_0, ch_s, &ledc_config[ch_s], NULL, NULL);
         if (ret)
 		{
-            printf("TIMER PWM channel %d configure error = %x", ch, ret);
+            printf("TIMER PWM channel %d configure error = %x", ch_s, ret);
         } 
 		else 
         {            /* Start the TIMER */
-            scm_timer_start(SCM_TIMER_IDX_0,ch);
+            scm_timer_start(SCM_TIMER_IDX_0,ch_s);
         }
     }
 

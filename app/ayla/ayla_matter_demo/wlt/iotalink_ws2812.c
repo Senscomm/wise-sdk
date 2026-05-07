@@ -20,10 +20,10 @@
 light_color_mode_e ws_light_color_mode;
 
 //实际输出数组数据 后面可改成动态申请！！！！
-u8 rgb_colorful_values[100+1][3] = { 0 };
+u8 rgb_colorful_values[77+1][3] = { 0 };
 
-u16  RGB_LED_NUM = 12;//灯珠数量--》app下发可调
-//#define  RGB_LED_NUM  10 	//灯珠数量固定
+u16  RGB_LED_NUM = 77;//灯珠数量--》app下发可调
+//#define  RGB_LED_NUM  77	//灯珠数量固定
 
 u16  RGB_LED_NUM_INCREASE= 30;//灯珠数量--》app下发可调 至少30
 
@@ -149,7 +149,7 @@ void rgb_send_test (void)
 
 
 		
-	 printf("---change----\n");
+	 prissntf("---change----\n");
 	
 	 rgb_send_package(0x0,0xFF,0x00);
 	 rgb_send_package(0x0,0xFF,0x00);
@@ -855,7 +855,7 @@ void iotalink_color_transition(u8 num, u8 step , u8 *pSceneData,   MAGIC_SCENE_D
 		printf("1======[%d] r:%d g:%d b:%d ======\n",i,pCtrlParam->magic_rgb[i].r,pCtrlParam->magic_rgb[i].g ,pCtrlParam->magic_rgb[i].b );
 	}	
 	//场景2 不需要过渡
-		if(sg_light_ctrl_data.mode ==CUSTOME_MODE) iotalink_234_mode_mode_init();
+//		if(sg_light_ctrl_data.mode ==CUSTOME_MODE) iotalink_234_mode_mode_init();
 //		if(MAGIC_SCENE_DATA.magicunit==12)
 		if(pSceneData[0]==0)		
 		{
@@ -2338,7 +2338,7 @@ void haoyida_liushui( int mode)
 }
 
 //------------------------------------------------------------------------------------------------//
-#if 1
+#if 0
 
 // 闭幕/拉幕效果核心函数 57-76
 void haoyida_curtain_effect( int mode)
@@ -2896,6 +2896,8 @@ void haoyida_221_228_effect(void)
 	rgb_value_sync();
 	wlt_ms_delay(magic_rate*2+10);
 }
+
+
 
 //------------------------------------------------------------------------------------------------//
 
@@ -4343,7 +4345,7 @@ unsigned char  default_scene[33+1][38]=
 	{
 			//场景
 
-		 haoyida_234_mode_init(sg_light_ctrl_data.custome_unit);
+		// haoyida_234_mode_init(sg_light_ctrl_data.custome_unit);
 			
 	}
 	else 
@@ -4808,7 +4810,7 @@ void iotalink_magic_lantern_process (void * argv)
 			case CUSTOME_MODE:
 			{
 
-				haoyida_234_mode_deal(sg_light_ctrl_data.custome_unit);
+				//	haoyida_234_mode_deal(sg_light_ctrl_data.custome_unit);
 				
 			}
 			break;

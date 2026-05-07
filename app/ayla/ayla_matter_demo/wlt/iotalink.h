@@ -32,7 +32,8 @@ void demo_send_prop(const char *name);
 
 
 
-
+//血氧模组初始化
+void iotalink_max30102_init();
 
 
 

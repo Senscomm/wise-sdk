@@ -8,15 +8,15 @@
 #include "scm_uart.h"
 
 #define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / (uint32_t)1000))
-#define TEST_TIMEOUT	1000
+#define TEST_TIMEOUT	300
 
-// ====================== é›·è¾¾åè®®æ ¸å¿ƒå®šä¹‰ï¼ˆè¡¥å…¨ç¼ºå¤±éƒ¨åˆ†ï¼Œä¿®æ­£è§£æï¼‰ ======================
-#define UART_RX_BUF_SIZE        512     // æ¥æ”¶ç¼“å­˜
-#define MAX_FRAME_LEN           256     // æœ€å¤§å¸§é•¿
-#define SYNC_HEAD_H             0x55    // åŒæ­¥å¤´
+// ====================== À×´ïĞ­ÒéºËĞÄ¶¨Òå£¨²¹È«È±Ê§²¿·Ö£¬ĞŞÕı½âÎö£© ======================
+#define UART_RX_BUF_SIZE        512     // ½ÓÊÕ»º´æ
+#define MAX_FRAME_LEN           256     // ×î´óÖ¡³¤
+#define SYNC_HEAD_H             0x55    // Í¬²½Í·
 #define SYNC_HEAD_L             0xAA    
-#define CMD_RT_DATA             0x30    // å®æ—¶æ•°æ®å‘½ä»¤å­—
-#define RT_DATA_LEN             32      // 0x30å›ºå®šæ•°æ®é•¿åº¦
+#define CMD_RT_DATA             0x30    // ÊµÊ±Êı¾İÃüÁî×Ö
+#define RT_DATA_LEN             32      // 0x30¹Ì¶¨Êı¾İ³¤¶È
 
 static RadarRTData_t s_radar_data = {0};
 
@@ -25,7 +25,7 @@ static uint8_t  s_uart_rx_buf[UART_RX_BUF_SIZE] = {0};
 static uint16_t s_uart_rx_len = 0;
 
 
-// -------------------------- ä¸²å£é…ç½® --------------------------
+// -------------------------- ´®¿ÚÅäÖÃ --------------------------
 static struct scm_uart_cfg uart_tx_cfg = {
 	.baudrate = SCM_UART_BDR_115200,
 	.data_bits = SCM_UART_DATA_BITS_8,
@@ -42,11 +42,11 @@ static struct scm_uart_cfg uart_rx_cfg = {
 	.dma_en = 0,
 };
 
-// -------------------------- HEXæ‰“å°å·¥å…·ï¼ˆæ’æŸ¥ä¸“ç”¨ï¼‰ --------------------------
+// -------------------------- HEX´òÓ¡¹¤¾ß£¨ÅÅ²é×¨ÓÃ£© --------------------------
 static void hex_dump(char *title, uint8_t *buf, int len)
 {
 	int i;
-	printf("%s [%då­—èŠ‚]:\n", title, len);
+	printf("%s [%d×Ö½Ú]:\n", title, len);
 	for (i = 0; i < len; i++) {
 		printf("%02x ", buf[i]);
 		if ((i+1) % 16 == 0) printf("\n");
@@ -54,18 +54,18 @@ static void hex_dump(char *title, uint8_t *buf, int len)
 	printf("\n");
 }
 
-// -------------------------- å¤§ç«¯è½¬16ä½ --------------------------
+// -------------------------- ´ó¶Ë×ª16Î» --------------------------
 static uint16_t big2short(const uint8_t *buf)
 {
     return (uint16_t)((buf[0] << 8) | buf[1]);
 }
-// -------------------------- ä¸²å£å‘é€ --------------------------
+// -------------------------- ´®¿Ú·¢ËÍ --------------------------
 int iotalink_send_data( uint8_t * data, int len)
 {
     return scm_uart_tx(SCM_UART_IDX_1, data, len, TEST_TIMEOUT);
 }
 
-// -------------------------- ç´¯åŠ å’Œè®¡ç®—ï¼ˆæ”¶å‘é€šç”¨ï¼‰ --------------------------
+// -------------------------- ÀÛ¼ÓºÍ¼ÆËã£¨ÊÕ·¢Í¨ÓÃ£© --------------------------
 static uint16_t check_sum_calc(const uint8_t *frame, uint16_t frame_len)
 {
     uint16_t sum = 0;
@@ -82,23 +82,23 @@ void radar_send_cmd(uint8_t cmd, uint8_t *data, uint8_t data_len)
     uint16_t tx_index = 0;
     uint16_t check_sum = 0;
 
-    // æ‹¼æ¥å¸§å¤´
+    // Æ´½ÓÖ¡Í·
     tx_buf[tx_index++] = SYNC_HEAD_H;
     tx_buf[tx_index++] = SYNC_HEAD_L;
     tx_buf[tx_index++] = cmd;
     tx_buf[tx_index++] = data_len;
 
-    // æ ‡å‡†å®‰å…¨å†™æ³•ï¼šå…ˆåˆ¤æ–­æŒ‡é’ˆéç©ºï¼Œå†åˆ¤æ–­é•¿åº¦
+    // ±ê×¼°²È«Ğ´·¨£ºÏÈÅĞ¶ÏÖ¸Õë·Ç¿Õ£¬ÔÙÅĞ¶Ï³¤¶È
     if(data != NULL && data_len > 0)
     {
         memcpy(&tx_buf[tx_index], data, data_len);
         tx_index += data_len;
     }
 
-    // åè®®æ ‡å‡†ï¼štx_index = åŒæ­¥å¤´+å‘½ä»¤+é•¿åº¦+æ•°æ®ï¼Œæ­£å¥½æ˜¯ç´¯åŠ åŒºé—´
+    // Ğ­Òé±ê×¼£ºtx_index = Í¬²½Í·+ÃüÁî+³¤¶È+Êı¾İ£¬ÕıºÃÊÇÀÛ¼ÓÇø¼ä
     check_sum = check_sum_calc(tx_buf, tx_index+2);
 
-    // å¤§ç«¯å†™å…¥16ä½ç´¯åŠ å’Œ
+    // ´ó¶ËĞ´Èë16Î»ÀÛ¼ÓºÍ
     tx_buf[tx_index++] = (check_sum >> 8) & 0xFF;
     tx_buf[tx_index++] = check_sum & 0xFF;
 
@@ -107,60 +107,60 @@ void radar_send_cmd(uint8_t cmd, uint8_t *data, uint8_t data_len)
 }
 
 
-// ====================== æ ¸å¿ƒï¼š0x30 å®˜æ–¹32å­—èŠ‚åè®®è§£æ ======================
+// ====================== ºËĞÄ£º0x30 ¹Ù·½32×Ö½ÚĞ­Òé½âÎö ======================
 void radar_frame_parse(uint8_t cmd, const uint8_t *data, uint16_t data_len)
 {
 	
     if(cmd != CMD_RT_DATA) return;
-    // åè®®å›ºå®š32å­—èŠ‚ï¼Œ0x20
+    // Ğ­Òé¹Ì¶¨32×Ö½Ú£¬0x20
     if(data_len != RT_DATA_LEN)
 	{
-        printf("âŒ0x30é•¿åº¦é”™è¯¯ï¼åè®®è¦æ±‚32ï¼Œå®é™…ï¼š%d\n", data_len);
+        printf("?0x30³¤¶È´íÎó£¡Ğ­ÒéÒªÇó32£¬Êµ¼Ê£º%d\n", data_len);
         return;
     }
 
-    // ====================== ä¸¥æ ¼æŒ‰ç…§è¡¨æ ¼Byteä¸‹æ ‡é€å­—æ®µè§£æ ======================
-    memcpy(s_radar_data.dev_id, &data[0], 6);        // Byte[0-5] è®¾å¤‡ID
-    s_radar_data.heart          = data[6];           // Byte[6] å¿ƒç‡
-    s_radar_data.resp            = data[7];           // Byte[7] å‘¼å¸
-    s_radar_data.exist_state     = data[8];           // Byte[8] æœ‰äºº/æ— äºº
-    s_radar_data.move_state      = data[9];           // Byte[9] ä½“åŠ¨çŠ¶æ€
-    s_radar_data.distance_cm     = big2short(&data[10]);// Byte[10-11] è·ç¦»cm
-    s_radar_data.abnormal_code    = data[12];         // Byte[12] å¼‚å¸¸ç 
-    // 4å­—èŠ‚IEEE754æµ®ç‚¹æ•° å¤§ç«¯æ¨¡å¼
- //   s_radar_data.signal_db       = bytes2float(&data[13]);// Byte[13-16] ä¿¡å·dB
-    s_radar_data.bed_time_min    = big2short(&data[17]);// Byte[17-18] åœ¨åºŠæ—¶é•¿
-    s_radar_data.out_time_min    = big2short(&data[19]);// Byte[19-20] ç¦»åºŠæ—¶é•¿
+    // ====================== ÑÏ¸ñ°´ÕÕ±í¸ñByteÏÂ±êÖğ×Ö¶Î½âÎö ======================
+    memcpy(s_radar_data.dev_id, &data[0], 6);        // Byte[0-5] Éè±¸ID
+    s_radar_data.heart          = data[6];           // Byte[6] ĞÄÂÊ
+    s_radar_data.resp            = data[7];           // Byte[7] ºôÎü
+    s_radar_data.exist_state     = data[8];           // Byte[8] ÓĞÈË/ÎŞÈË
+    s_radar_data.move_state      = data[9];           // Byte[9] Ìå¶¯×´Ì¬
+    s_radar_data.distance_cm     = big2short(&data[10]);// Byte[10-11] ¾àÀëcm
+    s_radar_data.abnormal_code    = data[12];         // Byte[12] Òì³£Âë
+    // 4×Ö½ÚIEEE754¸¡µãÊı ´ó¶ËÄ£Ê½
+ //   s_radar_data.signal_db       = bytes2float(&data[13]);// Byte[13-16] ĞÅºÅdB
+    s_radar_data.bed_time_min    = big2short(&data[17]);// Byte[17-18] ÔÚ´²Ê±³¤
+    s_radar_data.out_time_min    = big2short(&data[19]);// Byte[19-20] Àë´²Ê±³¤
     s_radar_data.reserve1        = data[21];
-    s_radar_data.sleep_state     = data[22];         // Byte[22] ç¡çœ çŠ¶æ€
+    s_radar_data.sleep_state     = data[22];         // Byte[22] Ë¯Ãß×´Ì¬
     s_radar_data.reserve2        = data[23];
-    s_radar_data.time_hour       = data[24];         // æ—¶
-    s_radar_data.time_min        = data[25];         // åˆ†
-    s_radar_data.time_sec         = data[26];         // ç§’
+    s_radar_data.time_hour       = data[24];         // Ê±
+    s_radar_data.time_min        = data[25];         // ·Ö
+    s_radar_data.time_sec         = data[26];         // Ãë
 
-    // è§£æç»“æœå¯è§†åŒ–æ‰“å°
+    // ½âÎö½á¹û¿ÉÊÓ»¯´òÓ¡
     printf("=========================================\n");
-    printf("âœ… 0x30 32å­—èŠ‚æ•°æ®è§£ææˆåŠŸ\n");
-    printf("è®¾å¤‡ID: %02X%02X%02X%02X%02X%02X\n",
+    printf("? 0x30 32×Ö½ÚÊı¾İ½âÎö³É¹¦\n");
+    printf("Éè±¸ID: %02X%02X%02X%02X%02X%02X\n",
            s_radar_data.dev_id[0],s_radar_data.dev_id[1],s_radar_data.dev_id[2],
            s_radar_data.dev_id[3],s_radar_data.dev_id[4],s_radar_data.dev_id[5]);
-    printf("å¿ƒç‡ï¼š%d æ¬¡/åˆ† | å‘¼å¸ï¼š%d æ¬¡/åˆ†\n", s_radar_data.heart, s_radar_data.resp);
-    printf("è·ç¦»ï¼š%.2f ç±³ | ä¿¡å·å¼ºåº¦ï¼š%.2f dB\n", 
+    printf("ĞÄÂÊ£º%d ´Î/·Ö | ºôÎü£º%d ´Î/·Ö\n", s_radar_data.heart, s_radar_data.resp);
+    printf("¾àÀë£º%.2f Ã× | ĞÅºÅÇ¿¶È£º%.2f dB\n", 
            s_radar_data.distance_cm / 100.0f, s_radar_data.signal_db);
-    printf("å­˜åœ¨çŠ¶æ€ï¼š%d | ä½“åŠ¨çŠ¶æ€ï¼š%d\n", s_radar_data.exist_state, s_radar_data.move_state);
-    printf("åœ¨åºŠæ—¶é•¿ï¼š%dåˆ†é’Ÿ | ç¦»åºŠæ—¶é•¿ï¼š%dåˆ†é’Ÿ\n", s_radar_data.bed_time_min, s_radar_data.out_time_min);
-    printf("ç¡çœ çŠ¶æ€ï¼š%d | è®¾å¤‡æ—¶é—´ï¼š%02d:%02d:%02d\n",
+    printf("´æÔÚ×´Ì¬£º%d | Ìå¶¯×´Ì¬£º%d\n", s_radar_data.exist_state, s_radar_data.move_state);
+    printf("ÔÚ´²Ê±³¤£º%d·ÖÖÓ | Àë´²Ê±³¤£º%d·ÖÖÓ\n", s_radar_data.bed_time_min, s_radar_data.out_time_min);
+    printf("Ë¯Ãß×´Ì¬£º%d | Éè±¸Ê±¼ä£º%02d:%02d:%02d\n",
            s_radar_data.sleep_state, s_radar_data.time_hour, s_radar_data.time_min, s_radar_data.time_sec);
-    printf("å¼‚å¸¸ç ï¼š%d\n", s_radar_data.abnormal_code);
+    printf("Òì³£Âë£º%d\n", s_radar_data.abnormal_code);
     printf("=========================================\n");
 }
 extern void wlt_radar_notify( u8 * msg, u8 len);
 
-// -------------------------- å¸§è§£æï¼ˆå¢åŠ é”™è¯¯æ‰“å°ï¼‰ --------------------------
+// --------------------------  Ö¡½âÎö  --------------------------
 static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 {
     if(frame_len < 6) {
-        printf("âŒ å¸§é•¿åº¦è¿‡çŸ­ï¼š%d\n", frame_len);
+        printf("? Ö¡³¤¶È¹ı¶Ì£º%d\n", frame_len);
         return -1;
     }
 
@@ -169,50 +169,63 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
     uint16_t rx_sum  = (frame[frame_len-2] << 8) | frame[frame_len-1];
     uint16_t calc_sum = check_sum_calc(frame, frame_len);
 
-    // è°ƒè¯•æ‰“å°
-    printf("ğŸ“© è§£æå¸§ï¼šå‘½ä»¤å­—=0x%02X, æ•°æ®é•¿åº¦=%d, å¸§æ€»é•¿åº¦=%d\n", cmd, data_len, frame_len);
-    hex_dump("å¸§åŸå§‹æ•°æ®", (uint8_t*)frame, frame_len);
+    // µ÷ÊÔ´òÓ¡
+//    printf("?? ½âÎöÖ¡£ºÃüÁî×Ö=0x%02X, Êı¾İ³¤¶È=%d, Ö¡×Ü³¤¶È=%d\n", cmd, data_len, frame_len);
+//    hex_dump("Ö¡Ô­Ê¼Êı¾İ", (uint8_t*)frame, frame_len);
 
     if((6 + data_len) != frame_len || data_len > 250) {
-        printf("âŒ å¸§é•¿åº¦ä¸åŒ¹é…\n");
+        printf("? Ö¡³¤¶È²»Æ¥Åä\n");
         return -2;
     }
 
     if(calc_sum != rx_sum) {
-        printf("âŒ æ ¡éªŒé”™è¯¯ï¼è®¡ç®—ï¼š0x%04Xï¼Œæ¥æ”¶ï¼š0x%04X\n", calc_sum, rx_sum);
+        printf("? Ğ£Ñé´íÎó£¡¼ÆËã£º0x%04X£¬½ÓÊÕ£º0x%04X\n", calc_sum, rx_sum);
         return -3;
     }
 
-    // æ ¡éªŒæˆåŠŸ
-    printf("âœ… æ ¡éªŒé€šè¿‡\n");
+    // Ğ£Ñé³É¹¦
+//    printf("? Ğ£ÑéÍ¨¹ı\n");
 
 	switch(cmd)
 	{
-		case 0x0://è®¾å¤‡ä¿¡æ¯
+		case 0x0://Éè±¸ĞÅÏ¢
 			
-			wlt_radar_notify(frame,frame_len);
+		
 			radar_set_report_1s();
 
 			break;
 		
 		case 0x30:
 			
-		   // radar_frame_parse(cmd, &frame[4], data_len);
+			wlt_radar_notify(frame,frame_len);
+			
+		//	radar_frame_parse(cmd, &frame[4], data_len);
+
+			
+			u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
+		    spo2[3] = rand()%5+90;
+			
+			wlt_radar_notify(spo2,9);
 			
 			break;
-			
+		case 0x62://±¨¸æÉú³É³É¹¦0
+		case 0x63://Ë¯Ãß±¨¸æ
+
+			wlt_radar_notify(frame,frame_len);
+		
+			break;
+		
 
 	}
-
 
     return 0;
 }
 
-// -------------------------- æ¥æ”¶å›è°ƒï¼ˆå¤„ç†ç²˜åŒ…åˆ†åŒ…ï¼‰ --------------------------
+// -------------------------- ½ÓÊÕ»Øµ÷£¨´¦ÀíÕ³°ü·Ö°ü£© --------------------------
 void iotalink_rx_callbak(uint8_t *rx_buf, uint16_t len)
 {
-    // åŸå§‹æ•°æ®æ‰“å°
-//    hex_dump("åŸå§‹æ¥æ”¶æ•°æ®", rx_buf, len);
+    // Ô­Ê¼Êı¾İ´òÓ¡
+//    hex_dump("Ô­Ê¼½ÓÊÕÊı¾İ", rx_buf, len);
 
     if((s_uart_rx_len + len) > UART_RX_BUF_SIZE)
     {
@@ -228,7 +241,7 @@ void iotalink_rx_callbak(uint8_t *rx_buf, uint16_t len)
     {
         uint16_t frame_offset = 0xFFFF;
 
-        // æŸ¥æ‰¾å¸§å¤´
+        // ²éÕÒÖ¡Í·
         for(uint16_t i=0; i<s_uart_rx_len-1; i++)
         {
             if(s_uart_rx_buf[i] == SYNC_HEAD_H && s_uart_rx_buf[i+1] == SYNC_HEAD_L)
@@ -267,20 +280,18 @@ void iotalink_rx_callbak(uint8_t *rx_buf, uint16_t len)
             return;
         }
 
-        // è§£æå¸§
+        // ½âÎöÖ¡
         frame_decode(s_uart_rx_buf, frame_total_len);
 
 	
 
-		
-
-        // ç§»é™¤å·²è§£ææ•°æ®
+        // ÒÆ³ıÒÑ½âÎöÊı¾İ
         memmove(s_uart_rx_buf, &s_uart_rx_buf[frame_total_len], s_uart_rx_len - frame_total_len);
         s_uart_rx_len -= frame_total_len;
     }
 }
 
-// -------------------------- é›·è¾¾é…ç½®æŒ‡ä»¤ --------------------------
+// -------------------------- À×´ïÅäÖÃÖ¸Áî --------------------------
 void radar_set_report_1s(void)
 {
     uint8_t data[] = {0x1, 0x1};
@@ -296,25 +307,25 @@ void radar_set_report_always(void)
 
 
 
-//åœ¨çº¿11:59
+//ÔÚÏß11:59
 void radar_send_time_online(void)
 {
 	uint8_t data[]={0x55,0xaa,0x03,0x09,0x01,0x1a,0x04,0x16,0x0b,0x3b,0x29,0x03,0x5a,0x02,0x0c};
     iotalink_send_data(data, 15);
 }
 
-// -------------------------- é›·è¾¾åˆå§‹åŒ– --------------------------
+// -------------------------- À×´ï³õÊ¼»¯ --------------------------
 void radar_start(void)
 {
-    printf("ğŸš€ é›·è¾¾åˆå§‹åŒ–å¼€å§‹...\n");
+    printf("?? À×´ï³õÊ¼»¯¿ªÊ¼...\n");
 	osDelay(MS_TO_TICKS(200));
     radar_set_report_1s();
     radar_set_report_always();
     radar_send_time_online();
-    printf("âœ… é›·è¾¾åˆå§‹åŒ–å®Œæˆï¼Œç­‰å¾…0x30æ•°æ®...\n");
+    printf("? À×´ï³õÊ¼»¯Íê³É£¬µÈ´ı0x30Êı¾İ...\n");
 }
 
-// -------------------------- ä¸²å£ä»»åŠ¡ï¼ˆä¿®å¤é€»è¾‘bugï¼‰ --------------------------
+// -------------------------- ´®¿ÚÈÎÎñ£¨ĞŞ¸´Âß¼­bug£© --------------------------
 void iotalink_uart_process(void*argv)
 {
 	int ret;
@@ -357,26 +368,26 @@ exit:
 	scm_uart_deinit(SCM_UART_IDX_1);
 }
 
-// -------------------------- UARTåˆå§‹åŒ– --------------------------
+// -------------------------- UART³õÊ¼»¯ --------------------------
 void wlt_uart_init(void)
 {
 #ifdef CONFIG_USE_UART1
 	int ret = scm_uart_init(SCM_UART_IDX_1, &uart_tx_cfg);
 	if (ret)
 	{
-		printf("âŒ UARTåˆå§‹åŒ–å¤±è´¥ %x\n", ret);
+		printf("? UART³õÊ¼»¯Ê§°Ü %x\n", ret);
 		return;
 	}
-	printf("âœ… UARTåˆå§‹åŒ–æˆåŠŸ\n");	
+	printf("? UART³õÊ¼»¯³É¹¦\n");	
 #endif
 
 	osThreadAttr_t attr = {
 		.name		= "uart_task",
-		.stack_size = 2048,
+		.stack_size = 1024,
 		.priority	= osPriorityNormal,
 	};
 	osThreadNew(iotalink_uart_process, NULL, &attr);
 
-	// å¯åŠ¨é›·è¾¾é…ç½®
+	// Æô¶¯À×´ïÅäÖÃ
 	radar_start();
 }

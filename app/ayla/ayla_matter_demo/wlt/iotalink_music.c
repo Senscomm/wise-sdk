@@ -23,6 +23,8 @@ unsigned char MUSIC_SENSITIVITY = 200; // 用于律动灵敏度调整
 #define  MUSIC_STATIC  240 // 静态无声音获取的adc值
 
 
+
+
 static  u16  RGB_LED_NUM = 40 ;//按40个灯珠
 
 extern bool MUSIC_LOCAL_MODE;	
@@ -613,7 +615,7 @@ void iotalink_music_process_2(void)
 	if(sh>=360)sh=0;
 	hsv_to_rgb(&r, &g, &b, sh, 100, sv);
 	
-	 my_printf("-----max_voltage:%d ----\n",max_voltage);
+	 bk_printf("-----max_voltage:%d ----\n",max_voltage);
 	 if (num<num_back)	//音量下降
 	 {
 		 while(num<num_back)
@@ -628,7 +630,7 @@ void iotalink_music_process_2(void)
 				
 					 rgb_colorful_buffer_set(i+num_max_4+num_max_4*2*j, r,  g, b );
 					 rgb_colorful_buffer_set(num_max_4-1-i+num_max_4*2*j , r,  g, b );
-					 //my_printf("  :%d \n",i+num_max+num_max*2*j);
+					 //bk_printf("  :%d \n",i+num_max+num_max*2*j);
 				 }				 
 				
 			 } rgb_value_sync();
@@ -733,6 +735,233 @@ void iotalink_music_process_5(void)
 }
 
 
+/*-----------------------------《 adc 按键调试demo》------------------------------------*/
+
+
+#include "scm_adc.h"     // 芯片ADC驱动头文件
+
+// ===================== 配置宏定义 =====================
+#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_4  // 选择ADC通道4（对应硬件GPIO4）
+//#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_5  // 选择ADC通道5（对应硬件GPIO7）
+
+#define MUSIC_KEY  6	//暂时控制音乐播放的按键
+
+
+#define ADC_SAMPLE_CNT     10                  // ADC采样滤波次数
+#define KEY_DEBOUNCE_MS    20                  // 按键消抖时间(ms)
+#define KEY_SCAN_INTERVAL  10                  // 按键扫描间隔(ms)
+
+// ADC按键阈值（根据实际分压电路调整，需实测校准）
+#define KEY_NONE_THRESH    800    // 无按键阈值
+
+#define KEY1_THRESH_LOW    200    // KEY1最小值
+#define KEY1_THRESH_HIGH   280   // KEY1最大值
+
+#define KEY2_THRESH_LOW    700    // KEY2最小值
+#define KEY2_THRESH_HIGH   750    // KEY2最大值
+
+#define KEY3_THRESH_LOW    760    // KEY3最小值
+#define KEY3_THRESH_HIGH   780    // KEY3最大值
+
+// 按键枚举
+typedef enum {
+    KEY_NONE = 0,  // 无按键
+    KEY1,          // 按键1
+    KEY2,          // 按键2
+    KEY3           // 按键3
+} adc_key_t;
+
+// ===================== 静态函数声明 =====================
+static uint16_t adc_key_read_avg(void);
+static adc_key_t adc_key_scan(void);
+static void adc_key_action(adc_key_t key);
+
+// ===================== 核心功能实现 =====================
+
+/**
+ * @brief 读取ADC平均值（滤波，抗干扰）
+ * @return ADC采样平均值
+ */
+static uint16_t adc_key_read_avg(void)
+{
+    uint32_t sum = 0;
+    uint16_t buf[ADC_SAMPLE_CNT];
+    int ret, i;
+
+    // 调用芯片ADC驱动读取多组数据
+    ret = scm_adc_read(ADC_KEY_CHANNEL, buf, ADC_SAMPLE_CNT);
+    if (ret != 0) 
+	{
+        printf("ADC read error: 0x%x\n", ret);
+        return 0;
+    }
+
+    // 计算平均值
+    for (i = 0; i < ADC_SAMPLE_CNT; i++)
+	{
+        sum += buf[i];
+    }
+	
+    return (uint16_t)(sum / ADC_SAMPLE_CNT);
+}
+
+/**
+ * @brief 扫描ADC按键（识别按键类型）
+ * @return 按键类型
+ */
+static adc_key_t adc_key_scan(void)
+{
+    uint16_t adc_val = adc_key_read_avg();
+    adc_key_t key = KEY_NONE;
+
+    // 根据阈值判断按键
+    if (adc_val > KEY_NONE_THRESH) {
+        key = KEY_NONE;
+    } else if (adc_val >= KEY1_THRESH_LOW && adc_val <= KEY1_THRESH_HIGH) {
+        key = KEY1;
+    } else if (adc_val >= KEY2_THRESH_LOW && adc_val <= KEY2_THRESH_HIGH) {
+        key = KEY2;
+    } else if (adc_val >= KEY3_THRESH_LOW && adc_val <= KEY3_THRESH_HIGH) {
+        key = KEY3;
+    }
+
+    return key;
+}
+
+/**
+ * @brief 按键动作处理
+ * @param key 按下的按键
+ */
+static void adc_key_action(adc_key_t key)
+{
+	extern light_ctrl_data_t sg_light_ctrl_data;
+
+	bool _switch = sg_light_ctrl_data.switch_status;
+
+    switch (key) {
+        case KEY3:
+            printf("KEY1 pressed (on/off)\n");
+				light_power_set(!_switch);
+				iotalink_light_ctrl_process();		
+
+            break;
+        case KEY2:
+			
+            printf("KEY2 pressed (sleep)\n");
+
+			scm_gpio_write(MUSIC_KEY , 0);
+			wlt_ms_delay(200);
+			scm_gpio_write(MUSIC_KEY , 1);
+
+			light_mode_set(COLOR_MODE);
+			cwrgb_target_val_set (0, 0,10,0,50);
+
+
+            break;
+        case KEY1:
+            printf("KEY3 pressed (mode)\n");
+            break;
+        default:
+            break;
+    }
+}
+
+/**
+ * @brief ADC按键任务（持续扫描+消抖）
+ */
+void adc_key_task(void *arg)
+{
+    adc_key_t last_key = KEY_NONE;
+    adc_key_t cur_key;
+
+    printf("ADC按键任务启动...\n");
+
+    while (1) 
+	{
+        // 1. 扫描当前按键
+        cur_key = adc_key_scan();
+
+        // 2. 消抖处理：连续两次扫描结果一致才判定为有效按键
+        if (cur_key != last_key)
+		{
+          // 消抖延时（需适配芯片延时接口）
+			udelay(KEY_DEBOUNCE_MS*1000);
+            cur_key = adc_key_scan();     // 再次扫描确认
+            if (cur_key == last_key)
+			{
+                goto scan_end;
+            }
+        }
+
+        // 3. 有效按键触发动作（仅按下时触发一次）
+        if (cur_key != KEY_NONE && cur_key != last_key) 
+		{
+            adc_key_action(cur_key);
+            last_key = cur_key;
+        }
+
+        // 4. 无按键时重置状态
+        if (cur_key == KEY_NONE) 
+		{
+            last_key = KEY_NONE;
+        }
+	
+
+scan_end:
+        // 按键扫描间隔
+       // hal_msleep(KEY_SCAN_INTERVAL);
+		udelay(KEY_DEBOUNCE_MS*1000);
+			
+    }
+}
+
+// ===================== 初始化函数 =====================
+
+/**
+ * @brief ADC按键初始化
+ * @return 0:成功 其他:失败
+ */
+int adc_key_init(void)
+{
+    int ret;
+
+    // 重置ADC外设
+    ///ret = scm_adc_reset();
+    if (ret != 0) {
+        printf("ADC reset error: 0x%x\n", ret);
+        return -1;
+    }
+
+    printf("ADC按键初始化完成（通道：%d）\n", ADC_KEY_CHANNEL);
+
+    // 创建ADC按键任务（适配芯片的任务创建接口）
+  //  xTaskCreate("adc_key_task",   adc_key_task,   NULL,  1024,     10,  NULL); 
+	osThreadAttr_t attr = {
+		.name 		= "adc_key_task",
+		.stack_size = 1024,
+		.priority 	= osPriorityNormal,    //osPriorityNormal        = 24,osPriorityRealtime,//osPriorityLowcon
+	};
+	/* run the demo in a new thread to allow further CLI */
+	osThreadNew(adc_key_task, NULL, &attr);		
+
+    return 0;
+}
+
+// ===================== 主函数（测试用） =====================
+#if 0
+int main(void)
+{
+    // 初始化ADC按键
+    adc_key_init();
+
+    // 主循环（芯片底层已处理任务调度，此处仅占位）
+    while (1) {
+        hal_msleep(1000);
+    }
+
+    return 0;
+}
+#endif
 
 
 
@@ -751,13 +980,19 @@ static void iotalink_adc_get_process(void * argv)
 			while(i++<CONFIG_MUSIC_SAMPLING_COUNT)
 			{
 			
-				scm_adc_read(SCM_ADC_SINGLE_CH_5,&adcvalue,2);
+				scm_adc_read(SCM_ADC_SINGLE_CH_5,&adcvalue,2);//io7 mic	
 				Voltages[i]=adcvalue[1];
-				//printf("%d -", Voltages[i]);			
+				printf("%d -", Voltages[i]);			
 			}
 			i=0;   
 			//printf("\n", i,Voltages[i]);	
 		}
+
+#if 0
+		scm_adc_read(SCM_ADC_SINGLE_CH_4,&adcvalue,2);//key
+	    printf("-----------------> adc io4 %d\n",adcvalue[1]);
+#endif
+		
 		osDelay(MS_TO_TICKS(20));
 	}
 
@@ -768,18 +1003,25 @@ void iotalink_adc_init(void)
 	//通道已默认初始化 直接read
 		
 	//u16 buf[8]={0};
-	//scm_adc_reset();
-	
+	scm_adc_reset();
+	adc_key_init();
 	//受spi 驱动影响要把它配置成输入
 	
   	scm_gpio_configure(7,SCM_GPIO_PROP_INPUT);
 	scm_gpio_write(7 , 0);
+	scm_gpio_configure(4,SCM_GPIO_PROP_INPUT);//
+	scm_gpio_write(4 , 0);
+
+	
+  	scm_gpio_configure(MUSIC_KEY,SCM_GPIO_PROP_OUTPUT);
+	scm_gpio_write(MUSIC_KEY, 1);
+
 
 	//scm_adc_read(SCM_ADC_SINGLE_CH_4, buf, 8);
 
 	//xTaskCreate(iotalink_button_process, "iotalink_button_process",512, NULL, 7, NULL);
 	osThreadAttr_t attr = {
-		.name 		= "iotalnk_music_task",
+		.name 		= "music_task",
 		.stack_size = 1024,
 		.priority 	= osPriorityNormal,    //osPriorityNormal        = 24,osPriorityRealtime,//osPriorityLowcon
 	};
@@ -789,17 +1031,8 @@ void iotalink_adc_init(void)
 
 
 
+
+
+
 //scm_adc_read
-
-
-
-
-
-
-
-
-
-
-
-
 

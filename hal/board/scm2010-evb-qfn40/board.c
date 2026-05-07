@@ -62,6 +62,7 @@ static struct pinctrl_pin_map pin_map[] = {
 	pinmap(22, "atcuart.0", "txd", 0),
 #endif
 
+/* Radar */
 #ifdef CONFIG_USE_UART1
 	/* UART1 */
 	pinmap( 0, "atcuart.1", "rxd", 0),
@@ -93,23 +94,25 @@ static struct pinctrl_pin_map pin_map[] = {
 #endif
 #endif
 
+/* Open SPI1 */
 #ifdef CONFIG_USE_SPI1
 	/* SPI1 */
-    pinmap(16, "atcspi.1", "clk", 0),
-    pinmap(15, "atcspi.1", "cs",  0),
-    pinmap(17, "atcspi.1", "mosi",0), 	/* dat0 */
-    pinmap(18, "atcspi.1", "miso",0), 	/* dat1 */
-    pinmap(19, "atcspi.1", "wp",  0),   /* dat2 */
-    pinmap(20, "atcspi.1", "hold",0),	/* dat3	*/
+    pinmap(16, "atcspi200-xip.1", "clk", 0),
+    pinmap(15, "atcspi200-xip.1", "cs",  0),
+    pinmap(17, "atcspi200-xip.1", "mosi",0), 	/* dat0 */
+    pinmap(18, "atcspi200-xip.1", "miso",0), 	/* dat1 */
+    // pinmap(19, "atcspi.1", "wp",  0),   /* dat2 */
+    // pinmap(20, "atcspi.1", "hold",0),	/* dat3	*/
 #endif
 
 #ifdef CONFIG_USE_SPI2
-    pinmap( 3, "atcspi.2", "clk", 0),
-    pinmap( 2, "atcspi.2", "cs",  0),
-    pinmap( 4, "atcspi.2", "mosi",0), 	/* dat0 */
-    pinmap( 5, "atcspi.2", "miso",0), 	/* dat1 */
-    pinmap( 6, "atcspi.2", "wp",  0),   /* dat2 */
-    pinmap( 7, "atcspi.2", "hold",0),	/* dat3	*/
+//    pinmap( 6, "atcspi.2", "clk", 0),
+	pinmap( 3, "atcspi.2", "clk", 0),
+    pinmap( 8, "atcspi.2", "cs",  0),
+    pinmap( 23, "atcspi.2", "mosi",0), 	/* dat0 */
+    pinmap( 24, "atcspi.2", "miso",0), 	/* dat1 */
+    // pinmap( 6, "atcspi.2", "wp",  0),   /* dat2 */
+    // pinmap( 7, "atcspi.2", "hold",0),	/* dat3	*/
 #endif
 
 #ifdef CONFIG_SDIO
@@ -124,10 +127,10 @@ static struct pinctrl_pin_map pin_map[] = {
 
 #ifdef CONFIG_USE_TIMER0_PWM
 	/* PWM */
-    pinmap(15, "timer.0", "pwm0",  0),
-    pinmap(16, "timer.0", "pwm1",  0),
-    pinmap(17, "timer.0", "pwm2",  0),
-    pinmap(18, "timer.0", "pwm3",  0),
+    // pinmap(0, "timer.0", "pwm0",  0),
+    // pinmap(1, "timer.0", "pwm1",  0),
+    pinmap(2, "timer.0", "pwm2",  0),
+    // pinmap(3, "timer.0", "pwm3",  0),
 #endif
 
 #ifdef CONFIG_USE_TIMER1_PWM
@@ -138,14 +141,14 @@ static struct pinctrl_pin_map pin_map[] = {
 
 #ifdef CONFIG_USE_I2C0
 	/* I2C0 */
-	pinmap(15, "atci2c.0", "scl", 0),
-	pinmap(16, "atci2c.0", "sda", 0),
+	// pinmap(15, "atci2c.0", "scl", 0),
+	// pinmap(16, "atci2c.0", "sda", 0),
 #endif
 
 #ifdef CONFIG_USE_I2C1
 	/* I2C1 */
-	pinmap( 6, "atci2c.1", "scl", 0),
-	pinmap( 7, "atci2c.1", "sda", 0),
+	pinmap( 19, "atci2c.1", "scl", 0),
+	pinmap( 20, "atci2c.1", "sda", 0),
 #endif
 
 #ifdef CONFIG_USE_I2S

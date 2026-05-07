@@ -332,95 +332,116 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 	}
 	printf("\n");
 
-	if(buf[0]!= 0x1D) //头
-	return;
-	u8 cmd = buf[1];
-	switch(cmd)
+	if(buf[0]== 0x1D) //头
 	{
-		case 1://亮度
-		
-			light_bright_set(buf[3]);
 
-			break;
-		case 2://速度
-		
-			light_speed_set(buf[2]);
-
-			break;		
-		case 3://
-			//经典/场景 buf[2]1/2
-			//模式号 buf[3]212/33
-			if(buf[2] ==1) //
-			{
-				light_mode_set(CUSTOME_MODE);		
-				light_custome_unit_set( buf[3] );
-
-			}
-			else if(buf[2] ==2)
-			{
-				light_mode_set(SCENE_MODE);
-				light_magicunit_set( buf[3] );
-	
-			}
-	
-			break;	
-		case 4://开关 buf[3]
-
-			if(buf[3])
-			light_power_set(1);
-			else
-			light_power_set(0);	
+		u8 cmd = buf[1];
+		switch(cmd)
+		{
+			case 1://亮度
 			
-			break;
-		case 5://  Byte2: 控制灯珠类。
-			/* 0 保留；
-			1 表示设置 RGB 彩灯颜色值； 
-			2 表示设置 W 白灯色值；
-			3 表示设置 CT 黄灯色值；
-			4 表示设置 WCT 白灯和黄灯色值；
-			Byte3: 
-			Byte2 == 1 时表示红色值   0-255；
-			Byte2 == 2 时表示白灯色值 0-100；
-			Byte2 == 3 时表示黄灯色值 0-100；
-			Byte2 == 4 时表示白灯色值 0-100；
-			Byte4: 
-			Byte2 == 4 时表示黄灯色值 0-100*/
-
-			if(buf[2] ==1) //RGB
-			{
-	
-				light_mode_set(COLOR_MODE);
-				u32 rgb_color = buf[3]<<16|buf[4]<<8|buf[5];
-
-				light_color_set(rgb_color);
-				
-
-
-			}
-			else
-			{
-				light_mode_set(WHITE_MODE);
-				//light_ctrl_data_calculate_cw();
 				light_bright_set(buf[3]);
-			}	 
-			break;	
-		case  6://律动效果
-			light_mode_set(MUSIC_MODE);
-			light_musicunit_set(buf[2]);//1-6
 
-			break;
-		case  7://灵敏度
-			light_sensitivity_set(buf[2]);
-			break;
-		default :
+				break;
+			case 2://速度
+			
+				light_speed_set(buf[2]);
+
+				break;		
+			case 3://
+				//经典/场景 buf[2]1/2
+				//模式号 buf[3]212/33
+				if(buf[2] ==1) //
+				{
+					light_mode_set(CUSTOME_MODE);		
+					light_custome_unit_set( buf[3] );
+
+				}
+				else if(buf[2] ==2)
+				{
+					light_mode_set(SCENE_MODE);
+					light_magicunit_set( buf[3] );
 		
-			break;
+				}
+		
+				break;	
+			case 4://开关 buf[3]
 
+				if(buf[3])
+				light_power_set(1);
+				else
+				light_power_set(0);	
+				
+				break;
+			case 5://  Byte2: 控制灯珠类。
+				/* 0 保留；
+				1 表示设置 RGB 彩灯颜色值； 
+				2 表示设置 W 白灯色值；
+				3 表示设置 CT 黄灯色值；
+				4 表示设置 WCT 白灯和黄灯色值；
+				Byte3: 
+				Byte2 == 1 时表示红色值   0-255；
+				Byte2 == 2 时表示白灯色值 0-100；
+				Byte2 == 3 时表示黄灯色值 0-100；
+				Byte2 == 4 时表示白灯色值 0-100；
+				Byte4: 
+				Byte2 == 4 时表示黄灯色值 0-100*/
+
+				if(buf[2] ==1) //RGB
+				{
+		
+					light_mode_set(COLOR_MODE);
+					u32 rgb_color = buf[3]<<16|buf[4]<<8|buf[5];
+
+					light_color_set(rgb_color);
+					
+
+
+				}
+				else
+				{
+					light_mode_set(WHITE_MODE);
+					//light_ctrl_data_calculate_cw();
+					light_bright_set(buf[3]);
+				}	 
+				break;	
+			case  6://律动效果
+				light_mode_set(MUSIC_MODE);
+				light_musicunit_set(buf[2]);//1-6
+
+				break;
+			case  7://灵敏度
+				light_sensitivity_set(buf[2]);
+				break;
+
+			case 0x1a://一键睡眠	
+
+				scm_gpio_write(6 , 0);
+				wlt_ms_delay(200);
+				scm_gpio_write(6 , 1);
+
+
+				light_mode_set(COLOR_MODE);
+				cwrgb_target_val_set (0, 0,10,0,50);
+
+				return;
+
+
+			
+			default :
+			
+				break;
+
+
+		}
+		
+		iotalink_light_ctrl_process();
 
 	}
-	
-	
-	iotalink_light_ctrl_process();
+	else if(buf[0]==0x55&&buf[1]==0xAA)// 雷达配置
+	{
+		iotalink_send_data(buf,length);
+	}	
 	
 }
 
