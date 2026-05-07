@@ -9,8 +9,8 @@
 #ifndef __AYLA_APP_H__
 #define __AYLA_APP_H__
 
-#define APP_VER         "1.1.0"
-#define APP_NAME        "hdy_matter_floor_lamp"
+#define APP_VER         "1.0.0"
+#define APP_NAME        "hdy_matter_sleep_lamp"
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 

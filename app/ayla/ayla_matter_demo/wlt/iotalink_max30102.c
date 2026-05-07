@@ -3,33 +3,33 @@
 #include "scm_i2c.h"
 
 /**********************************************************************
- * æ–‡ä»¶åï¼šiotalink_max30102.c
- * åŠŸèƒ½ï¼šMAX30102 è¡€æ°§å¿ƒçŽ‡ä¼ æ„Ÿå™¨å®Œæ•´é©±åŠ¨ï¼ˆç¡¬ä»¶I2C + INTä¸­æ–­ + ç®—æ³•ï¼‰
- * å¹³å°ï¼šåŸºäºŽ scm_i2c.h ç¡¬ä»¶I2CæŽ¥å£
- * è¾“å‡ºï¼šå¿ƒçŽ‡HR(æ¬¡/åˆ†)ã€è¡€æ°§SpOâ‚‚(%)
+ * ÎÄ¼þÃû£ºiotalink_max30102.c
+ * ¹¦ÄÜ£ºMAX30102 ÑªÑõÐÄÂÊ´«¸ÐÆ÷ÍêÕûÇý¶¯£¨Ó²¼þI2C + INTÖÐ¶Ï + Ëã·¨£©
+ * Æ½Ì¨£º»ùÓÚ scm_i2c.h Ó²¼þI2C½Ó¿Ú
+ * Êä³ö£ºÐÄÂÊHR(´Î/·Ö)¡¢ÑªÑõSpO?(%)
  **********************************************************************/
 
 //=============================================================================
-//======================= é…ç½®å‚æ•° ===========================
+//======================= ÅäÖÃ²ÎÊý ===========================
 //=============================================================================
-#define MAX30102_I2C_IDX             SCM_I2C_IDX_1    // I2Cç«¯å£ 19 20
-#define MAX30102_INT_GPIO_PIN        0                // INTè„šç¼–å·
-#define MAX30102_ADDR_7BIT           0x57             // 7ä½åœ°å€(0xAE>>1) 
+#define MAX30102_I2C_IDX             SCM_I2C_IDX_1    // I2C¶Ë¿Ú 19 20
+#define MAX30102_INT_GPIO_PIN        0                // INT½Å±àºÅ
+#define MAX30102_ADDR_7BIT           0x57             // 7Î»µØÖ·(0xAE>>1) 
 
-// é‡‡æ ·é…ç½®
+// ²ÉÑùÅäÖÃ
 #define MAX30102_SR_100HZ             0x01
 #define MAX30102_LED_PW_18BIT         0x03
 #define MAX30102_LED_CURRENT          0x2C
 
-// ç®—æ³•å‚æ•°
+// Ëã·¨²ÎÊý
 #define SPO2_SAMPLE_CNT               100
 #define HR_BUF_SIZE                   10
 
-//ä¸­æ–­å¼•è„šç”µå¹³
+//ÖÐ¶ÏÒý½ÅµçÆ½
 u8	MAX30102_INT  =1;
 
 //=============================================================================
-//=======================  MAX30102 å¯„å­˜å™¨å®šä¹‰ ============================
+//=======================  MAX30102 ¼Ä´æÆ÷¶¨Òå ============================
 //=============================================================================
 #define MAX30102_PART_ID              0x15
 
@@ -46,14 +46,14 @@ u8	MAX30102_INT  =1;
 #define MAX30102_PART_ID_REG           0xFF
 
 //=============================================================================
-//======================== å…¨å±€å˜é‡ =======================================
+//======================== È«¾Ö±äÁ¿ =======================================
 //=============================================================================
-// ä¸­æ–­
+// ÖÐ¶Ï
 volatile uint8_t max30102_int_flag = 0;
 
-//çº¢å¤–å…‰é€šé“åŽŸå§‹ 18 ä½ ADC å€¼ çº¢å…‰é€šé“åŽŸå§‹ 18 ä½ ADC å€¼  
+//ºìÍâ¹âÍ¨µÀÔ­Ê¼ 18 Î» ADC Öµ ºì¹âÍ¨µÀÔ­Ê¼ 18 Î» ADC Öµ  
 uint32_t max30102_ir = 0, max30102_red = 0;
-// ç®—æ³•
+// Ëã·¨
 static int32_t ir_buf[SPO2_SAMPLE_CNT];
 static int32_t red_buf[SPO2_SAMPLE_CNT];
 static uint8_t  sample_idx = 0;
@@ -64,7 +64,7 @@ static uint32_t last_peak = 0;
 static float    hr_val = 0, spo2_val = 0;
 
 //=============================================================================
-//========================  I2C åŸºç¡€è¯»å†™ ===================================
+//========================  I2C »ù´¡¶ÁÐ´ ===================================
 //=============================================================================
 
 #if 1
@@ -89,7 +89,7 @@ int max30102_wr(uint8_t reg, uint8_t val)
 {
     uint8_t buf[2] = {reg, val};
     int ret = scm_i2c_master_tx(MAX30102_I2C_IDX, MAX30102_ADDR_7BIT, buf, 2, 500);
-    // 0: æˆåŠŸ | -1: è¶…æ—¶ | -2: NACKæ— åº”ç­” | -3: æ€»çº¿é”™è¯¯ 
+    // 0: ³É¹¦ | -1: ³¬Ê± | -2: NACKÎÞÓ¦´ð | -3: ×ÜÏß´íÎó 
     printf("[MAX30102 WR] Reg:0x%02X, Val:0x%02X, Ret:%d\n", reg, val, ret); 
     return ret;
 }
@@ -126,7 +126,7 @@ int max30102_rd_fifo(uint8_t *buf)
 
 
 //=============================================================================
-//======================== ï¼ˆä¸­æ–­ï¼‰æ•°æ®å¤„ç† ==================================
+//======================== £¨ÖÐ¶Ï£©Êý¾Ý´¦Àí ==================================
 //=============================================================================
 void max30102_process(void)
 {
@@ -148,7 +148,7 @@ void max30102_process(void)
 }
 
 //=============================================================================
-//======================== å¿ƒçŽ‡è¡€æ°§ç®—æ³• ==================================
+//======================== ÐÄÂÊÑªÑõËã·¨ ==================================
 //=============================================================================
 void dc_remove(int32_t *ir, int32_t *rd)
 {
@@ -182,7 +182,7 @@ uint8_t detect_hr(int32_t ac)
 {
     static int32_t max_v = -1000000, min_v = 1000000;
     static uint8_t st = 0;
-    uint32_t tick = osKernelGetTickCount();; //ç³»ç»Ÿæ¯«ç§’æ—¶é’Ÿ
+    uint32_t tick = osKernelGetTickCount();; //ÏµÍ³ºÁÃëÊ±ÖÓ
 
     if (ac > max_v) max_v = ac;
     if (ac < min_v) min_v = ac;
@@ -225,7 +225,7 @@ void max30102_algorithm(void)
 }
 
 //=============================================================================
-//======================== èŽ·å–ç»“æžœæŽ¥å£ ==================================
+//======================== »ñÈ¡½á¹û½Ó¿Ú ==================================
 //=============================================================================
 void max30102_get(float *hr, float *spo2)
 {
@@ -422,7 +422,7 @@ void maxim_heart_rate_and_oxygen_saturation(uint32_t *pun_ir_buffer,  int32_t n_
             n_denom= ( n_x_ac *n_y_dc_max)>>7;
             if (n_denom>0  && n_i_ratio_count <5 &&  n_nume != 0)
             {   
-                an_ratio[n_i_ratio_count]= (n_nume*20)/n_denom ; //formular is ( n_y_ac *n_x_dc_max) / ( n_x_ac *n_y_dc_max) ;  ///*************************n_numeåŽŸæ¥æ˜¯*100************************//
+                an_ratio[n_i_ratio_count]= (n_nume*20)/n_denom ; //formular is ( n_y_ac *n_x_dc_max) / ( n_x_ac *n_y_dc_max) ;  ///*************************n_numeÔ­À´ÊÇ*100************************//
                 n_i_ratio_count++;
             }
         }
@@ -562,13 +562,13 @@ void maxim_sort_indices_descend(int32_t *pn_x, int32_t *pn_indx, int32_t n_size)
 
 
 
-uint32_t aun_ir_buffer[500]; 	 //IR LED   çº¢å¤–å…‰æ•°æ®ï¼Œç”¨äºŽè®¡ç®—è¡€æ°§
-int32_t n_ir_buffer_length;    //æ•°æ®é•¿åº¦
-uint32_t aun_red_buffer[500];  //Red LED	çº¢å…‰æ•°æ®ï¼Œç”¨äºŽè®¡ç®—å¿ƒçŽ‡æ›²çº¿ä»¥åŠè®¡ç®—å¿ƒçŽ‡
-int32_t n_sp02; //SPO2å€¼
-int8_t ch_spo2_valid;   //ç”¨äºŽæ˜¾ç¤ºSP02è®¡ç®—æ˜¯å¦æœ‰æ•ˆçš„æŒ‡ç¤ºç¬¦
-int32_t n_heart_rate;   //å¿ƒçŽ‡å€¼
-int8_t  ch_hr_valid;    //ç”¨äºŽæ˜¾ç¤ºå¿ƒçŽ‡è®¡ç®—æ˜¯å¦æœ‰æ•ˆçš„æŒ‡ç¤ºç¬¦
+uint32_t aun_ir_buffer[500]; 	 //IR LED   ºìÍâ¹âÊý¾Ý£¬ÓÃÓÚ¼ÆËãÑªÑõ
+int32_t n_ir_buffer_length;    //Êý¾Ý³¤¶È
+uint32_t aun_red_buffer[500];  //Red LED	ºì¹âÊý¾Ý£¬ÓÃÓÚ¼ÆËãÐÄÂÊÇúÏßÒÔ¼°¼ÆËãÐÄÂÊ
+int32_t n_sp02; //SPO2Öµ
+int8_t ch_spo2_valid;   //ÓÃÓÚÏÔÊ¾SP02¼ÆËãÊÇ·ñÓÐÐ§µÄÖ¸Ê¾·û
+int32_t n_heart_rate;   //ÐÄÂÊÖµ
+int8_t  ch_hr_valid;    //ÓÃÓÚÏÔÊ¾ÐÄÂÊ¼ÆËãÊÇ·ñÓÐÐ§µÄÖ¸Ê¾·û
 
 uint8_t Temp;
 
@@ -585,7 +585,7 @@ u8 dis_hr=0,dis_spo2=0;
 
 
 //=============================================================================
-//======================== ä¸­æ–­åˆå§‹åŒ– =====================================
+//======================== ÖÐ¶Ï³õÊ¼»¯ =====================================
 //=============================================================================
 void max30102_int_init(void)
 {
@@ -606,7 +606,7 @@ void max30102_int_init(void)
 //	MUX("scl", 19, 6),
 //	MUX("sda", 20, 6),
 //=============================================================================
-//======================== ä¼ æ„Ÿå™¨åˆå§‹åŒ– ==================================
+//======================== ´«¸ÐÆ÷³õÊ¼»¯ ==================================
 //=============================================================================
 int max30102_init(void)
 {
@@ -620,7 +620,7 @@ int max30102_init(void)
     cfg.bitrate = 400000;
     cfg.pull_up_en = 1;
 
-    // =====  éªŒè¯I2Cåˆå§‹åŒ– =====
+    // =====  ÑéÖ¤I2C³õÊ¼»¯ =====
     ret = scm_i2c_init(MAX30102_I2C_IDX);
     if (ret != 0)
 	{
@@ -629,7 +629,7 @@ int max30102_init(void)
     }
     else printf("===========>  scm_i2c_init OK\n");
 
-    // ===== éªŒè¯I2Cé…ç½® =====
+    // ===== ÑéÖ¤I2CÅäÖÃ =====
     ret = scm_i2c_configure(MAX30102_I2C_IDX, &cfg, NULL, NULL);
     if (ret != 0)	
 	{
@@ -639,13 +639,13 @@ int max30102_init(void)
     else printf("===========> scm_i2c_configure OK\n");
 
 
-    // å¤ä½
+    // ¸´Î»
     ret = max30102_wr(MAX30102_MODE_CONFIG, 0x40);
 	
     osDelay(MS_TO_TICKS(10)); 
-    for (uint32_t i = 0; i < 100000; i++); // å¤ä½å»¶æ—¶
+    for (uint32_t i = 0; i < 100000; i++); // ¸´Î»ÑÓÊ±
 
-    // è¯»ID
+    // ¶ÁID
     ret = max30102_rd(MAX30102_PART_ID_REG, &id);
     if (ret != 0)
 	{
@@ -662,19 +662,19 @@ int max30102_init(void)
 
 
 #if 0
-    // æ¸…ç©ºFIFO
+    // Çå¿ÕFIFO
     max30102_wr(MAX30102_FIFO_WR_PTR, 0x00);
     max30102_wr(MAX30102_FIFO_RD_PTR, 0x00);
 
-    // é…ç½®
+    // ÅäÖÃ
     max30102_wr(MAX30102_FIFO_CONFIG, 0x00);
     max30102_wr(MAX30102_SPO2_CONFIG, (0x01 << 5) | (MAX30102_SR_100HZ << 2) | MAX30102_LED_PW_18BIT);
     max30102_wr(MAX30102_LED1_PA, MAX30102_LED_CURRENT);
     max30102_wr(MAX30102_LED2_PA, MAX30102_LED_CURRENT); 
 
-    // å¼€å¯FIFOä¸­æ–­
+    // ¿ªÆôFIFOÖÐ¶Ï
     max30102_wr(MAX30102_INT_ENABLE1, 0x40);
-    max30102_wr(MAX30102_MODE_CONFIG, 0x03); // SpO2æ¨¡å¼
+    max30102_wr(MAX30102_MODE_CONFIG, 0x03); // SpO2Ä£Ê½
 #else
 
 #define REG_INTR_STATUS_1 0x00
@@ -710,7 +710,7 @@ int max30102_init(void)
 
 		
 		max30102_wr(REG_FIFO_CONFIG,0x0f);	//sample avg = 1, fifo rollover=false, fifo almost full = 17
-//		max30102_wr(REG_FIFO_CONFIG,0x4f);		// âœ… å¼€å¯è¿žç»­é‡‡é›†ï¼ˆæ»šåŠ¨æ¨¡å¼ï¼‰
+//		max30102_wr(REG_FIFO_CONFIG,0x4f);		// ? ¿ªÆôÁ¬Ðø²É¼¯£¨¹ö¶¯Ä£Ê½£©
 		max30102_wr(REG_MODE_CONFIG,0x03);	//0x02 for Red only, 0x03 for SpO2 mode 0x07 multimode LED
 		max30102_wr(REG_SPO2_CONFIG,0x27);	// SPO2_ADC range = 4096nA, SPO2 sample rate (100 Hz), LED pulseWidth (400uS)  
 
@@ -718,71 +718,71 @@ int max30102_init(void)
 		max30102_wr(REG_LED2_PA,0x24);		// Choose value for ~ 7mA for LED2
 		max30102_wr(REG_PILOT_PA,0x7f);		// Choose value for ~ 25mA for Pilot LED
 */
-    // å…ˆæ¸…é™¤æ‰€æœ‰ä¸­æ–­æ ‡å¿—
+    // ÏÈÇå³ýËùÓÐÖÐ¶Ï±êÖ¾
     // ==========================
     max30102_wr(REG_INTR_STATUS_1, &dummy);
     max30102_rd(REG_INTR_STATUS_2, &dummy);
 
-	// ========== è¿žç»­é‡‡é›† + ä¸­æ–­ä½¿èƒ½ æœ€ç»ˆé…ç½® ==========
+	// ========== Á¬Ðø²É¼¯ + ÖÐ¶ÏÊ¹ÄÜ ×îÖÕÅäÖÃ ==========
 
 	
-	max30102_wr(REG_FIFO_WR_PTR,	0x00);	  // æ¸…ç©ºFIFOå†™æŒ‡é’ˆ
-	max30102_wr(REG_OVF_COUNTER,   0x00);	 // æ¸…ç©ºæº¢å‡º
-	max30102_wr(REG_FIFO_RD_PTR,   0x00);	 // æ¸…ç©ºFIFOè¯»æŒ‡é’ˆ
+	max30102_wr(REG_FIFO_WR_PTR,	0x00);	  // Çå¿ÕFIFOÐ´Ö¸Õë
+	max30102_wr(REG_OVF_COUNTER,   0x00);	 // Çå¿ÕÒç³ö
+	max30102_wr(REG_FIFO_RD_PTR,   0x00);	 // Çå¿ÕFIFO¶ÁÖ¸Õë
 	
-	max30102_wr(REG_FIFO_CONFIG,   0x4F);	 // âœ… å…³é”®ï¼šå¼€å¯FIFOæ»šåŠ¨ = è¿žç»­é‡‡é›†
-//	max30102_wr(REG_FIFO_CONFIG,   0x6F);// æ³¢å½¢æ›´å¹³æ»‘ã€å¿ƒçŽ‡æ›´å‡†--->      å¤ªæ…¢
+	max30102_wr(REG_FIFO_CONFIG,   0x4F);	 // ? ¹Ø¼ü£º¿ªÆôFIFO¹ö¶¯ = Á¬Ðø²É¼¯
+//	max30102_wr(REG_FIFO_CONFIG,   0x6F);// ²¨ÐÎ¸üÆ½»¬¡¢ÐÄÂÊ¸ü×¼--->      Ì«Âý
 	
 #if 0
-	max30102_wr(REG_SPO2_CONFIG,   0x27);	 // 100Hzé‡‡æ ·çŽ‡ + 18ä½ç²¾åº¦
+	max30102_wr(REG_SPO2_CONFIG,   0x27);	 // 100Hz²ÉÑùÂÊ + 18Î»¾«¶È
 	
-	max30102_wr(REG_LED1_PA,	   0x24);	 // çº¢å…‰ç”µæµ
-	max30102_wr(REG_LED2_PA,	   0x24);	 // çº¢å¤–ç”µæµ
+	max30102_wr(REG_LED1_PA,	   0x24);	 // ºì¹âµçÁ÷
+	max30102_wr(REG_LED2_PA,	   0x24);	 // ºìÍâµçÁ÷
 	
-//	max30102_wr(REG_PILOT_PA,	   0x7f);	 // çµæ•åº¦
-//	max30102_wr(REG_PILOT_PA,	   0x30);//åŽŸç”µæµå¤ªå¤§ â†’ å®¹æ˜“ä¿¡å·é¥±å’Œã€æ•°æ®é¡¶æ»¡
+//	max30102_wr(REG_PILOT_PA,	   0x7f);	 // ÁéÃô¶È
+//	max30102_wr(REG_PILOT_PA,	   0x30);//Ô­µçÁ÷Ì«´ó ¡ú ÈÝÒ×ÐÅºÅ±¥ºÍ¡¢Êý¾Ý¶¥Âú
 	max30102_wr(REG_PILOT_PA,	   0x50);
 #else 
-	max30102_wr(REG_SPO2_CONFIG,   0x27);	 // 100Hzé‡‡æ ·çŽ‡ + 18ä½ç²¾åº¦
+	max30102_wr(REG_SPO2_CONFIG,   0x27);	 // 100Hz²ÉÑùÂÊ + 18Î»¾«¶È
 
-		// 100Hz + æ­£å¸¸è„‰å®½ + ä¸è¶…å¢žç›Š
+		// 100Hz + Õý³£Âö¿í + ²»³¬ÔöÒæ
 	//max30102_wr(REG_SPO2_CONFIG, 0x21);
 
-	//  ADCé‡ç¨‹ç¼©å°â†’çµæ•åº¦ç¿»å€
-	///max30102_wr(REG_SPO2_CONFIG,   0x07);	 // 2048nAé«˜çµæ•ï¼Œ100Hz+18ä½ä¸å˜
+	//  ADCÁ¿³ÌËõÐ¡¡úÁéÃô¶È·­±¶
+	///max30102_wr(REG_SPO2_CONFIG,   0x07);	 // 2048nA¸ßÁéÃô£¬100Hz+18Î»²»±ä
 	
-	//  LEDç”µæµæ‹‰æ»¡ï¼ˆå®‰å…¨èŒƒå›´ï¼Œæå‡å…‰åŠŸçŽ‡ï¼‰
-//	max30102_wr(REG_LED1_PA,	   0x40);	 // çº¢å…‰12.7mA
-//	max30102_wr(REG_LED2_PA,	   0x40);	 // çº¢å¤–12.7mA
-	max30102_wr(REG_LED1_PA,  0x28);//0x28ï¼ˆ8mAï¼‰
+	//  LEDµçÁ÷À­Âú£¨°²È«·¶Î§£¬ÌáÉý¹â¹¦ÂÊ£©
+//	max30102_wr(REG_LED1_PA,	   0x40);	 // ºì¹â12.7mA
+//	max30102_wr(REG_LED2_PA,	   0x40);	 // ºìÍâ12.7mA
+	max30102_wr(REG_LED1_PA,  0x28);//0x28£¨8mA£©
 	max30102_wr(REG_LED2_PA,  0x28);
 
-	// 3. å¼•å¯¼ç”µæµï¼ˆä¿æŒä½ çŽ°åœ¨çš„æ•°å€¼å³å¯ï¼‰
+	// 3. Òýµ¼µçÁ÷£¨±£³ÖÄãÏÖÔÚµÄÊýÖµ¼´¿É£©
 	max30102_wr(REG_PILOT_PA,	   0x50);
 
 #endif
 
 /*	
-	max30102_wr(REG_FIFO_CONFIG,   0x4F);	 // 2å€å¹³å‡+è¿žç»­é‡‡é›†
-	max30102_wr(REG_SPO2_CONFIG,   0x07);	 // 2048nAé‡ç¨‹ï¼Œé«˜çµæ•	
-	max30102_wr(REG_LED1_PA,	   0x40);	 // çº¢å…‰12.7mAï¼Œé«˜çµæ•
-	max30102_wr(REG_LED2_PA,	   0x40);	 // çº¢å¤–12.7mAï¼Œé«˜çµæ•
-	max30102_wr(REG_PILOT_PA,	   0x50);	 // å¼•å¯¼ç”µæµåŒ¹é…
+	max30102_wr(REG_FIFO_CONFIG,   0x4F);	 // 2±¶Æ½¾ù+Á¬Ðø²É¼¯
+	max30102_wr(REG_SPO2_CONFIG,   0x07);	 // 2048nAÁ¿³Ì£¬¸ßÁéÃô	
+	max30102_wr(REG_LED1_PA,	   0x40);	 // ºì¹â12.7mA£¬¸ßÁéÃô
+	max30102_wr(REG_LED2_PA,	   0x40);	 // ºìÍâ12.7mA£¬¸ßÁéÃô
+	max30102_wr(REG_PILOT_PA,	   0x50);	 // Òýµ¼µçÁ÷Æ¥Åä
 	*/
 
-//æ¸…é™¤åŽå†é…ç½®ä¸­æ–­
-		max30102_wr(REG_INTR_ENABLE_1,	0x40);	  // âœ… ä½¿èƒ½ä¸­æ–­ï¼šPPGæ•°æ®å°±ç»ªå°±æ‹‰ä½Ž INT å•ç‚¹è§¦å‘
-//è¿žç»­è°ƒè¯•çµæ•åº¦	
-//	max30102_wr(REG_INTR_ENABLE_1,	0xC0); // PPG_RDY + FIFOæ»¡
+//Çå³ýºóÔÙÅäÖÃÖÐ¶Ï
+		max30102_wr(REG_INTR_ENABLE_1,	0x40);	  // ? Ê¹ÄÜÖÐ¶Ï£ºPPGÊý¾Ý¾ÍÐ÷¾ÍÀ­µÍ INT µ¥µã´¥·¢
+//Á¬Ðøµ÷ÊÔÁéÃô¶È	
+//	max30102_wr(REG_INTR_ENABLE_1,	0xC0); // PPG_RDY + FIFOÂú
 
-// ä¸­æ–­åªå¼€FIFOæ»¡ä¸­æ–­ï¼Œå…³é—­PPG_RDYå•ç‚¹è§¦å‘
-//	max30102_wr(REG_INTR_ENABLE_1, 0x80); // 0x80 = åªå¼€ A_FULLï¼ˆFIFOå¿«æ»¡æ‰è§¦å‘ï¼‰
+// ÖÐ¶ÏÖ»¿ªFIFOÂúÖÐ¶Ï£¬¹Ø±ÕPPG_RDYµ¥µã´¥·¢
+//	max30102_wr(REG_INTR_ENABLE_1, 0x80); // 0x80 = Ö»¿ª A_FULL£¨FIFO¿ìÂú²Å´¥·¢£©
 
-	max30102_wr(REG_INTR_ENABLE_2,	0x00);	  // å…³é—­æ¸©åº¦ä¸­æ–­
+	max30102_wr(REG_INTR_ENABLE_2,	0x00);	  // ¹Ø±ÕÎÂ¶ÈÖÐ¶Ï
 
 
 
-	max30102_wr(REG_MODE_CONFIG,   0x03);	 // âœ… å¯åŠ¨ SpO2 è¿žç»­é‡‡é›†æ¨¡å¼
+	max30102_wr(REG_MODE_CONFIG,   0x03);	 // ? Æô¶¯ SpO2 Á¬Ðø²É¼¯Ä£Ê½
 	// 
 		
 #endif
@@ -792,121 +792,113 @@ int max30102_init(void)
     return 0;
 }
 
-//=============================================================================
-//======================== æµ‹è¯•ä»»åŠ¡å‡½æ•° ===================================
-//=============================================================================
+
+/****************************************************/
+#define FINGER_DETECT_THRESHOLD  4000    // ÊÖÖ¸¼ì²âãÐÖµ£¨ÎÞÊÖÖ¸ÐÅºÅ<1000£¬ÓÐÊÖÖ¸>xxx0£¬Òª¾ßÌåÎ¢µ÷£©
+
+// ÊÖÖ¸¼ì²â£º1=ÓÐÊÖÖ¸  0=ÎÞÊÖÖ¸
+uint8_t max30102_check_finger(void)
+{
+    uint32_t ir_val;
+    
+    max30102_rd_fifo(temp);
+    ir_val  = ((temp[3]<<16)|(temp[4]<<8)|temp[5]) >> 6;
+
+    if(ir_val > FINGER_DETECT_THRESHOLD)
+        return 1;
+	
+    return 0;
+}
+
 void max30102_task(void)
 {
-    float hr, spo2;
-    un_min=0x3FFFF;
-    un_max=0;
-    uint8_t dummy;
-    n_ir_buffer_length=500; 
-
-#if 1
-    // 1. åˆå§‹åŒ–500ç‚¹é‡‡é›†
-    for(i=0;i<n_ir_buffer_length;i++)
+    while(1)
     {
-            // ç­‰å¾…INT
-            while(0)
+        // Ã¿´ÎÖØÐÂ²âÁ¿ÏÈ³õÊ¼»¯
+        un_min=0x3FFFF;
+        un_max=0;
+        n_ir_buffer_length=500; 
+        n_brightness = 0;
+        uint8_t sample_abort = 0;   // ²ÉÑùÖÐÍ¾ËÉÊÖ±êÖ¾
+
+        // 1. µÈ´ýÊÖÖ¸°´Ñ¹ÉÏÀ´
+        printf("Çë°´Ñ¹ÊÖÖ¸¿ªÊ¼²âÁ¿...\r\n");
+        while(1)
+        {
+            if(max30102_check_finger())
             {
-                scm_gpio_read(5, &MAX30102_INT);
-                if(MAX30102_INT == 0) break; 
-                osDelay(MS_TO_TICKS(1));
+                printf("¼ì²âµ½ÊÖÖ¸£¬¿ªÊ¼²ÉÑù...\r\n");
+                break;
             }
-          //  max30102_rd(REG_INTR_STATUS_1, &dummy);  //æ¸…ä¸­æ–­
-          
+            osDelay(MS_TO_TICKS(100));
+        }
+
+        // 2. ²É¼¯500µã£¬**Ã¿²ÉÒ»µã¶¼¼ì²âÊÖÖ¸**£¬ËÉÊÖÁ¢¿ÌÖÕÖ¹
+        for(i=0;i<n_ir_buffer_length;i++)
+        {
+            // ÖÐÍ¾¼ì²âÊÖÖ¸£¬ËÉÁË¾Í·ÅÆú±¾´Î²ÉÑù
+            if(!max30102_check_finger())
+            {
+                printf("²ÉÑùÖÐÍ¾ÊÖÖ¸ËÉ¿ª£¬±¾´Î²âÁ¿ÖÕÖ¹\r\n");
+                sample_abort = 1;
+                break;
+            }
+
             max30102_rd_fifo(temp);
 
             aun_red_buffer[i] = ((temp[0]<<16)|(temp[1]<<8)|temp[2]) >> 6;
             aun_ir_buffer[i]  = ((temp[3]<<16)|(temp[4]<<8)|temp[5]) >> 6;
 
-            // printf("0 IR = %lu\n", aun_ir_buffer[i]); 
-			
-            if(un_min>aun_red_buffer[i]) un_min=aun_red_buffer[i];
-            if(un_max<aun_red_buffer[i]) un_max=aun_red_buffer[i];
-    }
-    un_prev_data=aun_red_buffer[i-1];
-#endif	
-    // é¦–æ¬¡ç®—æ³•è®¡ç®—
-    maxim_heart_rate_and_oxygen_saturation(aun_ir_buffer, n_ir_buffer_length, aun_red_buffer, &n_sp02, &ch_spo2_valid, &n_heart_rate, &ch_hr_valid); 
-    printf("\n----------------->Sampling is complete \n");
-
-    while (1)
-    {
-        // 2. ç¼“å­˜å¹³ç§»
-        for(i=100;i<500;i++)
-        {
-            aun_red_buffer[i-100]=aun_red_buffer[i];
-            aun_ir_buffer[i-100]=aun_ir_buffer[i];
             if(un_min>aun_red_buffer[i]) un_min=aun_red_buffer[i];
             if(un_max<aun_red_buffer[i]) un_max=aun_red_buffer[i];
         }
 
-        // 3. é‡‡é›†100ä¸ªæ–°ç‚¹ï¼ˆ1ç§’å®Œæˆï¼Œæžé€Ÿï¼‰
-        for(i=400;i<500;i++)
+        // ÖÐÍ¾ËÉÊÖ£¬Ö±½ÓÖØÐÂÒ»ÂÖ
+        if(sample_abort)
         {
-            un_prev_data=aun_red_buffer[i-1];
-            // ç­‰å¾…INT
-            while(0)
-            {		
-                scm_gpio_read(5, &MAX30102_INT);
-                if(MAX30102_INT == 0) break; 
-                osDelay(MS_TO_TICKS(1)); 
-            }
-
-            max30102_rd(REG_INTR_STATUS_1, &dummy); 
-
-			
-            max30102_rd_fifo(temp);
-
-            aun_red_buffer[i] = ((temp[0]<<16)|(temp[1]<<8)|temp[2]) >> 6;
-            aun_ir_buffer[i]  = ((temp[3]<<16)|(temp[4]<<8)|temp[5]) >> 6;
-
-            // æ³¢å½¢è®¡ç®—
-            if(aun_red_buffer[i]>un_prev_data)		
-            {
-                f_temp=aun_red_buffer[i]-un_prev_data;
-                f_temp/=(un_max-un_min);
-                f_temp*=MAX_BRIGHTNESS;
-                n_brightness-=(int)f_temp;
-                if(n_brightness<0) n_brightness=0;
-            }
-            else
-            {
-                f_temp=un_prev_data-aun_red_buffer[i];
-                f_temp/=(un_max-un_min);
-                f_temp*=MAX_BRIGHTNESS;
-                n_brightness+=(int)f_temp;
-                if(n_brightness>MAX_BRIGHTNESS) n_brightness=MAX_BRIGHTNESS;
-            }
+            dis_hr = 0;
+            dis_spo2 = 0;
+            osDelay(MS_TO_TICKS(500));
+            continue;
         }
 
-        // ç®—æ³•è®¡ç®—
-        maxim_heart_rate_and_oxygen_saturation(aun_ir_buffer, n_ir_buffer_length, aun_red_buffer, &n_sp02, &ch_spo2_valid, &n_heart_rate, &ch_hr_valid);
-        
-        // æœ‰æ•ˆç»“æžœæ‰“å°
-        if(ch_hr_valid) 
+        // ²ÉÂú500µã²Å½øËã·¨
+        un_prev_data=aun_red_buffer[n_ir_buffer_length-1];
+        maxim_heart_rate_and_oxygen_saturation(aun_ir_buffer, n_ir_buffer_length, 
+                                               aun_red_buffer, &n_sp02, 
+                                               &ch_spo2_valid, &n_heart_rate, &ch_hr_valid); 
+        printf("²ÉÑùÍê³É£¬Ëã·¨¼ÆËãÖÐ...\r\n");
+
+        // Ö»´òÓ¡Ëã·¨ÓÐÐ§½á¹û
+        if(ch_hr_valid && ch_spo2_valid) 
         {
-            printf("\n 4==================> dis_hr: %d BPM  dis_spo2: %d\r\n",dis_hr, dis_spo2);
             dis_hr = n_heart_rate;
             dis_spo2 = n_sp02;
+            printf("===== ÓÐÐ§²âÁ¿Öµ =====\r\n");
+         //   printf("ÐÄÂÊ: %d BPM | ÑªÑõ: %d %% \r\n\r\n", dis_hr, dis_spo2);
+			printf(" SPO2 ÑªÑõ: %d %% \r\n\r\n",  dis_spo2);
+
+			u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
+		  //  spo2[3] = rand()%5+90;
+			 spo2[3] = dis_spo2;
+			wlt_radar_notify(spo2,9);//ÉÏ±¨ÑªÑõ
         }
         else
         {
-        	printf("\n error ==================> dis_hr: %d BPM  dis_spo2: %d\r\n",dis_hr, dis_spo2);
+            printf("Êý¾ÝÎÞÐ§£¬Çë±£³ÖÊÖÖ¸ÎÈ¶¨ÖØÐÂ°´Ñ¹\r\n\r\n");
             dis_hr = 0;
             dis_spo2 = 0;
         }
 
-        osDelay(MS_TO_TICKS(10));
+        osDelay(MS_TO_TICKS(100));
     }
 }
+
 
 void iotalink_max30102_init()
 {
 	printf("------- iotalink_max30102_init -----------------\n");
-    // åˆå§‹åŒ–
+    // ³õÊ¼»¯
     max30102_init();
 
 	osThreadAttr_t attr = {

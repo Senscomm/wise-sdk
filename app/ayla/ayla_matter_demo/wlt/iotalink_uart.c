@@ -202,10 +202,10 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 		//	radar_frame_parse(cmd, &frame[4], data_len);
 
 			
-			u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
-		    spo2[3] = rand()%5+90;
+			//u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
+		  //  spo2[3] = rand()%5+90;
 			
-			wlt_radar_notify(spo2,9);
+			//wlt_radar_notify(spo2,9);
 			
 			break;
 		case 0x62://报告生成成功0
@@ -214,7 +214,11 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 			wlt_radar_notify(frame,frame_len);
 		
 			break;
-		
+		default :
+			
+			wlt_radar_notify(frame,frame_len);
+			
+			break;
 
 	}
 
