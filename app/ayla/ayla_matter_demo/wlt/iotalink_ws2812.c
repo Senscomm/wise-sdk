@@ -4398,15 +4398,17 @@ void haoyida_234_mode_init( int modeunite)
 		case 3://正向七色明暗过渡
 		case 4://反向七色明暗过渡
 			iotalink_color_transition(7,1,&default_mode[4] , &MAGIC_SCENE_DATA);//解析出颜色
-			
+			haoyida_shade_light_transition(0); // 重置静态变量j和K
 			break;
 		case 5://正向红绿蓝明暗过渡
 		case 6://反向红绿蓝明暗过渡
 			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
+			haoyida_shade_light_transition(0); // 重置静态变量j和K
 			break;
 		case 7://正向黄青紫明暗过渡
 		case 8://反向黄青紫明暗过渡
 			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色
+			haoyida_shade_light_transition(0); // 重置静态变量j和K
 			break;
 		
 		case 9://正向六色明暗过渡红色

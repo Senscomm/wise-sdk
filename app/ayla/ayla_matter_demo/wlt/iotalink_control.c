@@ -516,11 +516,11 @@ void iotalink_auto_flash_operation_task(void *arg)
 					    my_printf("AUTO  \n");
 						#if 1
                         if( sg_light_ctrl_data.switch_status == 0 ) break;
-                        light_mode_set(SCENE_MODE);
-                        sg_light_ctrl_data.magicunit++;
-                        if(sg_light_ctrl_data.magicunit > 33) sg_light_ctrl_data.magicunit = 1;
-                        my_printf("---sg_light_ctrl_data.magicunit==%d \n", sg_light_ctrl_data.magicunit);
-                        light_magicunit_set(sg_light_ctrl_data.magicunit);
+                        light_mode_set(CUSTOME_MODE);
+                        sg_light_ctrl_data.custome_unit++;
+                        if(sg_light_ctrl_data.custome_unit > 20) sg_light_ctrl_data.custome_unit = 1;
+                        my_printf("---sg_light_ctrl_data.custome_unit==%d \n", sg_light_ctrl_data.custome_unit);
+                        light_custome_unit_set(sg_light_ctrl_data.custome_unit);
                         iotalink_light_ctrl_process();
                       
 						#endif
@@ -586,6 +586,8 @@ void auto_timer_cb(void *arg)
     if (xQueueStatus != pdPASS)
     {
         my_printf("auto_timer_cb: queue full! \n"); // 调试：队列满会导致数据丢失
+        osTimerStop(auto_timer); // 停止定时器，避免无限循环
+        auto_flag = 0; // 重置AUTO标志
         return;
     }
 
@@ -594,11 +596,11 @@ void auto_timer_cb(void *arg)
 
 #else
 	if( sg_light_ctrl_data.switch_status == 0 ) break;
-	light_mode_set(SCENE_MODE);
-	sg_light_ctrl_data.magicunit++;
-	if(sg_light_ctrl_data.magicunit > 33) sg_light_ctrl_data.magicunit = 1;
-	my_printf("---sg_light_ctrl_data.magicunit==%d \n", sg_light_ctrl_data.magicunit);
-	light_magicunit_set(sg_light_ctrl_data.magicunit);
+	light_mode_set(CUSTOME_MODE);
+	sg_light_ctrl_data.custome_unit++;
+	if(sg_light_ctrl_data.custome_unit > 20) sg_light_ctrl_data.custome_unit = 1;
+	my_printf("---sg_light_ctrl_data.custome_unit==%d \n", sg_light_ctrl_data.custome_unit);
+	light_custome_unit_set(sg_light_ctrl_data.custome_unit);
 	iotalink_light_ctrl_process();
 
 #endif
@@ -645,11 +647,11 @@ void wlt_ble_remote_control(u8 keyvalue)
 
 			if(auto_flag)wlt_ble_remote_control(HYD_KEY_R1_M);
 			break;
-		case HYD_KEY_R1_M://AUTO
-		
+				case HYD_KEY_R1_M://AUTO
+	
 			auto_flag =1;
-			sg_light_ctrl_data.magicunit =0;
-			//先默认20s切一次
+			sg_light_ctrl_data.custome_unit =1; // 从1开始
+			// 循环播放case 1-20，每20s切换一次
 			auto_timer_cb(NULL);
 			osTimerStart(auto_timer, MS_TO_TICKS(20000)) ;
 			
