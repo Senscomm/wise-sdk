@@ -1,21 +1,27 @@
-//#include "iotalink.h"
 #include "iotalink_ws2812.h"
 #include <lwip/sys.h>
 #include "wise_wifi.h"
 #include "wise_wifi_types.h"
 #include "wise_system.h"
-
 #include "scm_gpio.h"
 #include "scm_timer.h"
 #include "iotalink_control.h"
 
+// PWM通道枚举（与 wlt_ws2812_spi.c 中定义一致）
+typedef enum
+{
+	LED_PWM_CH_0,
+	LED_PWM_CH_1,
+	LED_PWM_CH_2,
+	LED_PWM_CH_3,
+	LED_PWM_CH_MAX,
+}E_LED_PWM_CHANNEL;
+
+// 声明 wlt_led_pwm_set_duty 函数（定义在 wlt_ws2812_spi.c）
+extern void wlt_led_pwm_set_duty(E_LED_PWM_CHANNEL ch, u8 duty);
+
 
 #define magic_color_gpio  24  //焕彩接口 
-
-//static struct scm_timer_cfg ledc_config[USE_PWM_NUM];
-
-//enum scm_timer_idx idx;
-//enum scm_timer_ch ch;
 
 light_color_mode_e ws_light_color_mode;
 
@@ -27,14 +33,8 @@ u16  RGB_LED_NUM = 12;//灯珠数量--》app下发可调
 
 u16  RGB_LED_NUM_INCREASE= 30;//灯珠数量--》app下发可调 至少30
 
-
-
 unsigned char magic_rate=50;
-
-
 unsigned char default_magic_rate=5;
-
-
 
 unsigned char r, g, b; 
 unsigned short hue;
@@ -58,11 +58,11 @@ static unsigned short  mode_k;
 extern bool LOCAL_MAGIC_MODE;
 
 //幻彩场景结构
-MAGIC_SCENE_DATA_T MAGIC_SCENE_DATA={0};	//幻彩场景结构
+MAGIC_SCENE_DATA_T MAGIC_SCENE_DATA={0};//幻彩场景结构
 MAGIC_RGB_T  magic_rgb_relax[80]={0};
 
-
-
+// 场景重置标记
+static bool scene_reset_flag = false;
 
 // 	云端或面板控制参数
 extern light_ctrl_data_t sg_light_ctrl_data;
@@ -122,8 +122,6 @@ void iotalink_ws2812_gpio_init(void)
 			  iotalink_delay_100ns();
 			  iotalink_delay_100ns(); 
 		 }	
-
-		 
 	 }
  }
 //#include "scm_irq.h"
@@ -132,12 +130,8 @@ void iotalink_ws2812_gpio_init(void)
 //发送测试
 void rgb_send_test (void)
 { 
-//	 rgb_colorful_buffer_clean();
 	 int flags;
-	//while (1)
 	{	
-	
-#if 1 // ws2812 test
 	 rgb_send_package(0xFF,0x00,0x00);
 	 rgb_send_package(0xFF,0x00,0x00);
 	 rgb_send_package(0xFF,0x00,0x00);
@@ -160,20 +154,6 @@ void rgb_send_test (void)
 	
 	wlt_ms_delay(500);
 
-#else  // pwm test
-		wlt_ms_delay(10);
-		static int duty = 0;
-
-		duty ++;
-		duty = duty > 100 ? 0 : duty;
-		wlt_led_pwm_set_duty(0, duty); 
-		wlt_led_pwm_set_duty(1, duty); 
-		wlt_led_pwm_set_duty(2, duty);
-		wlt_led_pwm_set_duty(3, duty); 
-
-
-
-#endif
 	}
 }
 
@@ -184,8 +164,8 @@ void iotalink_light_driver_init(void)
 {
 
 	iotalink_ws2812_gpio_init();
-	// pwm
-//	wlt_pwm_timer_init();
+	//pwm
+	//wlt_pwm_timer_init();
 	//rgb_send_test();
 	iotalink_magic_init();
 
@@ -1027,75 +1007,8 @@ void colorful_test2_2(void)
 		wlt_ms_delay(default_magic_rate);
 		
 }
-//模式6 ： disco
-void  colorful_disco(void)
-{
 
-	u8 i=0;
-	static u8  num[]={	0,1,5,6,7,8,9,11,12,14,16,18,
-	19,20,21,22,25,22,	27,28,29,31,32,33,	35,36,37,40,42,44};							
-	static u8  sh1[]={5,180,180,5,180,180,5,180,180,5,180,180,5,180,180,5,180,180,180,5}; 
-    hsv_s_t ss = 100;	
-	for (i =0 ; i <sizeof(num); i++)
-	{
-		if(sh1[i]==180)ss=70;else ss=100;
-		if (LOCAL_MAGIC_MODE==false||sg_light_ctrl_data.magicunit!=6)return;//>>!!!解决延时造成的无法及时切换
-		hsv_to_rgb(&r, &g, &b,sh1[i],ss, 100); //转化	
-		rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb	
-		//下一次随机亮点			
-		num[i] = rand()%RGB_LED_NUM;		
-	}
-	 rgb_value_sync();//闪一次
-	 wlt_ms_delay(default_magic_rate+3);
-	 singleColor(0, 0, 0);//清空
 
-}
-
-//流星测试(波浪)初始化 
-void  colorful_bolang_init(void)
-{	
-	unsigned char i ;  
-	unsigned char sh[200]={0}; //颜色参数可调节
-	hsv_v_t sv[200] ={0};
-	Color_Section(0,RGB_LED_NUM/3,0,sh);	
-	Color_Section(RGB_LED_NUM/3,RGB_LED_NUM/3*2,30,sh);	
-	Color_Section(RGB_LED_NUM/3*2,RGB_LED_NUM,150,sh);//色段分布	
-		
-    static hsv_s_t ss = 100;
-	/*static hsv_v_t sv[] = {0, 1 , 1 , 2 , 2 , 3 , 3 , 4 , 4 , 6,
-					10,14 ,16, 22, 26, 30, 35, 40, 48,53,
-					60,70,80, 90, 100,100,90, 80, 70,   60,
-					53,48,40, 35, 30, 26, 22, 16, 14, 10,
-					6,4,4,3,3,2,2,1,1,0
-					};//亮度变化模式1(呼吸)	*/		
-/***********>>>>简单适配长度的亮度<<<<<<***************/
-	for (i = 0; i<RGB_LED_NUM/4 ; i++)
-	{
-
-		sv[i]=1+100/RGB_LED_NUM*i;
-		sv[RGB_LED_NUM-i-1]=sv[i];
-	}
-	for (i = RGB_LED_NUM/4; i<RGB_LED_NUM/2 ; i++)
-	{
-
-		sv[i]=1+200/RGB_LED_NUM*i;
-		sv[RGB_LED_NUM-i-1]=sv[i];
-	}	
-//初始化写入
-	for (i = 0; i<RGB_LED_NUM ; i++)
-	{		   
-		hsv_to_rgb(&r, &g, &b, sh[i], ss, sv[i]);	//转化	
-		rgb_colorful_buffer_set(i , r,	g, b ); //写入当前点rgb 	 
-	}
-	wlt_ms_delay(10);
-	rgb_value_sync();
-//	while (1)
-//	{
-//		Move_Back();		//or  Move_Pre();
-//		rgb_value_sync(); 
-//hal_sleep(10);   //延时调速参数
-	//}					 										
-}
 //跑马灯初始化
 void  colorful_paoma_init( void  )
 {
@@ -1128,7 +1041,6 @@ void  colorful_paoma_init( void  )
 }
 
 
-
 void  iotalink_mode_caihong_init( void  )
 {
 	  unsigned int i ;
@@ -1144,6 +1056,8 @@ void  iotalink_mode_caihong_init( void  )
 	  iotalink_write_rgb_buffer();//初始化输出
  
 }
+
+
 void  iotalink_mode_caihong_sync( void  )
 {
   if(hue>=360 ) hue=0 ; 
@@ -1156,136 +1070,6 @@ void  iotalink_mode_caihong_sync( void  )
 
 }
 
-/**************************************>>>>>> 炫龙 <<<<<< *******************************************/
-void iotalink_xuanlong(void)
-{
-	int  loop1=0,loop2,i ,point; 
-	unsigned char r, g, b;
-	
-    static hsv_s_t sh[]={0, 5, 15,20,  25,30, 35 ,40 , 45,50,55,60,65,70,75};
-	hsv_s_t sv[] = {80,70,50,45,40,35,30,20,10,8,7,5,2,2,1};
-	static u8 left  = 0 ;
-	static u8 right = 20 ;
-	static u8 direction = 0;
-	static u8 led_num = 10;
-	rgb_colorful_buffer_clean();
-	
-	  
-	for (loop2 =0 ; loop2< right-left+led_num ; loop2 ++ )
-	{
-		if(loop2<led_num)hsv_to_rgb(&r, &g, &b,sh[loop2], 100,sv[loop2]);	//转化	sh[i]*MAGIC_SCENE_DATA.magic_hsv[0].sv/100
-		else{ r=g=b =0;}
-	   if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=25)return;
-	
-		if(direction)
-			index_colorful_buffer_Move_Back(left,right,r,g,b);
-		else
-		index_colorful_buffer_Move_Pre(left,right,r,g,b);
-
-		rgb_value_sync();//输出		
-		wlt_ms_delay(20-led_num);	
-		wlt_ms_delay(2+magic_rate/2);
-	}
-	
-	if(direction)//来回一次切换点位
-	{
-		left = rand()%(RGB_LED_NUM/2);
-		right = rand()%(RGB_LED_NUM/2)+(RGB_LED_NUM/2);	
-	    led_num =  rand()%5+10;	
-		
-		 sh[0]=rand()%360;
-		for (i =1 ; i <led_num; i++)
-		{
-			sh[i]=20 + sh[i-1];
-			sh[i]=sh[i]>360 ? 0 :  sh[i];
-		}
-
-		
-
-	}
-	direction =!direction;//切换方向
-}
-
- 	
-/**************************************>>>>>> 花落知多少<<<<<< *******************************************/
-
-void  iotalink_xuahuo(void)
-{
-	unsigned char i ,j,loop;  
-	 unsigned char r, g, b;
-
-     hsv_s_t ss = 100;	
-	 hsv_s_t sv = 100;
-	 static char  num[30]={  0,1,5,6,7,8,
-							 9,11,12,14,16,18,
-							 19,20,21,22,25,22,
-							 27,28,29,31,32,33,
-						 35,36,37,40,42,44,
-					 };
-
-	 hsv_s_t sh1= 0;
-	 	hsv_s_t sh2[30]={0,    25,   50,  0,   100,
-					125,  150, 175, 200 , 225, 
-					250 , 275, 300, 325,   350,
-					240,  100,   155,   0,  75,
-					125,  150, 175, 200 , 225,
-						240,  100,   155,   0,  75,
-					};
-
-	 singleColor(0, 0, 0);//清空  
-	 rgb_value_sync();
-
-	for (loop = 0; loop<15; loop++)
-	{
-		for (i =0 ; i <15; i++)
-		{		
-			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=5)return ;
-			
-			hsv_to_rgb(&r, &g, &b,sh2[i],100, MAGIC_SCENE_DATA.magic_hsv[0].sv);	//转化	sh[i]	
-			rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb	
-			//下一次随机亮点及颜色			
-			num[i] = rand()%RGB_LED_NUM;
-			sh2[i] = rand()%360; 		
-	  	}
-		 rgb_value_sync();//闪一次
-		 wlt_ms_delay(30+magic_rate*2);
-		 singleColor(0, 0, 0);//清空  
-	}
-}
-
-//秋千样式的亮度 流动  
-void iotalink_mode_qiuqian_flow(void)
-{
-	  //目前RGB_LED_NUM 为 step_num 的倍数可适配 ！！！！
-
-	  unsigned int i,j = 0;
-	  
-	 u8 step_num  =15;
-	 
-   	  hsv_h_t sh = 220;//起始 Blue
-	  hsv_h_t sv= MAGIC_SCENE_DATA.magic_hsv[0].sv;
-	  static u8 sv_flow[]={90,80,50,40,15,10,8,5,5,8,5,5,5};
-	  static u8 cnt=0;
-  
-	  cnt++;
-	  if(cnt<step_num+3)Array_Color_Move_Back(0,step_num,sv_flow);
-	  else if(cnt<(step_num+3)*2)Array_Color_Move_Pre(0,step_num,sv_flow);
-	  else {cnt =0;Array_Color_Move_Back(0,step_num,sv_flow);}
-
-	 for (i= 0; i<step_num; i++)
-	 {
-	 	
-	 	sh+=360/step_num;
-		sh = sh>=360 ? 0: sh;	
-	 	 hsv_to_rgb(&r, &g, &b, sh, 100, sv*sv_flow[i]*0.01);
-	 	 for (j= 0; j<RGB_LED_NUM/step_num; j++)
-		 {	
-		 	 rgb_colorful_buffer_set(i+step_num*j,r,g,b);
-	 	 }
-	 }
-	 rgb_value_sync();//
-	 wlt_ms_delay(15+magic_rate*1);
-}   
   
 //幻彩变化方式	
 typedef enum
@@ -1388,234 +1172,302 @@ void  iotalink_magic_scene_relax(int segment ,int    local_change_mode)
 
 //---------------------好易达场景 先放到200 +场景下标里测试 -------------------------------------/
 
-/// 没下发初始化仅用来填充数据
-// 日出 
-void wlt_mode_sunup_init(void)
-{
-
-	u16 sh[] = {0,5,15,5,0} ;
-	u8  ss[] = {100,100,100,100,100,20,20,20,20,20,10,10,10} ;
-	u8  sv[] = {100,100,100,100,100,20,20,20,20,20,10,10,10} ;
-	
-	for (int i= 0; i< RGB_LED_NUM; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
-	{
-		hsv_to_rgb(&r, &g, &b, sh[i], ss[i], sv[i] );
-		
-		rgb_magic_rgb_relax_set(i,r,g,b);
-	}
-
-	for (int i= 0; i< RGB_LED_NUM; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
-	{	
-		rgb_colorful_buffer_set(i,10,10,10);	 
-	
-	} rgb_value_sync();//
-}
-
+//场景1：日出
 void wlt_mode_sunup(void)
 {
-
-	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
-	{
-		if (sg_light_ctrl_data.magicunit!=1)
-		{
-			return ;
-	    }
-		index_rgb_Move_Back(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
-		iotalink_rgb_relax_1(40);
+	static u32 step_count = 0;
+	u16 current_hue;
+	u8 current_saturation, current_value;
+	u32 progress;
+	int i;
+	
+	// 检查是否是新下发的指令
+	if (scene_reset_flag) {
+		step_count = 0;
+		scene_reset_flag = false;
 	}
-
+	
+	// 计算当前进度 (0-100%)，总步数100步，约10秒
+	progress = step_count;
+	if (progress > 100) {
+		progress = 100;
+		// 达到最亮后静止，不再循环
+	}
+	
+	// 颜色变化：红色(0°) -> 黄色(60°) -> 白色(饱和度0)
+	// 前50%进度：红色->黄色 (色相0->60)
+	// 后50%进度：黄色->白色 (饱和度100->0)
+	if (progress <= 50) {
+		current_hue = (progress * 60) / 50; // 0 -> 60
+		current_saturation = 100;
+	} else {
+		current_hue = 60;
+		current_saturation = 100 - ((progress - 50) * 100) / 50; // 100 -> 0
+	}
+	
+	// 亮度变化：10% -> 100%
+	current_value = 10 + (progress * 90) / 100; // 10 -> 100
+	
+	// 将所有LED设置为相同颜色
+	for (i = 0; i < RGB_LED_NUM; i++) {
+		hsv_to_rgb(&sr[i], &sg[i], &sb[i], current_hue, current_saturation, current_value);
+		rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+	}
+	
+	// 同步输出RGB值
+	rgb_value_sync();
+	
+	// 延时约100ms，总时间10秒（100步 * 100ms = 10秒）
+	iotalink_rgb_relax_1(10);
+	
+	// 增加步数（达到100后不再重置，保持最亮状态）
+	if (step_count < 100) {
+		step_count++;
+	}
 }
 
+//场景2：日落
 void wlt_mode_sundown(void)
 {
-
-	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
-	{
-
-		if (sg_light_ctrl_data.magicunit!=2)
-		{
-			return ;
-	    }
-		index_rgb_Move_Pre(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
-		iotalink_rgb_relax_1(40);
-	}
-
-}
-
-
-//整灯同步呼吸测试-约会
-void  wlt_yuehui(void)
-{
-	unsigned int i = 0 ;
-	static bool flag = 0;
-	static hsv_h_t sh = 340;
-	static hsv_s_t ss = 100;
-	static hsv_v_t sv = 100;
-	unsigned char r, g, b;
-		if (flag == 0)
-		{
-				for (i = 0; i<RGB_LED_NUM ; i++)
-				{
-					hsv_to_rgb(&r, &g, &b, sh, ss, sv);		 	
-					rgb_colorful_buffer_set(i , r,  g, b );	
-				}
-				rgb_value_sync(); 
-				sv += 1;
-			    if (sv > 80)//亮度80开始减弱
-			    {
-			       flag = 1;
-			    }
-				if (sv<20&&sv>10)wlt_ms_delay(3);//非线性加点延时更平滑,高了会有闪烁感
-				if (sv<=10)wlt_ms_delay(5);
-			}
-		if (flag == 1)
-			{
-				 for (i = 0; i<RGB_LED_NUM ; i++)
-				 {
-					hsv_to_rgb(&r, &g, &b, sh, ss, sv);		 	
-					rgb_colorful_buffer_set(i , r,  g, b );	
-				 }
-				 rgb_value_sync(); 
-				sv -= 1;
-			    if (sv < 2)//亮度1开始增强
-			    {
-			       flag = 0;
-			    }
-				if (sv<20&&sv>10)wlt_ms_delay(3);
-				if (sv<=20)wlt_ms_delay(5);
-			}
-		//暖色
-		if (sv == 2 )
-			{
-				sh+=5;
-				if(sh>360)sh=340;
-			}		
-		wlt_ms_delay(4*default_magic_rate);			//延时调速+-+-------
-}
-
-
-//模式8：星空（随机闪）  
-void star_twinkle( void )
-{
-	int  loop1=0,loop2,i ,point; 
-	unsigned char r, g, b;
+	static u32 step_count = 0;
+	u16 current_hue;
+	u8 current_saturation, current_value;
+	u32 progress;
+	int i;
 	
-	static char  num[20]={	5,6,7,9,11,
-							12,14,16,19,
-							22,25,17,29,30,
-							32,35,40,45,47,																
-					};
-	hsv_s_t sh[20]={0,    25,   50,  0,   100,
-					125,  150, 175, 200 , 225, 
-					250 , 275, 300, 325,   350,
-					240,  100,   155,   0,  75
-					};
-	hsv_s_t ss = 100;
-	/*hsv_v_t sv[]={  1 , 1 , 3 , 3 , 4 , 6,10,14 ,
-					16,22, 35, 40, 48,53,60,70,80, 90, 100,
-					50,20,50,100, 50, 20,  50 , 100,
-					90,80,70 ,60 ,53,48,40, 35, 22, 16, 
-					14, 10, 6,4,3,3,1,1,0
-					};//亮度变化模式4*/
-	  hsv_v_t sv[]={  0,  1,   2,  3,   4,  5, 6, 7,  8, 9, 10,
-    11, 12,  13, 14, 15,  16, 17, 18,  19,    20, 21,  22, 23, 24, 
-   25, 26,  27, 28,  29, 30, 31, 32, 33, 34, 35, 36,
-   37, 38,  40,  42,  44, 46, 48,  50, 
-   54, 58,  62, 66,  70, 74,  78,  82, 85,  87, 94,
-   
-   100,50,20,50,100,
-   
-   94,87,82,78,74,70,
-   66,62,58,54,50,48,46,44,42,40,39,38,37,
-   36,35,34,33,32,31,30,29,28,27,26,
-   25,24,23,22,21,20,19,18,18,17,
-   16,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1
-	};//亮度变化模式6*/
-	for (loop2 =0 ; loop2<sizeof(sv) ; loop2 ++ )
-	{
-		// 设置蓝色底色：低亮度蓝色
-		unsigned char bg_r = 0;
-		unsigned char bg_g = 0;
-		unsigned char bg_b = 20; // 低亮度蓝色
-		
-		// 先将所有LED设置为蓝色底色
-		for (int led_idx = 0; led_idx < RGB_LED_NUM; led_idx++) {
-			rgb_colorful_buffer_set(led_idx, bg_r, bg_g, bg_b);
-		}
-		
-		point = loop1;//每轮num个点的初始亮度(亮度递变)	
-		for (i =0 ; i <sizeof(num); i++)
-		{
-		if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=8)return;//>>!!!解决延时造成的无法及时切换
-				//int seed =0;
-				//seed += sys_jiffies();
-		  //  srand((unsigned)hal_random_get());//seed
-		 //  srand((unsigned)seed);
-			//magic_init(); 
-			hsv_to_rgb(&r, &g, &b,sh[i], ss, sv[point]);	//转化	sh[i]	
-			rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb			
-			if (sv[point]==0) //亮度0切换亮点
-			{
-				num[i] = rand()%RGB_LED_NUM;
-				sh[i] = rand()%360;	
-			}					
-			point+=(sizeof(sv)/sizeof(num));//亮度点间隔
-			
-			point= point >=sizeof(sv) ? point-sizeof(sv) : point ;//亮度循环							
-		}
-		loop1++;
-		rgb_value_sync();//输出		
-		wlt_ms_delay(400);					
+	// 检查是否是新下发的指令
+	if (scene_reset_flag) {
+		step_count = 0;
+		scene_reset_flag = false;
 	}
-}
-
-/*s
-num ：  同时亮起的灯珠个数及第num个灯珠			     随机 rand()%RGB_LED_NUM
-sh : 灯珠的hue  						    随机： rand()%360
-sv ：灯珠的亮度变化：0->100->0;
-*/
-//
-void fire_jump( void )
-{
-	int  loop=0,loop1,loop2,i ,point; 
-	unsigned char r, g, b;
 	
-	static char  num[13]={0};
-	static char  sh[13]={0};
-	singleColor(11, 100, 100 );//底色shv
+	// 计算当前进度 (0-100%)，总步数100步，约10秒
+	progress = step_count;
+	if (progress > 100) {
+		progress = 100;
+		// 达到最暗后静止，不再循环
+	}
+	
+	// 颜色变化：白色(饱和度0) -> 黄色(60°) -> 红色(0°)
+	// 前50%进度：白色->黄色 (饱和度0->100)
+	// 后50%进度：黄色->红色 (色相60->0)
+	if (progress <= 50) {
+		current_hue = 60;
+		current_saturation = (progress * 100) / 50; // 0 -> 100
+	} else {
+		current_hue = 60 - ((progress - 50) * 60) / 50; // 60 -> 0
+		current_saturation = 100;
+	}
+	
+	// 亮度变化：100% -> 10%
+	current_value = 100 - (progress * 90) / 100; // 100 -> 10
+	
+	// 将所有LED设置为相同颜色
+	for (i = 0; i < RGB_LED_NUM; i++) {
+		hsv_to_rgb(&sr[i], &sg[i], &sb[i], current_hue, current_saturation, current_value);
+		rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+	}
+	
+	// 同步输出RGB值
 	rgb_value_sync();
-
-	for(loop=0 ;loop<RGB_LED_NUM;loop++)
-	{
-		num[loop] = rand()%RGB_LED_NUM;//火焰坐标
-		if(loop%2)sh[loop]=24;
-		else sh[loop]=30;
+	
+	// 延时约100ms，总时间10秒（100步 * 100ms = 10秒）
+	iotalink_rgb_relax_1(10);
+	
+	// 增加步数（达到100后不再重置，保持最暗状态）
+	if (step_count < 100) {
+		step_count++;
 	}
-	for(loop1=0;loop1<sizeof(sh);loop1++)//同一组坐标闪烁次数
-	{
-		 	for (i =0 ; i <sizeof(num); i++)
-			{
-				if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=4)return;//>>!!!解决延时造成的无法及时切换
-				hsv_to_rgb(&r, &g, &b,sh[loop1],100, 100);	//转化	sh[i]	
-				rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb														
-		  	}
-			rgb_value_sync();//输出
-			wlt_ms_delay(magic_rate*1+20);
-			for (i =0 ; i <sizeof(num); i++)
-			{
-				if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=4)return;//>>!!!解决延时造成的无法及时切换
-				hsv_to_rgb(&r, &g, &b,sh[loop1],100, 50);	//转化	sh[i]	
-				rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb														
-		  	}
-			rgb_value_sync();//输出
-			wlt_ms_delay(magic_rate*1+20);
-
-	}
-
 }
 
 
-//模式5： 烟花
+//场景3：生日
+void wlt_birthday(void)
+{
+    static u32 step_count = 0;
+    static bool is_initialized = false;     // 标记是否已初始化选中的灯珠
+    static bool is_transition = false;      // 标记是否进入颜色过渡阶段
+    static u8 selected_leds[8] = {0};       // 存储选中的8颗灯珠索引
+    static u16 start_hues[8] = {0};         // 存储初始颜色色相
+    u16 current_hue;
+    u8 current_saturation = 100;
+    u8 current_value = 100;
+    u32 progress;
+    int i, j;
+    
+    // 检查是否是新下发的指令，需要重置状态
+    if (scene_reset_flag) {
+        step_count = 0;
+        is_initialized = false;
+        is_transition = false;
+        scene_reset_flag = false;
+    }
+    
+    // 计算当前进度 (0-100)，总步数100步，约10秒（每步100ms）
+    progress = step_count;
+    
+    // 第一阶段（0-19步）：随机选择8颗灯珠并设置随机颜色，保持2秒
+    if (!is_initialized) {
+        // 只在第一次初始化时随机选择灯珠
+        if (step_count == 0) {
+            // 生成0-11的随机序列
+            u8 temp_leds[12] = {0,1,2,3,4,5,6,7,8,9,10,11};
+            
+            // Fisher-Yates 洗牌算法打乱顺序
+            for (i = 11; i > 0; i--) {
+                j = rand() % (i + 1);
+                u8 temp = temp_leds[i];
+                temp_leds[i] = temp_leds[j];
+                temp_leds[j] = temp;
+            }
+            
+            // 选择前8颗作为本次显示的灯珠，并设置随机颜色
+            for (i = 0; i < 8; i++) {
+                selected_leds[i] = temp_leds[i];
+                start_hues[i] = rand() % 360;  // 随机色相 0-359
+                
+                // 设置选中灯珠的颜色
+                hsv_to_rgb(&sr[selected_leds[i]], &sg[selected_leds[i]], &sb[selected_leds[i]], 
+                          start_hues[i], current_saturation, current_value);
+                rgb_colorful_buffer_set(selected_leds[i], sr[selected_leds[i]], sg[selected_leds[i]], sb[selected_leds[i]]);
+            }
+            
+            // 关闭其他4颗灯珠
+            for (i = 0; i < RGB_LED_NUM; i++) {
+                bool is_selected = false;
+                for (j = 0; j < 8; j++) {
+                    if (i == selected_leds[j]) {
+                        is_selected = true;
+                        break;
+                    }
+                }
+                if (!is_selected) {
+                    rgb_colorful_buffer_set(i, 0, 0, 0);
+                }
+            }
+            
+            is_initialized = true;
+        } else {
+            // 在保持阶段（0-19步），保持颜色不变，只同步输出
+            rgb_value_sync();
+            iotalink_rgb_relax_1(10);
+            step_count++;
+            return;
+        }
+    }
+    
+    // 第二阶段（20-99步）：8颗灯珠颜色逐渐过渡到绿色，持续8秒
+    if (!is_transition && step_count >= 20) {
+        is_transition = true;
+    }
+    
+    if (is_transition) {
+        const u16 target_hue = 120;  // 绿色的色相
+        
+        // 计算过渡进度 (0-80步)
+        u32 transition_step = step_count - 20;
+        if (transition_step > 80) {
+            transition_step = 80;
+        }
+        
+        // 对8颗选中的灯珠进行颜色过渡
+        for (i = 0; i < 8; i++) {
+            // 计算当前色相：从起始色相线性过渡到120（绿色）
+            int hue_diff = target_hue - start_hues[i];
+            
+            // 处理色相差值的环绕问题（确保走最短路径）
+            if (hue_diff > 180) {
+                hue_diff -= 360;
+            } else if (hue_diff < -180) {
+                hue_diff += 360;
+            }
+            
+            // 线性插值计算当前色相
+            int interpolated_hue = start_hues[i] + (hue_diff * (int)transition_step) / 80;
+            
+            // 确保色相值在0-359范围内
+            while (interpolated_hue < 0) {
+                interpolated_hue += 360;
+            }
+            while (interpolated_hue >= 360) {
+                interpolated_hue -= 360;
+            }
+            
+            current_hue = (u16)interpolated_hue;
+            
+            // 更新RGB值
+            hsv_to_rgb(&sr[selected_leds[i]], &sg[selected_leds[i]], &sb[selected_leds[i]], 
+                      current_hue, current_saturation, current_value);
+            rgb_colorful_buffer_set(selected_leds[i], sr[selected_leds[i]], sg[selected_leds[i]], sb[selected_leds[i]]);
+        }
+    }
+    
+    // 同步输出RGB值
+    rgb_value_sync();
+    
+    // 延时约100ms
+    iotalink_rgb_relax_1(10);
+    
+    // 增加步数
+    step_count++;
+    
+    // 完成一个周期（100步 = 10秒）后重置
+    if (step_count >= 100) {
+        step_count = 0;
+        is_initialized = false;
+        is_transition = false;
+    }
+}
+
+
+//场景4：烛光
+void wlt_candlelight(void)
+{
+    static u32 step_count = 0;
+    static bool increasing = true;
+    u16 current_hue;
+    u8 current_saturation, current_value;
+    u32 progress;
+    int i;
+    
+    // 黄色固定值
+    current_hue = 60;
+    current_saturation = 100;
+    
+    // 控制亮度变化方向
+    if (increasing) {
+        // 亮度从10%增加到100%
+        current_value = 10 + (step_count * 90) / 50; // 10 -> 100
+        if (step_count >= 50) {
+            increasing = false;
+        }
+    } else {
+        // 亮度从100%减少到10%
+        current_value = 100 - ((step_count - 50) * 90) / 50; // 100 -> 10
+        if (step_count >= 100) {
+            increasing = true;
+            step_count = 0;
+        }
+    }
+    
+    // 将所有LED设置为相同颜色
+    for (i = 0; i < RGB_LED_NUM; i++) {
+        hsv_to_rgb(&sr[i], &sg[i], &sb[i], current_hue, current_saturation, current_value);
+        rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+    }
+    
+    // 同步输出RGB值
+    rgb_value_sync();
+    
+    // 延时约100ms，总时间10秒（100步 * 100ms = 10秒）
+    iotalink_rgb_relax_1(10);
+    
+    // 增加步数
+    step_count++;
+}
+
+
+//场景5： 烟花
 void  colorful_firework(void)
 {
 
@@ -1679,89 +1531,275 @@ void  colorful_firework(void)
 }
 
 
-//每个点随机频闪
+//场景6：聚会
 void  wlt_juhui(void)
 {
-
-	hsv_s_t sh_rand[7]={0,45,90,135,180,225,270};
-	u16 sh = 0;
-	for (int i=0;i<RGB_LED_NUM;i++)
-	{
-
-		sh = sh_rand[rand()%7];
-		hsv_to_rgb(&sr[i], &sg[i], &sb[i], sh, 100, 100);
-		rgb_colorful_buffer_set(i, sr[i],	sg[i], sb[i]); //写入当前点rgb
-
-	}
-	rgb_value_sync();//闪一次	
-
-	
-	wlt_ms_delay(magic_rate*0.6+100);			//延时调速+-+-------
+    static u32 last_change_time = 0;
+    u16 random_hue;
+    u8 saturation = 100; // 最大饱和度
+    u8 brightness = 100; // 最大亮度
+    int i;
+    
+    // 检查是否是新下发的指令
+    if (scene_reset_flag) {
+        last_change_time = 0;
+        scene_reset_flag = false;
+    }
+    
+    // 获取当前时间
+    u32 current_time = sys_jiffies();
+    
+    // 每2秒切换一次颜色
+    if (current_time - last_change_time >= 200 || last_change_time == 0) {
+        // 为每颗灯珠随机生成颜色
+        for (i = 0; i < RGB_LED_NUM; i++) {
+            // 生成随机色相 (0-359°)
+            random_hue = rand() % 360;
+            
+            // 转换为RGB并设置到对应灯珠
+            hsv_to_rgb(&sr[i], &sg[i], &sb[i], random_hue, saturation, brightness);
+            rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+        }
+        
+        // 更新最后一次颜色变化时间
+        last_change_time = current_time;
+    }
+    
+    // 同步输出RGB值
+    rgb_value_sync();
+    
+    // 延时约100ms（与其他场景保持一致的循环间隔）
+    iotalink_rgb_relax_1(10);
 }
 
-//模式9：浪漫
-void  wlt_romance(void)
-{
 
-	hsv_s_t sh_rand[3]={250,300,320};
-	u16 sh = 0;
-	for (int i=0;i<RGB_LED_NUM;i++)
-	{
-		sh = sh_rand[rand()%3];
-		hsv_to_rgb(&sr[i], &sg[i], &sb[i], sh, 100, 100);
-		rgb_colorful_buffer_set(i, sr[i],	sg[i], sb[i]); //写入当前点rgb
-		
+//场景7：约会
+void  wlt_yuehui(void)
+{
+    static u32 step_count = 0;
+    u16 current_hue = 0;
+    u8 current_saturation;
+    u8 current_brightness = 100; // 最大亮度
+    u32 progress;
+    int i;
+    
+    // 检查是否是新下发的指令
+    if (scene_reset_flag) {
+        step_count = 0;
+        scene_reset_flag = false;
+    }
+    
+    // 计算当前进度 (0-240步，总时间12秒)
+    progress = step_count;
+    if (progress >= 240) {
+        step_count = 0;
+        progress = 0;
+    }
+    
+    // 颜色过渡逻辑：白色->红色->白色
+    // 白色：饱和度0；红色：色相0°，饱和度100
+    // 时间分配：红色时间长(8秒)，白色时间短(2秒×2段)
+    
+    if (progress <= 40) {
+        // 第一阶段：白色->红色 (0-40步，2秒)
+        // 快速从白色过渡到红色
+        current_saturation = (progress * 100) / 40; // 0 -> 100
+        current_hue = 0; // 固定红色色相
+    } else if (progress <= 200) {
+        // 第二阶段：保持红色 (41-200步，8秒)
+        // 红色持续时间较长
+        current_saturation = 100; // 最大饱和度
+        current_hue = 0; // 红色色相
+    } else {
+        // 第三阶段：红色->白色 (201-240步，2秒)
+        // 快速从红色过渡到白色
+        current_saturation = 100 - ((progress - 200) * 100) / 40; // 100 -> 0
+        current_hue = 0; // 固定红色色相
+    }
+    
+    // 将所有LED设置为当前颜色
+    for (i = 0; i < RGB_LED_NUM; i++) {
+        hsv_to_rgb(&sr[i], &sg[i], &sb[i], current_hue, current_saturation, current_brightness);
+        rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+    }
+    
+    // 同步输出RGB值
+    rgb_value_sync();
+    
+    // 无需额外延时，依赖线程循环的50ms延迟
+    
+    // 增加步数
+    step_count++;
+}
+
+
+//模式8：星空（随机闪）
+void star_twinkle( void )
+{
+	static u32 step_count = 0;
+	static u32 last_star_update = 0;
+	static u8 star_positions[2] = {0, 1};
+	static u8 star_hues[2] = {0, 0};
+	static u8 star_saturations[2] = {100, 100};
+	static u8 star_values[2] = {100, 100};
+	u8 i;
+	u16 bg_hue = 220;        // 蓝色色相
+	u8 bg_saturation = 80;   // 高饱和度蓝色
+	u8 bg_value = 8;        // 低亮度背景
+	u8 twinkle_value = 100;  // 闪烁时最大亮度
+
+	// 检查是否是新下发的指令
+	if (scene_reset_flag) {
+		step_count = 0;
+		last_star_update = 0;
+		scene_reset_flag = false;
 	}
 
-	iotalink_rgb_relax_1(80);
+	// 每1秒更新一次闪烁灯珠（约10个step_count，假设每个step约100ms）
+	if (step_count - last_star_update >= 10) {
+		// 随机选择2个不同位置的灯珠进行闪烁
+		star_positions[0] = step_count % 12;  // 位置1
+		star_positions[1] = (step_count + 6) % 12;  // 位置2，与位置1相隔约半圈
 
+		// 随机生成闪烁灯珠的颜色（色相在0-360之间随机）
+		star_hues[0] = (u8)(step_count * 37) % 256;  // 随机色相
+		star_hues[1] = (u8)(step_count * 53 + 128) % 256;
+
+		// 闪烁灯珠为最大亮度和饱和度
+		star_saturations[0] = 100;
+		star_saturations[1] = 100;
+		star_values[0] = 100;
+		star_values[1] = 100;
+
+		last_star_update = step_count;
+	}
+
+	// 设置所有灯珠为夜空背景色
+	for (i = 0; i < 12; i++) {
+		hsv_to_rgb(&sr[i], &sg[i], &sb[i], bg_hue, bg_saturation, bg_value);
+	}
+
+	// 将闪烁灯珠设置为高亮随机颜色
+	for (i = 0; i < 2; i++) {
+		hsv_to_rgb(&sr[star_positions[i]], &sg[star_positions[i]], &sb[star_positions[i]],
+		           star_hues[i], star_saturations[i], twinkle_value);
+	}
+
+	// 输出RGB值
+	for (i = 0; i < 12; i++) {
+		rgb_colorful_buffer_set(i, sr[i], sg[i], sb[i]);
+	}
+	rgb_value_sync();
+
+	// 延时约100ms
+	iotalink_rgb_relax_1(10);
+
+	// 增加步数
+	step_count++;
+}
+
+
+//模式9：浪漫
+void wlt_romance(void)
+{
+	static u32 step_count = 0;
+	static u8 twinkle_positions[3] = {0, 4, 8};  // 3颗闪烁灯珠位置
+	static u8 twinkle_colors[3] = {0, 0, 0};     // 0=红色, 1=蓝色
+	static u32 last_pos_update = 0;              // 上次位置更新时间
+	u8 i;
+	u16 bg_hue = 275;          // 紫色色相（约275°为纯紫色）
+	u8 bg_saturation = 100;   // 紫色饱和度（最大）
+	u8 bg_value;              // 背景亮度（呼吸效果）
+	u8 twinkle_hue;           // 闪烁灯珠色相
+	u8 twinkle_value;         // 闪烁灯珠亮度（呼吸效果）
+
+	// 检查是否是新下发的指令
+	if (scene_reset_flag) {
+		step_count = 0;
+		last_pos_update = 0;
+		// 初始化背景色
+		bg_value = 70;  // 初始亮度设置为中间值
+		for (i = 0; i < 12; i++) {
+			hsv_to_rgb(&sr_bk[i], &sg_bk[i], &sb_bk[i], bg_hue, bg_saturation, bg_value);
+		}
+		scene_reset_flag = false;
+	}
+
+	// 呼吸灯效果：亮度在40%-100%之间周期性变化
+	// 使用正弦波效果，每3200步完成一个周期（约320秒），呼吸极慢
+	bg_value = 40 + (u8)(30 * (1 + sin(step_count * 0.0019625f)));
+
+	// 设置所有灯珠为紫色背景（带呼吸效果）
+	for (i = 0; i < 12; i++) {
+		hsv_to_rgb(&sr[i], &sg[i], &sb[i], bg_hue, bg_saturation, bg_value);
+	}
+
+	// 每隔约100步（10秒）更新一次闪烁灯珠的位置（减慢一倍）
+	if (step_count - last_pos_update >= 100) {
+		for (i = 0; i < 3; i++) {
+			// 随机位置（0-11）
+			twinkle_positions[i] = (u8)((step_count * 7 + i * 17) % 12);
+			// 随机颜色（红色0°或蓝色240°）
+			twinkle_colors[i] = ((step_count * 13 + i * 23) % 2);
+		}
+		last_pos_update = step_count;
+	}
+
+	// 闪烁灯珠也带呼吸效果，与背景同步但可能稍有相位差
+	twinkle_value = 50 + (u8)(25 * (1 + sin((step_count + i * 30) * 0.0019625f)));
+
+	// 将3颗闪烁灯珠设置为红色或蓝色（高亮度带呼吸）
+	for (i = 0; i < 3; i++) {
+		if (twinkle_colors[i] == 0) {
+			twinkle_hue = 0;     // 红色
+		} else {
+			twinkle_hue = 240;   // 蓝色
+		}
+		hsv_to_rgb(&sr[twinkle_positions[i]], &sg[twinkle_positions[i]], &sb[twinkle_positions[i]],
+		           twinkle_hue, 100, twinkle_value);
+	}
+
+	// 使用过渡函数实现极平滑的颜色变化，步数增加到50以获得极慢的过渡效果
+	iotalink_rgb_relax_1(50);
+
+	// 增加步数
+	step_count++;
 }
 
 
 //模式10：迪斯科
 void  wlt_disco_mode(void)
 {
-	unsigned char i ,j,loop;  
+	unsigned char i ,j,loop;
 	 unsigned char r, g, b;
 
-     hsv_s_t ss = 100;	
+     hsv_s_t ss = 100;
 	 hsv_s_t sv = 100;
-	 static char  num[30]={  0,1,5,6,7,8,
-							 9,11,12,14,16,18,
-							 19,20,21,22,25,22,
-							 27,28,29,31,32,33,
-						 35,36,37,40,42,44,
-					 };
-	 hsv_s_t sh2[30]={0,    25,   50,  0,   100,
-					125,  150, 175, 200 , 225, 
-					250 , 275, 300, 325,   350,
-					240,  100,   155,   0,  75,
-					125,  150, 175, 200 , 225,
-						240,  100,   155,   0,  75,
-					};
+	 static char  num[6]={  0,1,5,6,7,8};  // 6个闪烁灯珠位置
+	 hsv_s_t sh2[6]={0,    25,   50,  0,   100,125};  // 6个颜色值
 
-	 singleColor(0, 0, 0);//清空  
+	 singleColor(0, 0, 0);//清空
 	 rgb_value_sync();
 
 	for (loop = 0; loop<15; loop++)
 	{
-		for (i =0 ; i <15; i++)
-		{		
+		for (i =0 ; i <6; i++)  // 循环6次，只闪烁6颗灯珠
+		{
 			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=10)return ;
-			
-			hsv_to_rgb(&r, &g, &b,sh2[i],100, 100);	//转化	sh[i]	
-			rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb	
-			//下一次随机亮点及颜色			
+
+			hsv_to_rgb(&r, &g, &b,sh2[i],100, 100);	//转化	sh[i]
+			rgb_colorful_buffer_set(num[i], r,	g, b ); //写入当前点rgb
+			//下一次随机亮点及颜色
 			num[i] = rand()%RGB_LED_NUM;
-			sh2[i] = rand()%360; 		
+			sh2[i] = rand()%360;
 	  	}
 		 rgb_value_sync();//闪一次
 		 wlt_ms_delay(30+magic_rate*2);
-		 singleColor(0, 0, 0);//清空  
+		 singleColor(0, 0, 0);//清空
 	}
 }
 
-//模式 ： 跳变彩虹     		用中间变量  sr sb sg
+//模式11 ： 跳变彩虹     		用中间变量  sr sb sg
 void  colorful_rainbow_run(void)
 {
 	int i,j;
@@ -1777,6 +1815,83 @@ void  colorful_rainbow_run(void)
 
    }
 	rgb_value_sync();//
+}
+
+//模式13：圣诞夜
+void wlt_Christmas_mode(void)
+{
+	unsigned char i;
+	unsigned char r, g, b;
+	static u8 current_mode = 0;  // 0=第一段慢闪, 1=第二段快移
+	static u32 mode0_count = 0;  // 第一段计数器
+	static u32 step_count = 0;   // 第二段计数器（用于计算移动位置）
+	static char num[8] = {0, 1, 3, 5, 6, 7, 9, 10};  // 8个闪烁灯珠位置
+	static hsv_s_t sh2[8] = {0, 25, 50, 0, 100, 125, 150, 175};  // 8个颜色值
+
+	// 检查是否是新下发的指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 13) {
+		mode0_count = 0;
+		step_count = 0;
+		current_mode = 0;
+		scene_reset_flag = false;
+		return;
+	}
+
+	if (current_mode == 0) {
+		// 第一段：5秒慢速闪烁，8颗灯珠同时亮
+		// 延时500ms，约10次调用达到5秒
+
+		// 清空所有灯珠
+		singleColor(0, 0, 0);
+
+		// 同时点亮8颗灯珠
+		for (i = 0; i < 8; i++) {
+			hsv_to_rgb(&r, &g, &b, sh2[i], 100, 100);
+			rgb_colorful_buffer_set(num[i], r, g, b);
+
+			// 缓慢更新位置和颜色
+			num[i] = (num[i] + 1) % RGB_LED_NUM;
+			sh2[i] = (sh2[i] + 10) % 360;
+		}
+		rgb_value_sync();
+		wlt_ms_delay(500);  // 500ms延时，速度很慢
+
+		mode0_count++;
+
+		// 5秒后切换到第二阶段（约10次 × 500ms = 5秒）
+		if (mode0_count >= 10) {
+			current_mode = 1;
+			mode0_count = 0;
+		}
+
+	} else {
+		// 第二段：5秒快速向上移动
+		// 延时2ms，约500次调用达到5秒
+
+		// 清空所有灯珠
+		singleColor(0, 0, 0);
+
+		// 向上移动效果
+		for (i = 0; i < 8; i++) {
+			// 计算向上移动的位置
+			u8 move_pos = (i * 2 + 12 - (step_count % 12)) % RGB_LED_NUM;
+			hsv_to_rgb(&r, &g, &b, sh2[i], 100, 100);
+			rgb_colorful_buffer_set(move_pos, r, g, b);
+
+			// 更新颜色
+			sh2[i] = (sh2[i] + 30) % 360;
+		}
+		rgb_value_sync();
+		wlt_ms_delay(2);  // 2ms延时，速度非常快
+
+		step_count++;
+
+		// 5秒后切换回第一阶段（约90次调用）
+		if (step_count >= 90) {
+			current_mode = 0;
+			step_count = 0;
+		}
+	}
 }
 
 
@@ -1849,89 +1964,235 @@ void wlt_runningwater_mode(void)
     step++;
 }
 
+//模式20：炫彩 - 彩虹从左到右平滑流动
+void wlt_Colorful_mode(void)
+{
+	u8 i;
+	static u32 step_count = 0;
+	// 彩虹色相偏移量，实现从左到右平滑移动
+	static u16 hue_offset = 0;
+	// 亮度呼吸相位（0-99），用查表避免浮点跳变
+	static u8 breath_phase = 0;
+	// 预计算呼吸亮度表：breath_table[t] = 70 + 30*sin(2π*t/100)，t∈[0,99]
+	// 修正：首尾值相同(70)，避免跳变闪烁
+	static const u8 breath_table[100] = {
+		70,72,75,78,81,83,85,87,90,92,
+		94,96,98,99,100,100,100,100,99,98,
+		97,95,93,91,89,87,85,83,81,79,
+		76,74,71,69,66,63,60,58,55,52,
+		50,48,45,43,41,40,40,40,40,41,
+		42,44,46,48,50,52,55,58,60,63,
+		66,69,71,74,76,79,81,83,85,87,
+		89,91,93,95,97,98,99,100,100,100,
+		100,99,98,97,95,93,91,89,87,85,
+		83,81,79,76,74,71,69,66,63,60
+	};
 
-// 结婚纪念日 红粉(紫)随机跳变
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 20) {
+		step_count = 0;
+		hue_offset = 0;
+		breath_phase = 0;
+		scene_reset_flag = false;
+		return;
+	}
+
+	// 色相偏移量递增（加快1.5倍速度），实现从右到左平滑流动
+	hue_offset = (hue_offset + 3) % 360;
+
+	// 亮度呼吸：查表法，完全平滑无跳变
+	u8 brightness = breath_table[breath_phase];
+	breath_phase = (breath_phase + 1) % 100;
+
+	// 计算每颗灯珠的色相：基于位置 + 偏移量，相邻灯珠之间色相差60°
+	for (i = 0; i < 12; i++) {
+		// 色相 = 基础位置(i*60) - 偏移量，形成从右到左流动的彩虹
+		u16 hue = (i * 60 + 360 - hue_offset) % 360;
+
+		// 直接设置灯珠
+		u8 r, g, b;
+		hsv_to_rgb(&r, &g, &b, hue, 100, brightness);
+		rgb_colorful_buffer_set(i, r, g, b);
+	}
+
+	rgb_value_sync();
+
+	// 延时约100ms（不调用 relax 系列）
+	wlt_ms_delay(100);
+
+	step_count++;
+}
+
+
+
+//模式21：柔和
+void wlt_gentle_mode(void)
+{
+	u8 i;
+	static u16 hue = 0;  // 当前色相，每步递减1°
+	static u16 step = 0;
+
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 21) {
+		hue = 0;   // 从0°(红)开始
+		step = 0;
+		scene_reset_flag = false;
+		return;
+	}
+
+	// 每步递减1°，0°时直接绕回359°，色相环无缝衔接
+	if (hue == 0) {
+		hue = 359;
+	} else {
+		hue--;
+	}
+
+	// 12颗灯珠颜色完全相同，亮度100%
+	u8 r, g, b;
+	hsv_to_rgb(&r, &g, &b, hue, 100, 100);
+	for (i = 0; i < 12; i++) {
+		rgb_colorful_buffer_set(i, r, g, b);
+	}
+
+	rgb_value_sync();
+
+	// 延时约100ms
+	wlt_ms_delay(100);
+
+	step++;
+}
+
+
+// 场景22：结婚纪念日 （紫色为底，3个红色跳变）
 void wlt_wedding_mode(void)
 {
+	u8 i;
+	static u16 step = 0;
+	static u8 red_positions[3] = {0, 4, 8};  // 3颗红色灯珠位置
 
-		int i;
-		static u16 sh_rand[] = {300,340};// 粉红
-		u16 sh;
-		for (i=0;i<RGB_LED_NUM;i++)
-		{
-			sh = sh_rand[(rand()%2)];
-			hsv_to_rgb(&sr[i], &sg[i], &sb[i], sh, 100, 100);
-			rgb_colorful_buffer_set(i, sr[i],	sg[i], sb[i]); //写入当前点rgb
-	
-	   }
-		rgb_value_sync();//
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 22) {
+		step = 0;
+		red_positions[0] = 0;
+		red_positions[1] = 4;
+		red_positions[2] = 8;
+		scene_reset_flag = false;
+		return;
+	}
+
+	// 设置固定紫色背景
+	u8 r, g, b;
+	hsv_to_rgb(&r, &g, &b, 275, 100, 100);  // 紫色(275°)
+	for (i = 0; i < 12; i++) {
+		rgb_colorful_buffer_set(i, r, g, b);
+	}
+
+	// 每隔约10步更新3颗红色灯珠的随机位置
+	if (step % 10 == 0) {
+		for (i = 0; i < 3; i++) {
+			red_positions[i] = rand() % 12;
+		}
+	}
+
+	// 设置3颗红色灯珠
+	u8 r_red, g_red, b_red;
+	hsv_to_rgb(&r_red, &g_red, &b_red, 0, 100, 100);  // 红色(0°)
+	for (i = 0; i < 3; i++) {
+		rgb_colorful_buffer_set(red_positions[i], r_red, g_red, b_red);
+	}
+
+	rgb_value_sync();
+
+	// 延时约100ms
+	wlt_ms_delay(10);
+
+	step++;
 }
 
 
 //模式23 雪花
-void wlt_snowflakes_mode (void )
+void wlt_snowflakes_mode(void)
 {
-	static unsigned int step = 0;
-	unsigned char r, g, b;
-	int i;
-	
-	// 确保灯珠数量为12
-	const int total_leds = 12;
-	
-	// 随机数生成相关变量
-	static unsigned int seed = 0;
-	unsigned int random_val;
-	
-	// 雪花状态数组：记录每个位置的雪花亮度（0表示无雪花）
-	static unsigned char snowflake[12] = {0};
-	
-	// 更新随机种子
-	seed = seed * 1103515245 + 12345;
-	random_val = (seed / 65536) % 32768;
-	
-	// 1. 雪花下落：从上往下更新每个位置的雪花状态
-	for (i = 0; i < total_leds - 1; i++) {
-		snowflake[i] = snowflake[i + 1];
-	}
-	
-	// 2. 在底部生成新雪花（高概率生成，确保雪花数量多）
-	if (random_val % 3 != 0) { // 66%的概率生成新雪花
-		// 初始亮度较低
-		snowflake[total_leds - 1] = 50 + (random_val % 50);
-	} else {
-		snowflake[total_leds - 1] = 0;
-	}
-	
-	// 3. 渲染雪花效果
-	for (i = 0; i < total_leds; i++) {
-		// 检查是否需要退出
-		if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=23)return;
-		
-		if (snowflake[i] > 0) {
-			// 雪花越往下越亮：亮度随位置线性增加
-			unsigned char brightness = snowflake[i] + (i * 15);
-			if (brightness > 255) brightness = 255;
-			
-			r = brightness; // 白色雪花
-			g = brightness;
-			b = brightness;
-		} else {
-			// 无雪花的位置（很少，确保雪花数量多）
-			r = 0;
-			g = 0;
-			b = 0;
+	u8 i, j;
+	static u16 step = 0;
+	// 12个雪花结构：位置、大小、亮度、保持时间
+	static struct {
+		u8 pos;       // 起始位置
+		u8 size;      // 大小（1-4随机）
+		u8 bright;    // 当前亮度(0-100)
+		u8 hold;      // 保持时间计数器(0-10)
+		u8 active;    // 是否已激活出现
+	} flakes[12];
+
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 23) {
+		step = 0;
+		// 初始化12个雪花
+		for (i = 0; i < 12; i++) {
+			flakes[i].pos = rand() % 12;
+			flakes[i].size = 1 + (rand() % 4);  // 大小1-4随机
+			flakes[i].bright = 0;
+			flakes[i].hold = 0;
+			flakes[i].active = 0;
 		}
-		
-		rgb_colorful_buffer_set(i, r, g, b);
+		scene_reset_flag = false;
+		return;
 	}
-	
-	// 输出数据
+
+	// 设置黑色背景
+	for (i = 0; i < 12; i++) {
+		rgb_colorful_buffer_set(i, 0, 0, 0);
+	}
+
+	// 逐个激活雪花：每10步激活一个（1秒间隔）
+	u8 activate_idx = step / 10;
+	if (activate_idx > 11) activate_idx = 11;
+	for (i = 0; i < 12; i++) {
+		if (!flakes[i].active && i == activate_idx) {
+			flakes[i].active = 1;
+			flakes[i].bright = 100;
+			flakes[i].hold = 10;  // 保持1秒
+		}
+	}
+
+	// 更新所有雪花
+	for (i = 0; i < 12; i++) {
+		if (!flakes[i].active) continue;
+
+		if (flakes[i].hold > 0) {
+			// 保持阶段：亮度100%，倒计时
+			flakes[i].hold--;
+		} else if (flakes[i].bright > 0) {
+			// 淡出阶段：亮度每步减2（缩短为约5秒消失）
+			flakes[i].bright -= 2;
+			if (flakes[i].bright < 2) flakes[i].bright = 0;
+			// 淡出到0时立即重生
+			if (flakes[i].bright == 0) {
+				flakes[i].pos = rand() % 12;  // 位置随机，可能重叠
+				flakes[i].size = 1 + (rand() % 4);  // 大小1-4随机
+				flakes[i].bright = 100;
+				flakes[i].hold = 10;  // 保持1秒
+			}
+		}
+	}
+
+	// 绘制所有雪花（白色）
+	for (i = 0; i < 12; i++) {
+		if (flakes[i].active && flakes[i].bright > 0) {
+			for (j = 0; j < flakes[i].size; j++) {
+				u8 led_pos = (flakes[i].pos + j) % 12;
+				// 亮度转换为0-255
+				u8 brightness = (flakes[i].bright * 255) / 100;
+				rgb_colorful_buffer_set(led_pos, brightness, brightness, brightness);
+			}
+		}
+	}
+
 	rgb_value_sync();
-	
-	// 快速下落：短延迟
-	wlt_ms_delay(50 + (magic_rate / 5));
-	
-	// 更新步骤
+
+	// 延时约100ms
+	wlt_ms_delay(100);
+
 	step++;
 }
 
@@ -2031,224 +2292,220 @@ void wlt_fire_mode (void )
 }
 
 
-//模式25 ：闪电
+//模式25：闪电
 void wlt_lightning_mode(void)
 {
-	static unsigned int step = 0;
-	unsigned char r, g, b;
-	int i;
-	
-	// 确保灯珠数量为12
-	const int total_leds = 12;
-	
-	// 随机数生成相关变量
-	static unsigned int seed = 0;
-	unsigned int random_val;
-	
-	// 闪电效果参数
-	static int flash_times = 0; // 已闪烁次数
-	static int total_flash = 0; // 本次闪电总闪烁次数(2-5次)
-	
-	// 更新随机种子
-	seed = seed * 1103515245 + 12345;
-	random_val = (seed / 65536) % 32768;
-	
-	// 如果是第一次闪烁，初始化闪烁次数
-	if (flash_times == 0) {
-		total_flash = 2 + (random_val % 4); // 2-5次闪烁
+	u8 i, j;
+	static u16 step = 0;
+	static u16 next_lightning = 0;  // 下一次闪电的时间
+
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 25) {
+		step = 0;
+		next_lightning = 0;
+		scene_reset_flag = false;
+		return;
 	}
-	
-	// 闪烁状态
-	if (flash_times < total_flash) {
-		// 亮：最亮的白色闪电
-		for (i = 0; i < total_leds; i++) {
-			// 检查是否需要退出
-			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=25)return;
-			
-			// 随机闪电形状，所有亮的灯珠都为最亮
-			if ((random_val % 3 == 0) || (i == 0) || (i == total_leds - 1) || (random_val % 5 == 0)) {
-				r = 255; // 最亮红色
-				g = 255; // 最亮绿色
-				b = 255; // 最亮蓝色
-			} else {
-				r = 0;
-				g = 0;
-				b = 0;
+
+	// 黑色背景
+	for (i = 0; i < 12; i++) {
+		rgb_colorful_buffer_set(i, 0, 0, 0);
+	}
+
+	// 判断是否触发闪电
+	if (step >= next_lightning) {
+		// 闪电参数：随机位置，大小尽量大
+		u8 pos = rand() % 12;
+		u8 size = 6 + (rand() % 7);  // 大小6-12（几乎全亮）
+		u8 brightness = 240 + (rand() % 16);  // 亮度240-255
+
+		// 绘制闪电（多次极快闪烁效果）
+		for (j = 0; j < 8; j++) {
+			// 亮
+			for (i = 0; i < size; i++) {
+				u8 led_pos = (pos + i) % 12;
+				rgb_colorful_buffer_set(led_pos, brightness, brightness, brightness);
 			}
-			rgb_colorful_buffer_set(i, r, g, b);
+			rgb_value_sync();
+			wlt_ms_delay(5 + rand() % 10);  // 亮5-15ms
+
+			// 检查退出
+			if (LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 25) return;
+
+			// 灭
+			for (i = 0; i < 12; i++) {
+				rgb_colorful_buffer_set(i, 0, 0, 0);
+			}
+			rgb_value_sync();
+			wlt_ms_delay(2 + rand() % 5);  // 灭2-7ms（极短）
 		}
-		
-		// 输出数据
-		rgb_value_sync();
-		
-		// 亮0.1秒
-		wlt_ms_delay(100);
-		
-		// 灭：黑暗
-		for (i = 0; i < total_leds; i++) {
-			// 检查是否需要退出
-			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=25)return;
-			
-			r = 0;
-			g = 0;
-			b = 0;
-			rgb_colorful_buffer_set(i, r, g, b);
-		}
-		
-		// 输出数据
-		rgb_value_sync();
-		
-		// 灭0.1秒
-		wlt_ms_delay(100);
-		
-		flash_times++;
-	} else {
-		// 闪烁结束，立即重置开始下一轮
-		flash_times = 0;
+
+		// 设置下一次闪电的随机间隔（0.1-0.5秒，极短空白时间）
+		next_lightning = step + 1 + (rand() % 4);
 	}
-	
-	// 更新步骤
+
+	rgb_value_sync();
+	wlt_ms_delay(100);
 	step++;
 }
 
 
+//模式26：情人节
+void wlt_valentine_mode(void)
+{
+	u8 i;
+	static u16 step_count = 0;
+	// 呼吸亮度表：5%-100%平滑过渡，对称呼吸，约5秒一个周期
+	static const u8 breath_table[50] = {
+		5,9,14,20,26,33,40,48,56,64,
+		72,79,86,92,97,100,97,92,86,79,
+		72,64,56,48,40,33,26,20,14,9,
+		5,9,14,20,26,33,40,48,56,64,
+		72,79,86,92,97,100,97,92,86,79,
+		72,64,56,48,40,33,26,20,14,5
+	};
 
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 26) {
+		step_count = 0;
+		scene_reset_flag = false;
+		return;
+	}
+
+	// 计算呼吸亮度（约5秒一个完整呼吸周期）
+	u8 brightness = breath_table[step_count % 50];
+
+	// 计算当前偏移（反转方向：向相反方向移动）
+	u8 offset = (12 - (step_count % 12)) % 12;
+
+	// 设置12颗灯珠：6颗紫色(275°) + 6颗黄色(60°)，首尾相连循环移动
+	for (i = 0; i < 12; i++) {
+		u8 r, g, b;
+		// 根据偏移计算当前位置属于哪个色块
+		u8 pos = (i + offset) % 12;
+		if (pos < 6) {
+			// 紫色
+			hsv_to_rgb(&r, &g, &b, 275, 100, brightness);
+		} else {
+			// 黄色
+			hsv_to_rgb(&r, &g, &b, 60, 100, brightness);
+		}
+		rgb_colorful_buffer_set(i, r, g, b);
+	}
+
+	rgb_value_sync();
+
+	// 延时约100ms
+	wlt_ms_delay(100);
+
+	step_count++;
+}
 
 //模式27：万圣节
 void wlt_hallowmas_mode(void)
 {
-	static unsigned int step = 0;
-	unsigned char r, g, b;
-	int i;
-	
-	// 确保灯珠数量为12
-	const int total_leds = 12;
-	
-	// 随机数生成相关变量
-	static unsigned int seed = 0;
-	unsigned int random_val;
-	
-	// 万圣节效果参数
-	static int flash_state = 0; // 0-暗，1-亮，2-渐变
-	static int effect_phase = 0; // 0-慢闪，1-快闪，2-故障闪烁
-	static int phase_counter = 0; // 阶段计数器
-	static int current_color = 0; // 当前颜色索引
-	
-	// 更新随机种子
-	seed = seed * 1103515245 + 12345;
-	random_val = (seed / 65536) % 32768;
-	
-	// 万圣节恐怖颜色集合：橙、绿、紫、红
-	typedef struct {
-		unsigned char r;
-		unsigned char g;
-		unsigned char b;
-	} HalloweenColor;
-	
-	HalloweenColor halloween_colors[] = {
-		{255, 100, 0},   // 南瓜橙
-		{0, 200, 50},    // 幽灵绿
-		{150, 0, 200},   // 神秘紫
-		{255, 0, 30}     // 血液红
-	};
-	const int num_colors = sizeof(halloween_colors) / sizeof(HalloweenColor);
-	
-	// 随机切换颜色
-	if (step % 10 == 0) {
-		current_color = random_val % num_colors;
+	u8 i;
+	static u16 step = 0;
+	static u8 stage = 0;  // 0=第一阶段, 1=第二阶段, 2=第三阶段
+
+	// 检查新指令
+	if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || sg_light_ctrl_data.magicunit != 27) {
+		step = 0;
+		stage = 0;
+		scene_reset_flag = false;
+		return;
 	}
-	
-	// 获取当前颜色
-	HalloweenColor current_hue = halloween_colors[current_color];
-	
-	// 阶段管理：每20步切换一次效果阶段
-	if (phase_counter >= 20) {
-		effect_phase = random_val % 3;
-		phase_counter = 0;
-	}
-	
-	// 根据效果阶段设置闪烁模式
-	unsigned int on_delay, off_delay;
-	
-	if (effect_phase == 0) {
-		// 慢闪阶段：营造紧张氛围
-		on_delay = 300 + (random_val % 200);
-		off_delay = 500 + (random_val % 300);
-	} else if (effect_phase == 1) {
-		// 快闪阶段：突然的惊吓效果
-		on_delay = 50 + (random_val % 50);
-		off_delay = 50 + (random_val % 50);
-	} else {
-		// 故障闪烁阶段：不规则的故障效果
-		on_delay = 20 + (random_val % 80);
-		off_delay = 10 + (random_val % 100);
-	}
-	
-	// 闪烁状态管理
-	if (flash_state == 0) {
-		// 暗状态：大部分灯灭，少量随机亮
-		for (i = 0; i < total_leds; i++) {
-			// 检查是否需要退出
-			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=27)return;
-			
-			// 10%概率随机亮一盏灯，模拟鬼火
-			if (random_val % 10 == 0 && (i % 3 == 0)) {
-				r = current_hue.r / 2;
-				g = current_hue.g / 2;
-				b = current_hue.b / 2;
+
+	if (stage == 0) {
+		// 第一阶段：紫色从中间展开，7步
+		// step=0: 全黑
+		// step=1: 位置5,6为紫色(2颗)
+		// step=2: 位置4,5,6,7为紫色(4颗)
+		// step=3: 位置3,4,5,6,7,8为紫色(6颗)
+		// step=4: 位置2,3,4,5,6,7,8,9为紫色(8颗)
+		// step=5: 位置1,2,3,4,5,6,7,8,9,10为紫色(10颗)
+		// step=6: 全紫色(12颗)
+
+		for (i = 0; i < 12; i++) {
+			u8 r, g, b;
+			if (step == 0) {
+				// 全黑
+				hsv_to_rgb(&r, &g, &b, 0, 0, 0);
+			} else if (i >= (6 - step) && i <= (5 + step)) {
+				// 从中间展开
+				hsv_to_rgb(&r, &g, &b, 275, 100, 100);  // 紫色
 			} else {
-				r = 0;
-				g = 0;
-				b = 0;
+				hsv_to_rgb(&r, &g, &b, 0, 0, 0);  // 黑色
 			}
-			
 			rgb_colorful_buffer_set(i, r, g, b);
 		}
-		
-		rgb_value_sync();
-		wlt_ms_delay(off_delay);
-		flash_state = 1;
-	} else {
-		// 亮状态：不规则的闪烁模式
-		for (i = 0; i < total_leds; i++) {
-			// 检查是否需要退出
-			if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=27)return;
-			
-			// 生成每个灯珠独立的随机状态
-			unsigned int led_seed = seed + i;
-			led_seed = led_seed * 1103515245 + 12345;
-			unsigned int led_rand = (led_seed / 65536) % 32768;
-			
-			// 不规则的点亮模式
-			if ((effect_phase == 1 && led_rand % 3 != 0) ||  // 快闪阶段大部分亮
-				(effect_phase == 0 && led_rand % 2 == 0) ||  // 慢闪阶段一半亮
-				(effect_phase == 2 && led_rand % 4 != 0)) {   // 故障阶段随机亮
-				// 随机亮度波动，增强恐怖感
-				int brightness_var = (led_rand % 50) - 25;
-				r = current_hue.r + brightness_var;
-				g = current_hue.g + brightness_var;
-				b = current_hue.b + brightness_var;
-				
-				// 边界检查
-				r = (r > 255) ? 255 : (r < 0 ? 0 : r);
-				g = (g > 255) ? 255 : (g < 0 ? 0 : g);
-				b = (b > 255) ? 255 : (b < 0 ? 0 : b);
+
+		if (step >= 6) {
+			stage = 1;
+			step = 0;
+		}
+
+	} else if (stage == 1) {
+		// 第二阶段：黄色从两端收合，7步
+		// step=0: 保持紫色（稳定1步）
+		// step=1: 位置0,11为黄色（左右各1颗）
+		// step=2: 位置0,1,10,11为黄色（左右各2颗）
+		// step=3: 位置0,1,2,9,10,11为黄色（左右各3颗）
+		// step=4: 位置0,1,2,3,8,9,10,11为黄色（左右各4颗）
+		// step=5: 位置0,1,2,3,4,7,8,9,10,11为黄色（左右各5颗）
+		// step=6: 全黄色
+
+		for (i = 0; i < 12; i++) {
+			u8 r, g, b;
+			if (step == 0) {
+				// 保持紫色
+				hsv_to_rgb(&r, &g, &b, 275, 100, 100);  // 紫色
+			} else if (i < step || i >= (12 - step)) {
+				// 从两端收合（i<step处理左边，i>=12-step处理右边）
+				hsv_to_rgb(&r, &g, &b, 60, 100, 100);  // 黄色
 			} else {
-				r = 0;
-				g = 0;
-				b = 0;
+				hsv_to_rgb(&r, &g, &b, 275, 100, 100);  // 紫色
 			}
-			
 			rgb_colorful_buffer_set(i, r, g, b);
 		}
-		
-		rgb_value_sync();
-		wlt_ms_delay(on_delay);
-		flash_state = 0;
+
+		if (step >= 6) {
+			stage = 2;
+			step = 0;
+		}
+
+	} else if (stage == 2) {
+		// 第三阶段：黑色从两端收合，7步
+		// step=0: 保持黄色（稳定1步）
+		// step=1: 位置0,11为黑色（左右各1颗）
+		// step=2: 位置0,1,10,11为黑色（左右各2颗）
+		// step=3: 位置0,1,2,9,10,11为黑色（左右各3颗）
+		// step=4: 位置0,1,2,3,8,9,10,11为黑色（左右各4颗）
+		// step=5: 位置0,1,2,3,4,7,8,9,10,11为黑色（左右各5颗）
+		// step=6: 全黑色
+
+		for (i = 0; i < 12; i++) {
+			u8 r, g, b;
+			if (step == 0) {
+				// 保持黄色
+				hsv_to_rgb(&r, &g, &b, 60, 100, 100);  // 黄色
+			} else if (i < step || i >= (12 - step)) {
+				// 从两端收合（i<step处理左边，i>=12-step处理右边）
+				hsv_to_rgb(&r, &g, &b, 0, 0, 0);  // 黑色
+			} else {
+				hsv_to_rgb(&r, &g, &b, 60, 100, 100);  // 黄色
+			}
+			rgb_colorful_buffer_set(i, r, g, b);
+		}
+
+		if (step >= 6) {
+			stage = 0;
+			step = 0;
+		}
 	}
-	
-	// 更新计数器
-	phase_counter++;
+
+	rgb_value_sync();
+	wlt_ms_delay(200);  // 每步200ms，每阶段约1.2秒
 	step++;
 }
 
@@ -2383,147 +2640,163 @@ void wlt_33_mode()
 #endif
 
 
-//时光机1 - 模拟时光隧道效果，蓝色调为主，带有动态流动和亮度变化
+//时光机1 - 红黄灯珠带着白条移动，直到全部变白
 void wlt_timemachine1_mode(void)
 {
     int i;
-    // 使用12个元素的数组，匹配实际灯珠数量
-    static u16 sh[12];               // 存储每个灯珠的色相值
-    static u8 brightness[12];        // 存储每个灯珠的亮度值
-    static u8 direction = 1;         // 流动方向 (1: 向前, 0: 向后)
-    static u8 speed = 15;            // 流动速度 (值越大速度越快)
-    static u16 base_hue = 240;       // 基础色相 (240度为蓝色)
-    static u8 cycle_count = 0;       // 循环计数器
+    static u8 phase = 0;              // 当前阶段：0=红，1=黄
+    static u8 head_pos = 0;           // 彩色灯珠的位置(0-11)
+    static u8 white_count = 0;       // 白色灯珠的数量
+    static u16 step_count = 0;       // 步数计数器
+    static bool completed = false;   // 是否已完成全白状态
     
-    // 初始化色相和亮度数组（仅在第一次调用时）
-    static bool initialized = false;
-    if (!initialized) {
+    // 检查新指令，初始化
+    if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || (sg_light_ctrl_data.magicunit != 29 && sg_light_ctrl_data.magicunit != 150)) {
+        phase = 0;      // 从红色开始
+        head_pos = 0;  // 从位置0开始
+        white_count = 0;
+        step_count = 0;
+        completed = false;
+        scene_reset_flag = false;
+        return;
+    }
+    
+    // 已完成全白状态，维持白色
+    if (completed) {
         for (i = 0; i < 12; i++) {
-            // 初始化色相值，从基础色相开始，每个灯珠递增30度（12个灯珠覆盖360度）
-            sh[i] = (base_hue + i * 30) % 360;
-            // 初始化亮度值，呈现中心亮两边暗的效果
-            if (i < 6) {
-                brightness[i] = 20 + (i * 80) / 6;
-            } else {
-                brightness[i] = 20 + ((11 - i) * 80) / 6;
+            rgb_colorful_buffer_set(i, 255, 255, 255);
+        }
+        rgb_value_sync();
+        wlt_ms_delay(10);
+        return;
+    }
+    
+    // 颜色切换：每5步切换一次(红->黄->红)，每50ms一步
+    if (step_count > 0 && step_count % 5 == 0) {
+        phase = !phase;
+    }
+    
+    // 位置移动：每10步(显示完红+黄后)前进一格
+    if (step_count > 0 && step_count % 10 == 0) {
+        if (head_pos < 12) {
+            // 白色条扩展到当前位置
+            white_count = head_pos + 1;
+            
+            // 彩色灯珠前进到下一个位置
+            head_pos++;
+            
+            // 限制白色数量不超过12
+            if (white_count > 12) {
+                white_count = 12;
             }
         }
-        initialized = true;
-    }
-    
-    // 更新色相值，产生流动效果
-    for (i = 0; i < RGB_LED_NUM; i++) {
-        if (direction) {
-            // 向前流动：色相值增加
-            sh[i] = (sh[i] + speed) % 360;
-        } else {
-            // 向后流动：色相值减少
-            sh[i] = (sh[i] - speed + 360) % 360;
+        
+        // 当12颗灯珠全部为白色时，标记完成
+        if (white_count >= 12) {
+            white_count = 12;
+            completed = true;
         }
-    }
-    
-    // 定期改变流动方向，增加动态效果
-    cycle_count++;
-    if (cycle_count >= 50) { // 大约每50次调用改变一次方向
-        direction = !direction;
-        cycle_count = 0;
-    }
-    
-    // 更新亮度值，产生呼吸效果
-    for (i = 0; i < RGB_LED_NUM; i++) {
-        // 亮度在20-100之间变化，每个灯珠的变化速度略有不同
-        brightness[i] = 20 + (brightness[i] + (i % 3 + 1)) % 80;
     }
     
     // 设置每个灯珠的颜色
-    for (i = 0; i < RGB_LED_NUM; i++) {
+    for (i = 0; i < 12; i++) {
         u8 r, g, b;
         
-        // 将HSV转换为RGB，固定饱和度为100%，使用计算出的亮度值
-        hsv_to_rgb(&r, &g, &b, sh[i], 100, brightness[i]);
+        if (i < white_count) {
+            // 在白色范围内的灯珠设为白色
+            r = 255;
+            g = 255;
+            b = 255;
+        } else if (i == head_pos && head_pos < 12) {
+            // 彩色灯珠位置：红色或黄色
+            if (phase == 0) {
+                r = 255; g = 0; b = 0;   // 红色
+            } else {
+                r = 255; g = 255; b = 0;  // 黄色
+            }
+        } else {
+            // 其余灯珠为黑色
+            r = 0; g = 0; b = 0;
+        }
         
-        // 将颜色值写入LED缓冲区
         rgb_colorful_buffer_set(i, r, g, b);
     }
     
-    // 将颜色数据同步输出到LED灯带
     rgb_value_sync();
     
-    // 添加适当的延迟，控制动画速度
+    // 延时约25ms（速度加快1倍）
     wlt_ms_delay(10);
+    
+    step_count++;
 }
 
 
 
-//时光机2 - 模拟时光隧道效果，紫色调为主，带有双向流动和更丰富的色彩变化
+//时光机2 - 白条从左到右移动，直到全部变白
 void wlt_timemachine2_mode(void)
 {
     int i;
-    // 使用12个元素的数组，匹配实际灯珠数量
-    static u16 sh[12];               // 存储每个灯珠的色相值
-    static u8 brightness[12];        // 存储每个灯珠的亮度值
-    static u8 direction = 1;         // 流动方向 (1: 向前, 0: 向后)
-    static u8 speed = 20;            // 流动速度 (值越大速度越快)
-    static u16 base_hue = 300;       // 基础色相 (300度为紫色)
-    static u8 cycle_count = 0;       // 循环计数器
+    static u8 white_count = 0;       // 白色灯珠的数量
+    static u16 step_count = 0;       // 步数计数器
+    static bool completed = false;   // 是否已完成全白状态
     
-    // 初始化色相和亮度数组（仅在第一次调用时）
-    static bool initialized = false;
-    if (!initialized) {
+    // 检查新指令，初始化
+    if (scene_reset_flag || LOCAL_MAGIC_MODE == 0 || (sg_light_ctrl_data.magicunit != 30 && sg_light_ctrl_data.magicunit != 152)) {
+        white_count = 0;
+        step_count = 0;
+        completed = false;
+        scene_reset_flag = false;
+        return;
+    }
+    
+    // 已完成全白状态，维持白色
+    if (completed) {
         for (i = 0; i < 12; i++) {
-            // 初始化色相值，从基础色相开始，每个灯珠递增30度，12个灯珠覆盖360度
-            sh[i] = (base_hue + i * 30) % 360;
-            // 初始化亮度值，呈现中心亮两边暗的效果
-            if (i < 6) {
-                brightness[i] = 10 + (i * 90) / 6;
-            } else {
-                brightness[i] = 10 + ((11 - i) * 90) / 6;
-            }
+            rgb_colorful_buffer_set(i, 255, 255, 255);
         }
-        initialized = true;
+        rgb_value_sync();
+        wlt_ms_delay(1);
+        return;
     }
     
-    // 更新色相值，产生流动效果
-    for (i = 0; i < RGB_LED_NUM; i++) {
-        if (direction) {
-            // 向前流动：色相值增加，速度更快
-            sh[i] = (sh[i] + speed) % 360;
-        } else {
-            // 向后流动：色相值减少，速度更快
-            sh[i] = (sh[i] - speed + 360) % 360;
+    // 白条扩展：每5步向前移动一格（比时光机1快一倍）
+    if (step_count > 0 && step_count % 5 == 0) {
+        if (white_count < 12) {
+            white_count++;
         }
-    }
-    
-    // 定期改变流动方向，增加动态效果，切换频率更快
-    cycle_count++;
-    if (cycle_count >= 30) { // 大约每30次调用改变一次方向
-        direction = !direction;
-        cycle_count = 0;
-    }
-    
-    // 更新亮度值，产生呼吸效果，变化范围更大
-    for (i = 0; i < RGB_LED_NUM; i++) {
-        // 亮度在10-100之间变化，每个灯珠的变化速度不同
-        brightness[i] = 10 + (brightness[i] + (i % 5 + 1)) % 90;
+        
+        // 当12颗灯珠全部为白色时，标记完成
+        if (white_count >= 12) {
+            white_count = 12;
+            completed = true;
+        }
     }
     
     // 设置每个灯珠的颜色
-    for (i = 0; i < RGB_LED_NUM; i++) {
+    for (i = 0; i < 12; i++) {
         u8 r, g, b;
         
-        // 将HSV转换为RGB，饱和度在80-100%之间变化，增加色彩层次感
-        u8 saturation = 80 + (i % 21);
-        hsv_to_rgb(&r, &g, &b, sh[i], saturation, brightness[i]);
+        if (i < white_count) {
+            // 在白色范围内的灯珠设为白色
+            r = 255;
+            g = 255;
+            b = 255;
+        } else {
+            // 其余灯珠为黑色
+            r = 0;
+            g = 0;
+            b = 0;
+        }
         
-        // 将颜色值写入LED缓冲区
         rgb_colorful_buffer_set(i, r, g, b);
     }
     
-    // 将颜色数据同步输出到LED灯带
     rgb_value_sync();
     
-    // 添加适当的延迟，控制动画速度，比时光机1稍快
-    wlt_ms_delay(8);
+    // 延时约10ms（比时光机1快一倍）
+    wlt_ms_delay(1);
+    
+    step_count++;
 }
 
 
@@ -2534,11 +2807,10 @@ void wlt_meteor1_mode(void)
     int i;
     static u8 meteor_pos = 0;         // 流星当前位置
     static u8 tail_length = 8;        // 流星尾巴长度
-    static u16 meteor_hue = 60;       // 流星色相（60度为黄色）
     static u8 meteor_brightness = 100;// 流星头部亮度
     static u8 speed = 3;              // 流星移动速度
     static u8 speed_counter = 0;      // 速度计数器，控制移动频率
-    
+
     // 增加速度计数器
     speed_counter++;
     if (speed_counter < speed) {
@@ -2549,42 +2821,40 @@ void wlt_meteor1_mode(void)
         return;
     }
     speed_counter = 0;
-    
+
     // 清除所有灯珠颜色
     for (i = 0; i < RGB_LED_NUM; i++) {
         rgb_colorful_buffer_set(i, 0, 0, 0);
     }
-    
-    // 绘制流星
+
+    // 绘制流星（白色）
     for (i = 0; i < tail_length; i++) {
         if (meteor_pos - i >= 0 && meteor_pos - i < RGB_LED_NUM) {
             u8 r, g, b;
             // 计算当前位置的亮度，从头部到尾部逐渐变暗
             u8 brightness = meteor_brightness - (i * meteor_brightness / tail_length);
             if (brightness < 5) brightness = 5; // 确保尾部有最低亮度
-            
-            // 将HSV转换为RGB
-            hsv_to_rgb(&r, &g, &b, meteor_hue, 100, brightness);
-            
+
+            // 将HSV转换为RGB（白色：色相任意，饱和度0，亮度brightness）
+            hsv_to_rgb(&r, &g, &b, 0, 0, brightness);
+
             // 设置流星当前位置的颜色
             rgb_colorful_buffer_set(meteor_pos - i, r, g, b);
         }
     }
-    
+
     // 更新流星位置
     meteor_pos++;
     if (meteor_pos >= RGB_LED_NUM + tail_length) {
         // 流星已经划过整个灯带，重新开始
         meteor_pos = 0;
-        // 随机调整流星的颜色（在黄色到白色之间）
-        meteor_hue = 40 + (rand() % 40);
         // 随机调整尾巴长度（6-12个灯珠）
         tail_length = 6 + (rand() % 7);
     }
-    
+
     // 将颜色数据同步输出到LED灯带
     rgb_value_sync();
-    
+
     // 添加适当的延迟，控制动画速度
     wlt_ms_delay(10);
 }
@@ -2595,14 +2865,95 @@ void wlt_meteor1_mode(void)
 void wlt_meteor2_mode(void)
 {
     int i;
-    static u8 meteor_pos = 0;         // 流星当前位置（与流星1保持一致的初始值）
+    static signed char meteor_pos = 11; // 流星当前位置（从右往左，初始在位置11）
+    static u8 tail_length = 8;       // 流星尾巴长度
+    static u8 meteor_brightness = 100;// 流星头部亮度
+    static u8 speed = 3;             // 流星移动速度
+    static u8 speed_counter = 0;    // 速度计数器，控制移动频率
+    static u8 initialized = 0;      // 初始化标志
+
+    // 首次调用时初始化位置
+    if (!initialized) {
+        meteor_pos = RGB_LED_NUM - 1;  // 从最右边开始
+        tail_length = 6 + (rand() % 7);
+        initialized = 1;
+    }
+
+    // 增加速度计数器
+    speed_counter++;
+    if (speed_counter < speed) {
+        // 还未达到移动条件，保持当前状态
+        rgb_value_sync();
+        wlt_ms_delay(10);
+        return;
+    }
+    speed_counter = 0;
+
+    // 清除所有灯珠颜色
+    for (i = 0; i < RGB_LED_NUM; i++) {
+        rgb_colorful_buffer_set(i, 0, 0, 0);
+    }
+
+    // 绘制流星（白色，从右到左）
+    for (i = 0; i < tail_length; i++) {
+        if (meteor_pos + i >= 0 && meteor_pos + i < RGB_LED_NUM) {
+            u8 r, g, b;
+            // 计算当前位置的亮度，从头部到尾部逐渐变暗
+            u8 brightness = meteor_brightness - (i * meteor_brightness / tail_length);
+            if (brightness < 5) brightness = 5; // 确保尾部有最低亮度
+
+            // 将HSV转换为RGB（白色：饱和度0，亮度brightness）
+            hsv_to_rgb(&r, &g, &b, 0, 0, brightness);
+
+            // 设置流星当前位置的颜色（meteor_pos + i 向左移动）
+            rgb_colorful_buffer_set(meteor_pos + i, r, g, b);
+        }
+    }
+
+    // 更新流星位置（从右往左移动）
+    if (meteor_pos <= -tail_length) {
+        // 流星完全离开灯带，重新从右边出现
+        meteor_pos = RGB_LED_NUM - 1;
+        tail_length = 6 + (rand() % 7);
+        speed_counter = 0;  // 重置计数器，立即开始移动
+    }
+    meteor_pos--;
+
+    // 将颜色数据同步输出到LED灯带
+    rgb_value_sync();
+
+    // 添加适当的延迟，控制动画速度
+    wlt_ms_delay(10);
+}
+
+
+//烟花秀 - 模拟流星划过LED灯带的效果（7彩色+白色）
+void wlt_fireworkshow_mode(void)
+{
+    int i;
+    static u8 meteor_pos = 0;         // 流星当前位置
     static u8 tail_length = 8;        // 流星尾巴长度
-    static u16 meteor_hue = 0;        // 流星色相（初始为红色，用于幻彩效果）
     static u8 meteor_brightness = 100;// 流星头部亮度
     static u8 speed = 3;              // 流星移动速度
     static u8 speed_counter = 0;      // 速度计数器，控制移动频率
-    static u8 hue_increment = 5;      // 色相递增步长，用于幻彩效果
-    
+    static u8 current_hue = 0;         // 当前流星颜色（色相）
+    static bool initialized = false;   // 初始化标志
+
+    // 首次调用时初始化随机颜色
+    if (!initialized) {
+        // 8种颜色：7彩虹色(H=0,30,60,120,180,240,270) + 白色(S=0)
+        // 随机选择一种颜色
+        u8 color_idx = rand() % 8;
+        if (color_idx < 7) {
+            // 7彩虹色：红、橙、黄、绿、青、蓝、紫
+            current_hue = color_idx * 40;  // 0, 40, 80, 120, 160, 200, 240
+        } else {
+            // 白色：使用特殊标记值255，在绘制时单独处理
+            current_hue = 255;
+        }
+        initialized = true;
+    }
+
     // 增加速度计数器
     speed_counter++;
     if (speed_counter < speed) {
@@ -2613,182 +2964,55 @@ void wlt_meteor2_mode(void)
         return;
     }
     speed_counter = 0;
-    
-    // 更新色相，产生幻彩效果
-    meteor_hue = (meteor_hue + hue_increment) % 360;
-    
+
     // 清除所有灯珠颜色
     for (i = 0; i < RGB_LED_NUM; i++) {
         rgb_colorful_buffer_set(i, 0, 0, 0);
     }
-    
-    // 绘制流星（从右到左）
+
+    // 绘制流星（7彩色+白色）
     for (i = 0; i < tail_length; i++) {
-        // 计算实际位置：从右到左，对应LED灯带的索引
-        int actual_pos = 11 - (meteor_pos - i);
-        if (actual_pos >= 0 && actual_pos < RGB_LED_NUM) {
+        if (meteor_pos - i >= 0 && meteor_pos - i < RGB_LED_NUM) {
             u8 r, g, b;
             // 计算当前位置的亮度，从头部到尾部逐渐变暗
             u8 brightness = meteor_brightness - (i * meteor_brightness / tail_length);
             if (brightness < 5) brightness = 5; // 确保尾部有最低亮度
-            
+
             // 将HSV转换为RGB
-            hsv_to_rgb(&r, &g, &b, meteor_hue, 100, brightness);
-            
+            if (current_hue == 255) {
+                // 白色：色相任意，饱和度0
+                hsv_to_rgb(&r, &g, &b, 0, 0, brightness);
+            } else {
+                // 7彩色：饱和度100
+                hsv_to_rgb(&r, &g, &b, current_hue, 100, brightness);
+            }
+
             // 设置流星当前位置的颜色
-            rgb_colorful_buffer_set(actual_pos, r, g, b);
+            rgb_colorful_buffer_set(meteor_pos - i, r, g, b);
         }
     }
-    
-    // 更新流星位置（与流星1保持相同的递增逻辑）
+
+    // 更新流星位置
     meteor_pos++;
-    
-    // 重置条件（与流星1完全相同）
     if (meteor_pos >= RGB_LED_NUM + tail_length) {
-        // 流星已经划过整个灯带，立即重新开始
+        // 流星已经划过整个灯带，重新开始
         meteor_pos = 0;
-        // 随机调整流星的颜色（幻彩效果，随机色相）
-        meteor_hue = rand() % 360;
         // 随机调整尾巴长度（6-12个灯珠）
         tail_length = 6 + (rand() % 7);
-        // 随机调整色相递增步长，增加幻彩变化
-        hue_increment = 3 + (rand() % 7);
+        // 随机选择新颜色
+        u8 color_idx = rand() % 8;
+        if (color_idx < 7) {
+            current_hue = color_idx * 40;
+        } else {
+            current_hue = 255;
+        }
     }
-    
+
     // 将颜色数据同步输出到LED灯带
     rgb_value_sync();
-    
+
     // 添加适当的延迟，控制动画速度
     wlt_ms_delay(10);
-}
-
-
-//烟花秀 - 模拟烟花发射、爆炸和粒子扩散的效果
-void wlt_fireworkshow_mode(void)
-{
-    int i;
-    
-    // 定义烟花的不同阶段
-    enum {
-        PHASE_LAUNCH,    // 发射阶段：单个灯珠从左向右移动
-        PHASE_EXPLODE,   // 爆炸阶段：粒子向两侧扩散
-        PHASE_FINISH     // 结束阶段：准备下一次发射
-    };
-    
-    static u8 phase = PHASE_LAUNCH;  // 当前阶段
-    static u8 launch_pos = 0;        // 发射位置
-    static u8 explode_timer = 0;     // 爆炸计时器
-    static u16 explode_hue = 0;      // 爆炸颜色
-    
-    // 定义粒子结构体
-    #define MAX_PARTICLES 12
-    static struct {
-        u8 pos;            // 粒子位置
-        u8 speed;          // 粒子速度
-        u8 direction;      // 0:向左, 1:向右
-        u8 brightness;     // 粒子亮度
-        u16 hue;           // 粒子颜色
-        bool active;       // 是否激活
-    } particles[MAX_PARTICLES];
-    
-    // 清除所有灯珠颜色
-    for (i = 0; i < RGB_LED_NUM; i++) {
-        rgb_colorful_buffer_set(i, 0, 0, 0);
-    }
-    
-    // 处理不同阶段
-    switch (phase) {
-        case PHASE_LAUNCH: {
-            // 发射阶段：单个黄色灯珠从左向右移动
-            u8 r, g, b;
-            hsv_to_rgb(&r, &g, &b, 60, 100, 100); // 黄色
-            rgb_colorful_buffer_set(launch_pos, r, g, b);
-            
-            // 更新发射位置
-            launch_pos++;
-            
-            // 到达第9颗灯珠位置（索引8）时爆炸
-            if (launch_pos >= 9) {
-                phase = PHASE_EXPLODE;
-                explode_timer = 0;
-                explode_hue = rand() % 360; // 随机爆炸颜色
-                
-                // 初始化粒子
-                for (i = 0; i < MAX_PARTICLES; i++) {
-                    particles[i].pos = 8; // 爆炸点在第9颗灯珠（索引8）
-                    particles[i].direction = i % 2; // 一半向左，一半向右
-                    particles[i].speed = 1 + (rand() % 3); // 随机速度1-3
-                    particles[i].brightness = 100;
-                    particles[i].hue = (explode_hue + (i * 30)) % 360; // 不同颜色
-                    particles[i].active = true;
-                }
-            }
-            break;
-        }
-        
-        case PHASE_EXPLODE: {
-            // 爆炸阶段：粒子向两侧扩散
-            explode_timer++;
-            
-            // 更新和绘制所有粒子
-            for (i = 0; i < MAX_PARTICLES; i++) {
-                if (particles[i].active) {
-                    // 更新粒子位置
-                    if (particles[i].direction) {
-                        // 向右移动
-                        particles[i].pos += particles[i].speed;
-                    } else {
-                        // 向左移动
-                        particles[i].pos -= particles[i].speed;
-                    }
-                    
-                    // 降低亮度
-                    particles[i].brightness -= 5;
-                    if (particles[i].brightness < 10) {
-                        particles[i].brightness = 0;
-                        particles[i].active = false;
-                    }
-                    
-                    // 绘制粒子
-                    if (particles[i].pos >= 0 && particles[i].pos < RGB_LED_NUM && particles[i].active) {
-                        u8 r, g, b;
-                        hsv_to_rgb(&r, &g, &b, particles[i].hue, 100, particles[i].brightness);
-                        rgb_colorful_buffer_set(particles[i].pos, r, g, b);
-                    } else {
-                        particles[i].active = false;
-                    }
-                }
-            }
-            
-            // 检查是否所有粒子都已熄灭
-            bool all_inactive = true;
-            for (i = 0; i < MAX_PARTICLES; i++) {
-                if (particles[i].active) {
-                    all_inactive = false;
-                    break;
-                }
-            }
-            
-            // 爆炸结束，准备下一次发射
-            if (all_inactive || explode_timer > 50) {
-                phase = PHASE_FINISH;
-            }
-            break;
-        }
-        
-        case PHASE_FINISH: {
-            // 重置状态，准备下一次发射
-            phase = PHASE_LAUNCH;
-            launch_pos = 0;
-            break;
-        }
-    }
-    
-    // 将颜色数据同步输出到LED灯带
-    rgb_value_sync();
-    
-    // 添加适当的延迟，控制动画速度
-    wlt_ms_delay(20);
 }
 
 
@@ -5056,6 +5280,8 @@ unsigned char  default_scene[33+1][38]=
  
 	MAGIC_SCENE_DATA.magic_hsv[0].sv = 100;
 	printf("iotalink_magic_process_init \n");
+	// 设置场景重置标记
+	scene_reset_flag = true;
 	//rgb_colorful_buffer_clean();
 	//rgb_value_sync();//输出
 
@@ -5076,22 +5302,14 @@ unsigned char  default_scene[33+1][38]=
 			case 1:
 			case 2:	
 			
-				///wlt_mode_sunup_init();
-				 iotalink_color_transition(6,3,&default_scene[3] , &MAGIC_SCENE_DATA);//解析出颜色
-				for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
-				{
-					rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b);
-				}
-
-				// iotalink_magic_scene_static();//写入颜色
 				break;
 
 			case 3:
-				iotalink_color_transition(6,5,&default_scene[4] , &MAGIC_SCENE_DATA);//解析出颜色
-				for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
-				{
-					rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b);
-				}
+				// iotalink_color_transition(6,5,&default_scene[4] , &MAGIC_SCENE_DATA);//解析出颜色
+				// for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
+				// {
+				// 	rgb_colorful_buffer_set(i,MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b);
+				// }
 
 			break;
 
@@ -5123,9 +5341,14 @@ unsigned char  default_scene[33+1][38]=
 				break;
 			case 14: // 流水：白色流动
 				break;
-			case 15: // 睡眠：暖色或RGB黄色10%亮度
-			    iotalink_color_transition(1,1,&default_scene[15] , &MAGIC_SCENE_DATA);//解析出颜色
-			  //  iotalink_magic_scene_static();//写入颜色
+			case 15: // 睡眠：RGB熄灭，PWM灯亮
+			{
+				// RGB灯熄灭
+				rgb_colorful_buffer_clean();
+				rgb_value_sync();
+				// PWM灯亮起（30%占空比）
+				wlt_led_pwm_set_duty(LED_PWM_CH_0, 20);
+			}
 				break;
 			case 16: // 海洋：青蓝色流动 待优化颜色
 			
@@ -5181,15 +5404,13 @@ unsigned char  default_scene[33+1][38]=
 			
 				break;
 			case 26: // 情人节：红粉紫随机流动
-				iotalink_color_transition(3,7,&default_scene[26] , &MAGIC_SCENE_DATA);//解析出颜色
-				iotalink_magic_scene_static();//写入颜色
-
-			
+				// iotalink_color_transition(3,7,&default_scene[26] , &MAGIC_SCENE_DATA);//解析出颜色
+				// iotalink_magic_scene_static();//写入颜色
 				break;
+
 			case 27: // 万圣节：橙色渐变
-
-			
 				break;
+
 			case 28: // 报警：白色+蓝牙+无色 随机显示（三个点一个颜色）
 				iotalink_color_transition(6,1,&default_scene[28] , &MAGIC_SCENE_DATA);//解析出颜色
 				iotalink_magic_scene_static();//写入颜色
@@ -5247,7 +5468,6 @@ unsigned char  default_scene[33+1][38]=
 				 
 				break; 
 			 default://200（自定义部分）
-					//wlt_mode_sunup_init();
 
 					//好易达场景
 
@@ -5289,175 +5509,161 @@ void iotalink_magic_lantern_process (void * argv)
 			case SCENE_MODE:
 			//if(sg_light_ctrl_data.mode == SCENE_MODE)
 			{	
-
 				// 协同颜色亮度渐变用
 				//iotalink_rgb_relax();
-				
+
 				switch (sg_light_ctrl_data.magicunit)//场景号
 				{
-
 					case 1://日出    过渡流动
 						wlt_mode_sunup();
 						break;
+
 					case 2://日落   过渡流动
 						wlt_mode_sundown();	
 						break;
-					case 3://生日   测试
-					
-						Move_Mun_Pre(30);
-						rgb_value_sync(); 
-					    wlt_ms_delay(magic_rate*0.35+2);
+
+					case 3://生日   
+						wlt_birthday();
+						// Move_Mun_Pre(30);
+						// rgb_value_sync(); 
+					    // wlt_ms_delay(magic_rate*0.35+2);
 						break;
+
 					case 4://烛光
-					
-						fire_jump();//*
+						wlt_candlelight();
 						wlt_ms_delay(magic_rate*0.35+2);
 						break;
+
 					case 5: // 烟花
 						colorful_firework();//*
-					
 						break;
+
 					case 6: // 聚会：七色随机频闪
-					
 						wlt_juhui();
-						
 						break;
+
 					case 7: // 约会：红粉紫过渡渐变
 						wlt_yuehui();
+						break;
 
-					
-						break;
 					case 8: // 星空：随机闪
-					
 						star_twinkle();//*
-						
 						break;
+
 					case 9: // 浪漫：红粉紫随机显示（三个点一个颜色）
 						wlt_romance();
 						break;
+
 					case 10: // 迪斯科：
 						wlt_disco_mode();//*原花落
-						// colorful_disco();
-						
 						break;
+
 					case 11: // 彩虹：
-					
 						colorful_rainbow_run();
 						wlt_ms_delay(magic_rate*1+20);
-					
 						break;
+
 					case 12: // 电影：青蓝色静态oo
-
-					
-						singleColor(226,100,10);
+						singleColor(226,100,50);
 						rgb_value_sync();
-
 						wlt_ms_delay(100);				
 						break;
+
 					case 13: // 圣诞夜：七色随机显示 + 无色随机显示（三个点一个颜色）3秒钟，再向上跑动3秒，向下跑动3秒时间
-				
-
-		
-						Move_Pre();
-						rgb_value_sync(); 
-						wlt_ms_delay(magic_rate*1+20);
-
-						
+						wlt_Christmas_mode();
+						// Move_Pre();
+						// rgb_value_sync(); 
+						// wlt_ms_delay(magic_rate*1+20);
 						break;
 
 					case 14: // 流水：白色流动
 						wlt_runningwater_mode();
 						//colorful_test2_2();
-						break;	
-					case 15: // 睡眠：暖色或RGB黄色10%亮度
-							 
-						singleColor(41,100,10);
-						rgb_value_sync();
-						wlt_ms_delay(100);
-
 						break;
+
+					case 15: // 睡眠：RGB熄灭，PWM灯亮
+					{
+						// RGB灯熄灭
+						rgb_colorful_buffer_clean();
+						rgb_value_sync();
+						// PWM灯亮起（30%占空比）
+						wlt_led_pwm_set_duty(LED_PWM_CH_0, 20);
+						// 将模式改回SCENE_MODE，确保下次循环继续执行case 15
+						sg_light_ctrl_data.mode = SCENE_MODE;
+					}
+						break;
+						
 					case 16: // 海洋：青蓝色流动 
-					
-						//iotalink_magic_scene_relax(13,MAGIC_SCENE_BREATHE);	
 						Move_Mun_Back(20);
 						rgb_value_sync(); 
-						wlt_ms_delay(magic_rate*0.5+8);	
-							
+						wlt_ms_delay(magic_rate*0.5+8);		
 						break;
+
 					case 17: // 森林：绿黄色流动
 						Move_Mun_Back(20);
 						rgb_value_sync();
 						wlt_ms_delay(magic_rate*0.3 + 5);
 						break;
+
 					case 18: // 阅读：冷色或RGB白色80%亮度 -
 						singleColor(0,0,60);
 						rgb_value_sync();
 						wlt_ms_delay(100);
 						break;
+
 					case 19: // 工作：冷色或RGB白色100%亮度 - 
 						singleColor(0,0,100);
 						rgb_value_sync();
 						wlt_ms_delay(100);
-				
 						break;
-					case 20: // 炫彩：七彩随机流动
-						
-						for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
-						{
-							if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=20)break;//>>!!!解决延时造成的无法及时切换
-							index_rgb_Move_Back(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
-							iotalink_rgb_relax_1(30);
-						}
-			
-						break;
-					case 21: // 柔和：七彩渐变过渡（亮度100%）
-					
-						iotalink_magic_scene_relax(1,MAGIC_SCENE_BREATHE);
-						wlt_ms_delay(magic_rate+2);	
 
-							
+					case 20: // 炫彩：七彩随机流动
+						// for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
+						// {
+						// 	if (LOCAL_MAGIC_MODE==0||sg_light_ctrl_data.magicunit!=20)break;//>>!!!解决延时造成的无法及时切换
+						// 	index_rgb_Move_Back(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
+						// 	iotalink_rgb_relax_1(30);
+						// }
+						wlt_Colorful_mode();
 						break;
+
+					case 21: // 柔和：七彩渐变过渡（亮度100%）
+						// iotalink_magic_scene_relax(1,MAGIC_SCENE_BREATHE);
+						// wlt_ms_delay(magic_rate+2);	
+						wlt_gentle_mode();
+						break;
+
 					case 22: // 结婚纪念日：红粉紫随机跳变
-								
 						wlt_wedding_mode();
-						wlt_ms_delay(magic_rate*10+100);	
-					
+						//wlt_ms_delay(magic_rate*10+100);	
 						break;
+
 					case 23: // 雪花：白色+无色随机显示（一个点一个颜色），白色到无色需要渐变过程
 						wlt_snowflakes_mode();//*
-						
 						break;
+
 					case 24: // 火焰：，中间是两种颜色的渐变过程，随机显示颜色的占比
-					
-
 						wlt_fire_mode();//*
-
-						
 						break;
+
 					case 25: // 闪电：白色闪屏（白色显示时间和闪屏速度随机） 用的炫龙
-
-						//iotalink_xuanlong();//不使用了
 						wlt_lightning_mode();
-						
 						break;
+
 					case 26: // 情人节：红粉紫随机流动
-					
-				
-						iotalink_magic_scene_relax(2,MAGIC_SCENE_BREATHE);
-						wlt_ms_delay(magic_rate+2); 
-	
+						// iotalink_magic_scene_relax(2,MAGIC_SCENE_BREATHE);
+						// wlt_ms_delay(magic_rate+2); 
+						wlt_valentine_mode();
 						break;
+
 					case 27: // 万圣节：（粉黄收缩）
-					
 						wlt_hallowmas_mode();
-
-					
 						break;
+
 					case 28: // 报警：白色+蓝牙+无色 随机显示（三个点一个颜色）
-
 						wlt_110_mode();
-		
 						break;
+
 					// case 29: // 时光机：正向蓝白色渐变流动
 					// //todo
 					// 	wlt_29_mode();
@@ -5484,22 +5690,27 @@ void iotalink_magic_lantern_process (void * argv)
 						
 					// 	break;
 
+					case 29:
 					case 150:  //新增时光机1：正向蓝白色渐变流动，增加过渡色，优化颜色
 						wlt_timemachine1_mode();
 						break;
 
+					case 30:
 					case 152:  //新增时光机2：
 						wlt_timemachine2_mode();
 						break;
 
+					case 31:
 					case 154:  //新增流星1：
 						wlt_meteor1_mode();
 						break;
 
+					case 32:
 					case 155:  //新增流星2：
 						wlt_meteor2_mode();
 						break;
 
+					case 33:
 					case 156:  //新增烟花秀：
 						wlt_fireworkshow_mode();
 						break;
@@ -5528,18 +5739,18 @@ void iotalink_magic_lantern_process (void * argv)
 						break;
 
 				
-						case 109://节日
-						case 110://薄荷糖
-						case 111://万圣节 	
-							Move_Pre();
-							rgb_value_sync(); 
-							wlt_ms_delay(magic_rate*0.5+8);
-							break;
+					case 109://节日
+					case 110://薄荷糖
+					case 111://万圣节 	
+						Move_Pre();
+						rgb_value_sync(); 
+						wlt_ms_delay(magic_rate*0.5+8);
+						break;
 
 
-						case 112://DISCO
-						
-							break;
+					case 112://DISCO
+					
+						break;
 
 
 						
@@ -5705,150 +5916,52 @@ void rgb_to_hsv(unsigned char R, unsigned char G, unsigned char B, unsigned shor
   * @paRam[in]  s   HSV模型 ----------------饱和度
   * @paRam[in]  v   HSV模型 ----------------亮度
   */
-	void  hsv_to_rgb(unsigned char *R, unsigned char *G, unsigned char *B, unsigned short H, unsigned char S, unsigned char V)
-	{
-		int i = 0;
-		int rgb_max, rgb_min, rgb_adj;
-		rgb_max = rgb_min = rgb_adj = 0;	
-		rgb_max = 255 * V;
-		rgb_min = rgb_max * (100 - S) / 100;	
-		i = H / 60;
-		int difs = H % 60;
-		rgb_adj = (rgb_max - rgb_min) * difs / 60;	
-		
-		rgb_max /= 100;
-		rgb_adj /= 100;
-		rgb_min /= 100;	
-		switch (i)
-		{
-		case 6:
-		case 0:
-			*R = (unsigned char)rgb_max;
-			*G = (unsigned char)(rgb_min + rgb_adj);
-			*B = (unsigned char)rgb_min;
-			break;
-		case 1:
-			*R = (unsigned char)(rgb_max - rgb_adj);
-			*G = (unsigned char)rgb_max;
-			*B = (unsigned char)rgb_min;
-			break;
-		case 2:
-			*R = (unsigned char)rgb_min;
-			*G = (unsigned char)rgb_max;
-			*B = (unsigned char)(rgb_min + rgb_adj);
-			break;
-		case 3:
-			*R = (unsigned char)rgb_min;
-			*G = (unsigned char)(rgb_max - rgb_adj);
-			*B = (unsigned char)rgb_max;
-			break;
-		case 4:
-			*R = (unsigned char)(rgb_min + rgb_adj);
-			*G = (unsigned char)rgb_min;
-			*B = (unsigned char)rgb_max;
-			break;
-		default: // case 5:
-			*R = (unsigned char)rgb_max;
-			*G = (unsigned char)rgb_min;
-			*B = (unsigned char)(rgb_max - rgb_adj);
-			break;
-		}
-	}
-
-
-#if 0
- int wlt_pwm_timer_init(void)
+void  hsv_to_rgb(unsigned char *R, unsigned char *G, unsigned char *B, unsigned short H, unsigned char S, unsigned char V)
 {
-
-	int ret;
-
-	if(USE_PWM_NUM<=4)
+	int i = 0;
+	int rgb_max, rgb_min, rgb_adj;
+	rgb_max = rgb_min = rgb_adj = 0;	
+	rgb_max = 255 * V;
+	rgb_min = rgb_max * (100 - S) / 100;	
+	i = H / 60;
+	int difs = H % 60;
+	rgb_adj = (rgb_max - rgb_min) * difs / 60;	
+	
+	rgb_max /= 100;
+	rgb_adj /= 100;
+	rgb_min /= 100;	
+	switch (i)
 	{
-		for(int ch = 0 ; ch< USE_PWM_NUM ;ch++)
-		{
-	
-			ledc_config[ch].mode = SCM_TIMER_MODE_PWM;
-			ledc_config[ch].intr_en = 0;
-			ledc_config[ch].data.pwm.high =LED_PWM_CYCLE ;
-			ledc_config[ch].data.pwm.low  = LED_PWM_CYCLE;
-			ledc_config[ch].data.pwm.park = 0;
-	
-	//只先使用timer 0
-			scm_timer_configure(SCM_TIMER_IDX_0, ch, &ledc_config[ch], NULL, NULL);
-			if (ret)
-			{
-				printf("timer start error = %x\n", ret);
-			}
-			scm_timer_start(SCM_TIMER_IDX_0, ch);
-		}
-
+	case 6:
+	case 0:
+		*R = (unsigned char)rgb_max;
+		*G = (unsigned char)(rgb_min + rgb_adj);
+		*B = (unsigned char)rgb_min;
+		break;
+	case 1:
+		*R = (unsigned char)(rgb_max - rgb_adj);
+		*G = (unsigned char)rgb_max;
+		*B = (unsigned char)rgb_min;
+		break;
+	case 2:
+		*R = (unsigned char)rgb_min;
+		*G = (unsigned char)rgb_max;
+		*B = (unsigned char)(rgb_min + rgb_adj);
+		break;
+	case 3:
+		*R = (unsigned char)rgb_min;
+		*G = (unsigned char)(rgb_max - rgb_adj);
+		*B = (unsigned char)rgb_max;
+		break;
+	case 4:
+		*R = (unsigned char)(rgb_min + rgb_adj);
+		*G = (unsigned char)rgb_min;
+		*B = (unsigned char)rgb_max;
+		break;
+	default: // case 5:
+		*R = (unsigned char)rgb_max;
+		*G = (unsigned char)rgb_min;
+		*B = (unsigned char)(rgb_max - rgb_adj);
+		break;
 	}
-	
-
-	return 0;
 }
-	
-
-void wlt_led_pwm_set_duty(E_LED_PWM_CHANNEL ch, u8 duty)
-{ 
-    if(duty >= 100)
-	{
-        duty = 99;
-    }
-    ledc_config[ch].data.pwm.high = LED_PWM_CYCLE * duty / 100;
-    ledc_config[ch].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch].data.pwm.high;
-	
-    // printf(" ch : %d ,higt : %d , low : %d \n",ch ,ledc_config[ch].data.pwm.high , ledc_config[ch].data.pwm.low);  
-    scm_timer_stop(SCM_TIMER_IDX_0,ch);
-    // SCM_INFO_LOG(TAG,"TIMER PWM channel %d set duty = %d", ch, duty);
-    if(duty > 0)
-	{
-        int ret = scm_timer_configure(SCM_TIMER_IDX_0, ch, &ledc_config[ch], NULL, NULL);
-        if (ret)
-		{
-            printf("TIMER PWM channel %d configure error = %x", ch, ret);
-        } 
-		else 
-        {            /* Start the TIMER */
-            scm_timer_start(SCM_TIMER_IDX_0,ch);
-        }
-    }
-
-}
-
-//pwm 冷暖输出
-void wlt_light_set_cw(u16 cold, u16 warm)
-{	
-	wlt_led_pwm_set_duty(0,warm);
-	//wlt_led_pwm_set_duty(1,cold);
-}
-
-void wlt_light_set_rgb(u16 red, u16 green,u16 blue)
-{					
-	rgbsingleColor(red,green,blue);
-	rgb_value_sync(); 	
-}
-
-void wlt_light_set_rgbcw(u16 cold, u16 warm,u16 red, u16 green,u16 blue)
-{
-
-	u16 cw_cold = cold * sg_light_ctrl_data.bright/100;
-	u16 cw_warm = warm * sg_light_ctrl_data.bright/100;
-
-	
-	if ((cold!=0)||(warm!=0))//(sg_light_ctrl_data.mode == 0)&&
-	{
-		wlt_led_pwm_set_duty(0,cw_warm);
-		rgbsingleColor(cw_cold,cw_cold,cw_cold);	
-	}
-	else 
-	{
-		rgbsingleColor(red, green ,blue);
-	}
-	rgb_value_sync();
-
-
-}
-#endif
-
-
