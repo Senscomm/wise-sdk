@@ -458,8 +458,18 @@ void wlt_led_pwm_set_duty(E_LED_PWM_CHANNEL ch, u8 duty)
 	{
         duty = 99;
     }
-    ledc_config[ch].data.pwm.high = LED_PWM_CYCLE * duty / 100;
-    ledc_config[ch].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch].data.pwm.high;
+    u16 new_high = LED_PWM_CYCLE * duty / 100;
+    u16 new_low = LED_PWM_CYCLE - new_high;
+	
+    // 如果占空比没有变化且timer正在运行，则不重新配置（避免闪烁）
+    if (ledc_config[ch].data.pwm.high == new_high && 
+        ledc_config[ch].data.pwm.low == new_low &&
+        duty > 0) {
+        return;
+    }
+    
+    ledc_config[ch].data.pwm.high = new_high;
+    ledc_config[ch].data.pwm.low = new_low;
 	
     // printf(" ch : %d ,higt : %d , low : %d \n",ch ,ledc_config[ch].data.pwm.high , ledc_config[ch].data.pwm.low);  
     scm_timer_stop(SCM_TIMER_IDX_0,ch);

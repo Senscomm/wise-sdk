@@ -5348,7 +5348,7 @@ unsigned char  default_scene[33+1][38]=
 				// RGB灯熄灭
 				rgb_colorful_buffer_clean();
 				rgb_value_sync();
-				// PWM灯亮起（30%占空比）
+				// PWM灯亮起（20%占空比）
 				wlt_led_pwm_set_duty(LED_PWM_CH_0, 20);
 			}
 				break;
@@ -5583,17 +5583,16 @@ void iotalink_magic_lantern_process (void * argv)
 						//colorful_test2_2();
 						break;
 
-					case 15: // 睡眠：RGB熄灭，PWM灯亮
-					{
-						// RGB灯熄灭
-						rgb_colorful_buffer_clean();
-						rgb_value_sync();
-						// PWM灯亮起（30%占空比）
-						wlt_led_pwm_set_duty(LED_PWM_CH_0, 20);
-						// 将模式改回SCENE_MODE，确保下次循环继续执行case 15
-						sg_light_ctrl_data.mode = SCENE_MODE;
-					}
-						break;
+				case 15: // 睡眠：RGB熄灭，PWM灯亮
+				{
+					// RGB灯熄灭
+					rgb_colorful_buffer_clean();
+					rgb_value_sync();
+					// 睡眠灯：使用低占空比PWM（10%），适合睡眠
+					// 只设置一次PWM，避免频繁重启timer导致闪烁
+					wlt_led_pwm_set_duty(LED_PWM_CH_0, 10);
+				}
+					break;
 						
 					case 16: // 海洋：青蓝色流动 
 						Move_Mun_Back(20);
