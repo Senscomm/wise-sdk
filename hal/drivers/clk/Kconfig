@@ -1,8 +1,7 @@
 menu "Clock"
 
 config CLK
-	bool
-    default y
+	bool "Enable clock driver support"
 	help
 	  This allows drivers to be provided for clock generators, including
 	  oscillators and PLLs. Devices can use a common clock API to request
@@ -12,29 +11,33 @@ config CLK
 
 if CLK
 
+choice
+    prompt "Clock driver"
+
 config CLK_SCM2020
-	bool
-    default n
+	bool "Clock controller driver for SCM2020"
 
 config CLK_TS8266
-	bool
-    default n
+	bool "Clock controller driver for TS8266"
 
 config CLK_SCM1010
-	bool
-    default n
+	bool "Clock controller driver for SCM1010"
 
 config CLK_BCM2836
-	bool
-    default n
+	bool "Clock controller driver for BCM2836"
 
 config CLK_AE250_N22
-	bool
-    default n
+	bool "Clock controller driver for AE250-N22"
 
 config CLK_SCM2010
-	bool
-    default y
+	bool "Clock controller driver for SCM2010"
+
+endchoice
+
+config CMD_CLK
+	bool "clk command"
+	default n
+	depends on CMDLINE
 
 endif
 

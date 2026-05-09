@@ -4,7 +4,7 @@
 
 
 // Connect GPIO pins [4, 7, 0, 1] to the corresponding ADC channel [4, 5, 6, 7]
-//SCM_ADC_SINGLE_CH_4  gpio4 有问题
+//SCM_ADC_SINGLE_CH_4  gpio4 
 //SCM_ADC_SINGLE_CH_5  gpio7  0-3.3--> 0-4095
 
 
@@ -738,6 +738,26 @@ void iotalink_music_process_5(void)
 /*-----------------------------《 adc 按键调试demo》------------------------------------*/
 
 
+
+
+
+// ===================== 触摸指示灯 =====================
+
+#define KEY_LED    24	
+
+#define LED_ON_TIME 5000 //5s 触摸保持时间
+
+osTimerAttr_t key_led_timer_attr;
+static osTimerId_t key_led_timer;
+
+void key_led_timer_cb(void *arv)
+{
+//触摸亮灯 5s 后关闭	
+	scm_gpio_write(KEY_LED , 0);	
+}
+
+// ==========================================
+
 #include "scm_adc.h"     // 芯片ADC驱动头文件
 
 // ===================== 配置宏定义 =====================
@@ -745,6 +765,7 @@ void iotalink_music_process_5(void)
 //#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_5  // 选择ADC通道5（对应硬件GPIO7）
 
 #define MUSIC_KEY  6	//暂时控制音乐播放的按键
+
 
 
 #define ADC_SAMPLE_CNT     10                  // ADC采样滤波次数
@@ -837,8 +858,13 @@ static void adc_key_action(adc_key_t key)
 	extern light_ctrl_data_t sg_light_ctrl_data;
 
 	bool _switch = sg_light_ctrl_data.switch_status;
+	
+//触摸亮灯 LED_ON_TIME     后关闭
+	scm_gpio_write(KEY_LED , 1);
+	osTimerStart(key_led_timer, MS_TO_TICKS(LED_ON_TIME)) ;
 
-    switch (key) {
+    switch (key) 
+	{
         case KEY3:
             printf("KEY1 pressed (on/off)\n");
 				light_power_set(!_switch);
@@ -934,14 +960,13 @@ int adc_key_init(void)
 
     printf("ADC按键初始化完成（通道：%d）\n", ADC_KEY_CHANNEL);
 
-    // 创建ADC按键任务（适配芯片的任务创建接口）
+    // 创建ADC按键任务
   //  xTaskCreate("adc_key_task",   adc_key_task,   NULL,  1024,     10,  NULL); 
 	osThreadAttr_t attr = {
 		.name 		= "adc_key_task",
 		.stack_size = 1024,
 		.priority 	= osPriorityNormal,    //osPriorityNormal        = 24,osPriorityRealtime,//osPriorityLowcon
 	};
-	/* run the demo in a new thread to allow further CLI */
 	osThreadNew(adc_key_task, NULL, &attr);		
 
     return 0;
@@ -1012,10 +1037,15 @@ void iotalink_adc_init(void)
 	scm_gpio_configure(4,SCM_GPIO_PROP_INPUT);//
 	scm_gpio_write(4 , 0);
 
-	
+//暂时使用IO.后面用Tx	
   	scm_gpio_configure(MUSIC_KEY,SCM_GPIO_PROP_OUTPUT);
 	scm_gpio_write(MUSIC_KEY, 1);
+//按键指示灯初始化
+  	scm_gpio_configure(KEY_LED,SCM_GPIO_PROP_OUTPUT);
+	scm_gpio_write(KEY_LED, 0);
 
+//注册单次定时器 led指示灯	
+	key_led_timer = osTimerNew(key_led_timer_cb, osTimerOnce, NULL, &key_led_timer_attr);
 
 	//scm_adc_read(SCM_ADC_SINGLE_CH_4, buf, 8);
 

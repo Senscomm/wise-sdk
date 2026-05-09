@@ -64,6 +64,10 @@ int iotalink_send_data( uint8_t * data, int len)
 {
     return scm_uart_tx(SCM_UART_IDX_1, data, len, TEST_TIMEOUT);
 }
+int iotalink_uart2_send_data( uint8_t * data, int len)
+{
+	return scm_uart_tx(SCM_UART_IDX_2, data, len, TEST_TIMEOUT);
+}
 
 // -------------------------- 累加和计算（收发通用） --------------------------
 static uint16_t check_sum_calc(const uint8_t *frame, uint16_t frame_len)
@@ -194,6 +198,9 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 			radar_set_report_1s();
 
 			break;
+		case 0x03：//获取时间
+		
+			break;
 		
 		case 0x30:
 			
@@ -321,12 +328,12 @@ void radar_send_time_online(void)
 // -------------------------- 雷达初始化 --------------------------
 void radar_start(void)
 {
-    printf("?? 雷达初始化开始...\n");
+    printf("雷达初始化开始...\n");
 	osDelay(MS_TO_TICKS(200));
     radar_set_report_1s();
     radar_set_report_always();
     radar_send_time_online();
-    printf("? 雷达初始化完成，等待0x30数据...\n");
+    printf("雷达初始化完成，等待0x30数据...\n");
 }
 
 // -------------------------- 串口任务（修复逻辑bug） --------------------------
@@ -379,11 +386,23 @@ void wlt_uart_init(void)
 	int ret = scm_uart_init(SCM_UART_IDX_1, &uart_tx_cfg);
 	if (ret)
 	{
-		printf("? UART初始化失败 %x\n", ret);
+		printf("UART1初始化失败 %x\n", ret);
 		return;
 	}
-	printf("? UART初始化成功\n");	
+	printf("UART1初始化成功\n");	
 #endif
+
+#ifdef CONFIG_USE_UART2
+		 ret = scm_uart_init(SCM_UART_IDX_2, &uart_tx_cfg);
+		if (ret)
+		{
+			printf("UART2初始化失败 %x\n", ret);
+			return;
+		}
+		printf("UART2初始化成功\n");	
+#endif
+
+	iotalink_uart2_send_data("uart_test",10);
 
 	osThreadAttr_t attr = {
 		.name		= "uart_task",

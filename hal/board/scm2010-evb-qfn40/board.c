@@ -72,7 +72,9 @@ static struct pinctrl_pin_map pin_map[] = {
 #ifdef CONFIG_USE_UART2
 	/* UART2 */
 	pinmap(15, "atcuart.2", "rxd", 0),
-	pinmap(16, "atcuart.2", "txd", 0),
+//	pinmap(16, "atcuart.2", "txd", 0),
+	pinmap(5, "atcuart.2", "txd", 0),
+
 #endif
 
 #ifdef CONFIG_USE_SPI0

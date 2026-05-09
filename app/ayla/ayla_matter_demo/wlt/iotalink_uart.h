@@ -59,8 +59,7 @@ void wlt_uart_init(void);
 
 void radar_set_report_1s(void);
 
-
-
+int iotalink_uart2_send_data( uint8_t * data, int len);
 
 
 #endif // iotalink_uart.h
