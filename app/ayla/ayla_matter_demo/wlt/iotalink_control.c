@@ -457,7 +457,7 @@ u32 color_list[] = {
    0x0000FF,/// {"蓝 (Blue)",  
    0x800080, // {"紫 (Violet)"
    0xFFFFFF} ; // {"白 (White)",
-u8 write_list[]={0,50,100};
+u8 write_list[]={100,0};
 
 
 
@@ -739,7 +739,7 @@ void wlt_ble_remote_control(u8 keyvalue)
 
 			auto_flag=0;
 			write_i++;
-			if(write_i>=3)write_i =0;
+			if(write_i>=2)write_i =0;
 			light_mode_set(WHITE_MODE);
 			light_temper_set(write_list[write_i]);
 			//iotalink_light_ctrl_process();
