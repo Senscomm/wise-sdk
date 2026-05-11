@@ -109,7 +109,7 @@ CONFIG_USE_AUXADC=y
 # Power management
 #
 # CONFIG_PM_ENABLE_HB is not set
-
+CONFIG_SCM2020_WLAN_TX_PWR_1212=y
 #
 # Power management feature
 #
