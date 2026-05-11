@@ -297,6 +297,21 @@ static struct ieee80211_ic_he_cap scm2020_he_cap[] = {
 
 __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11bg[] = {
 	/* 11B */
+#ifdef CONFIG_SCM2020_WLAN_TX_PWR_1212
+    { MCS_0, 18, 18}, // 1Mbps (11b)
+    { MCS_1, 18, 18}, // 2Mbps
+    { MCS_2, 18, 18}, // 5.5Mbps
+    { MCS_3, 18, 18}, // 11Mbps
+    
+    { MCS_4, 18, 18}, // 6Mbps (11g)
+    { MCS_5, 18, 18}, // 9Mbps
+    { MCS_6, 18, 18}, // 12Mbps
+    { MCS_7, 17, 17}, // 18Mbps
+    { MCS_8, 17, 17}, // 24Mbps
+    { MCS_9, 16, 16}, // 36Mbps
+    { MCS_10, 15, 15}, // 48Mbps
+    { MCS_11, 15, 15}, // 54Mbps
+#else
 	{  2, 22, 22},
 	{  4, 22, 22},
 	{ 11, 22, 22},
@@ -314,10 +329,21 @@ __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11bg[] = {
 	{ 72, 19, 19},
 	{ 96, 18, 18},
 	{108, 16, 16},
-#endif
+#endif // ECO_TX_PWR_TBL
+#endif // CONFIG_SCM2020_WLAN_TX_PWR_1212
 };
 
 __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11n[] = {
+#ifdef CONFIG_SCM2020_WLAN_TX_PWR_1212
+    { MCS_0, 17, 17},
+    { MCS_1, 17, 17},
+    { MCS_2, 16, 16},
+    { MCS_3, 16, 16},
+    { MCS_4, 15, 15},
+    { MCS_5, 15, 15},
+    { MCS_6, 14, 14},
+    { MCS_7, 13, 13},
+#else
 	{ MCS_0, 20, 20},
 	{ MCS_1, 20, 20},
 	{ MCS_2, 20, 20},
@@ -332,10 +358,23 @@ __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11n[] = {
 	{ MCS_5, 18, 18},
 	{ MCS_6, 16, 16},
 	{ MCS_7, 16, 16},
-#endif
+#endif // ECO_TX_PWR_TBL
+#endif // CONFIG_SCM2020_WLAN_TX_PWR_1212
 };
 
 __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11ax[] = {
+#ifdef CONFIG_SCM2020_WLAN_TX_PWR_1212
+    { MCS_0, 17, 17},
+    { MCS_1, 17, 17},
+    { MCS_2, 16, 16},
+    { MCS_3, 16, 16},
+    { MCS_4, 15, 15},
+    { MCS_5, 14, 14},
+    { MCS_6, 13, 13},
+    { MCS_7, 12, 12},
+	{ MCS_8, 12, 12},
+	{ MCS_9, 12, 12},
+#else
 	{ MCS_0, 20, 20},
 	{ MCS_1, 20, 20},
 	{ MCS_2, 20, 20},
@@ -354,7 +393,8 @@ __dram__ static struct tx_pwr_table_entry scm2020_tx_pwr_table_11ax[] = {
 	{ MCS_7, 16, 16},
 	{ MCS_8, 16, 16},
 	{ MCS_9, 16, 16},
-#endif
+#endif // ECO_TX_PWR_TBL
+#endif // CONFIG_SCM2020_WLAN_TX_PWR_1212
 };
 
 #define PWR_TABLE_11BG_SIZE sizeof(scm2020_tx_pwr_table_11bg) / sizeof(struct tx_pwr_table_entry)
