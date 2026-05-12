@@ -3851,7 +3851,8 @@ void haoyida_234_mode_deal( int modeunite)
 	{
 		case 0://自动循环
 			break;
-		case 1://正向幻彩			
+		case 1://正向幻彩		
+			break;	
 		case 2://反向幻彩
 			haoyida_magic_flow_effect(modeunite%2);
 			break;
@@ -4481,6 +4482,7 @@ void haoyida_234_mode_init( int modeunite)
 		case 42://反向红绿蓝流水
 		case 43://正向黄青紫流水
 		case 44://反向黄青紫流水
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(3,1,&default_mode[modeunite] , &MAGIC_SCENE_DATA);//解析出颜色
 			for (int i= 0; i<RGB_LED_NUM; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
 			{
@@ -4497,6 +4499,7 @@ void haoyida_234_mode_init( int modeunite)
 		case 52://反向黄青流水
 		case 53://正向青紫流水
 		case 54://反向青紫流水
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(2,1,&default_mode[modeunite] , &MAGIC_SCENE_DATA);//解析出颜色
 			for (int i= 0; i<RGB_LED_NUM; i++)//颜色组:MAGIC_SCENE_DATA.magicallcnt（过渡色在解析里加）
 			{
@@ -4505,7 +4508,7 @@ void haoyida_234_mode_init( int modeunite)
 			break;
 		case 55://正向黑白流水
 		case 56://反向黑白流水
-
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(2,1,&default_mode[modeunite] , &MAGIC_SCENE_DATA);//解析出颜色
 			
 			MAGIC_SCENE_DATA.magic_rgb[0].r = 100;
@@ -4526,58 +4529,70 @@ void haoyida_234_mode_init( int modeunite)
 			break;
 		case 57://七彩闭幕
 		case 58://七彩拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 59://红绿蓝闭幕
 		
 		case 60://红绿蓝拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 61://黄青紫闭幕
 		case 62://黄青紫拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 63://红色闭幕
 		case 64://红色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[26] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 65://绿色闭幕
 		case 66://绿色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[28] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 67://蓝色闭幕
 		case 68://蓝色拉幕
-			
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[30] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 69://黄色闭幕
 		case 70://黄色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[32] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 71://青色闭幕
 		case 72://青色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[34] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 73://紫色闭幕
 		case 74://紫色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[36] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 75://白色闭幕
 		case 76://白色拉幕
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(1,1,&default_mode[38] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 
-			
+		
 		case 77://正向七彩追光
 		case 78://反向七彩追光
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(7,1,&default_mode[24] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 79://正向红绿蓝追光
 		case 80://反向红绿蓝追光
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(3,1,&default_mode[6] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 		case 81://正向黄青紫追光
 		case 82://反向黄青紫追光
+			mode_i = 0; mode_k = 0;  // 重置静态变量
 			iotalink_color_transition(3,1,&default_mode[8] , &MAGIC_SCENE_DATA);//解析出颜色
 			break;
 

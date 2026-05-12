@@ -20,6 +20,10 @@ static osTimerId_t flash_timer;
 
 static u8  auto_flag =0;
 
+// AUTO模式循环的灯效编号
+static const u8 auto_mode_list[6] = {1, 2, 41, 42, 57, 58};
+static u8 auto_mode_index = 0;  // 当前灯效索引
+
 
 // 	云端或面板控制参数
 light_ctrl_data_t sg_light_ctrl_data;
@@ -517,9 +521,11 @@ void iotalink_auto_flash_operation_task(void *arg)
 						#if 1
                         if( sg_light_ctrl_data.switch_status == 0 ) break;
                         light_mode_set(CUSTOME_MODE);
-                        sg_light_ctrl_data.custome_unit++;
-                        if(sg_light_ctrl_data.custome_unit > 20) sg_light_ctrl_data.custome_unit = 1;
-                        my_printf("---sg_light_ctrl_data.custome_unit==%d \n", sg_light_ctrl_data.custome_unit);
+                        // 使用数组索引循环切换10种灯效
+                        auto_mode_index++;
+                        if(auto_mode_index >= 6) auto_mode_index = 0;
+                        sg_light_ctrl_data.custome_unit = auto_mode_list[auto_mode_index];
+                        my_printf("---sg_light_ctrl_data.custome_unit==%d (index=%d)\n", sg_light_ctrl_data.custome_unit, auto_mode_index);
                         light_custome_unit_set(sg_light_ctrl_data.custome_unit);
                         iotalink_light_ctrl_process();
                       
@@ -650,8 +656,8 @@ void wlt_ble_remote_control(u8 keyvalue)
 				case HYD_KEY_R1_M://AUTO
 	
 			auto_flag =1;
-			sg_light_ctrl_data.custome_unit =1; // 从1开始
-			// 循环播放case 1-20，每20s切换一次
+			auto_mode_index = 0;  // 从第一个灯效开始
+			sg_light_ctrl_data.custome_unit = auto_mode_list[auto_mode_index];
 			auto_timer_cb(NULL);
 			osTimerStart(auto_timer, MS_TO_TICKS(20000)) ;
 			
