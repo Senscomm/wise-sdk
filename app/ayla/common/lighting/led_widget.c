@@ -193,19 +193,26 @@ void led_widget_set_level(struct led_widget *lw, uint8_t level)
         lw->level = level;
         led_widget_control_white(lw);
     } else {
-        u8 r = lw->rgb.r;
-        u8 g = lw->rgb.g;
-        u8 b = lw->rgb.b;
+#if 0
+        /* Method1 maybe Faster calculation and more intuitive effect. */
+        /* Method1: Use RGB values for direct linear adjustment. */
+        uint16_t new_r = lw->rgb.r * level;
+        uint16_t new_g = lw->rgb.g * level;
+        uint16_t new_b = lw->rgb.b * level;
 
-        r = (r * level) / lw->level;
-        g = (g * level) / lw->level;
-        b = (b * level) / lw->level;
-
-        lw->rgb.r = r;
-        lw->rgb.g = g;
-        lw->rgb.b = b;
+        lw->rgb.r = (new_r > 255) ? 255 : ((new_r < 0) ? 0 : (uint8_t)new_r);
+        lw->rgb.g = (new_g > 255) ? 255 : ((new_g < 0) ? 0 : (uint8_t)new_g);;
+        lw->rgb.b = (new_b > 255) ? 255 : ((new_b < 0) ? 0 : (uint8_t)new_b);;
+#else
+        /* Method2: For matter color mode, use hsv.v to replace level. This will cause color
+         * distortion when the brightness (Level) is higher or lower than a certain value.
+         */
+        HsvColor_t cur_hsv;
+        cur_hsv = RgbToHsv(lw->rgb.r, lw->rgb.g, lw->rgb.b);
+        cur_hsv.v = level;
+        lw->rgb = HsvToRgb(cur_hsv);
         lw->level = level;
-
+#endif
         led_widget_color(lw, lw->rgb);
     }
 }
