@@ -74,6 +74,7 @@ template("scm1612s_ayla_sources") {
     if (product_class == "led_demo" || product_class == "bulb") {
       include_dirs += [
         "${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d",
+        "${scm1612s_sdk_root}/app/ayla/common/driver/sm15633eh",
         "${scm1612s_sdk_root}/app/ayla/common/lighting",
         "${scm1612s_sdk_root}/app/ayla/common/event",
         "${scm1612s_sdk_root}/app/ayla/common/ftm",
@@ -290,6 +291,7 @@ template("scm1612s_ayla_sources") {
     if (product_class == "led_demo" || product_class == "bulb") {
       sources += [
         "${scm1612s_sdk_root}/app/ayla/common/driver/bp5758d/bp5758d.c",
+        "${scm1612s_sdk_root}/app/ayla/common/driver/sm15633eh/sm15633eh.c",
         "${scm1612s_sdk_root}/app/ayla/common/power_cycle_reset/power_cycle_reset.c",
         "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm.c",
         "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm_bulb.c",

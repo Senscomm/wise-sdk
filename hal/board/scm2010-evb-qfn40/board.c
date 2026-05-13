@@ -125,15 +125,16 @@ static struct pinctrl_pin_map pin_map[] = {
 #ifdef CONFIG_USE_TIMER0_PWM
 	/* PWM */
     pinmap(15, "timer.0", "pwm0",  0),
-    pinmap(16, "timer.0", "pwm1",  0),
-    pinmap(17, "timer.0", "pwm2",  0),
-    pinmap(18, "timer.0", "pwm3",  0),
+    pinmap(1, "timer.0", "pwm1",  0),
+    pinmap(2, "timer.0", "pwm2",  0),
+    pinmap(3, "timer.0", "pwm3",  0),
 #endif
 
 #ifdef CONFIG_USE_TIMER1_PWM
 	/* PWM */
     pinmap(19, "timer.1", "pwm0",  0),
     pinmap(20, "timer.1", "pwm1",  0),
+    pinmap(6, "timer.1", "pwm2",  0),
 #endif
 
 #ifdef CONFIG_USE_I2C0

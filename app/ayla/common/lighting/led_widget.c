@@ -22,7 +22,10 @@
 
 #include "led_widget.h"
 
+#include "sm15633eh.h"
+
 #include "bp5758d.h"
+
 
 void TimerHandler(TimerHandle_t xTimer)
 {
@@ -94,10 +97,31 @@ void led_widget_do_blink(struct led_widget *lw)
 
 void led_widget_do_set(struct led_widget *lw, bool state)
 {
+#ifdef SUPPORT_SM15633EH_LED_DRIVER
+    uint8_t Rcolour, Gcolour, Bcolour, Whitecolour, Warmcolour;
+#endif
     switch (lw->led)
     {
     case LED_LIGHT:
+        #ifdef SUPPORT_SM15633EH_LED_DRIVER
+        printf("%s,state=%d\r\n",__FUNCTION__,state);    
+        if(state)// on
+            {
+            sm15633eh_present_info_get(&Rcolour,&Gcolour,&Bcolour,&Whitecolour,&Warmcolour);
+            sm15633eh_pwm_init(LED_R_CHANNEL,Rcolour,0,0,0,0);
+            sm15633eh_pwm_init(LED_G_CHANNEL,0,Gcolour,0,0,0);
+            sm15633eh_pwm_init(LED_B_CHANNEL,0,0,Bcolour,0,0);
+            sm15633eh_pwm_init(LED_WHITE_CHANNEL,0,0,0,Whitecolour,0);
+            sm15633eh_pwm_init(LED_WARM_CHANNEL,0,0,0,0,Warmcolour);
+            }
+            sm15633eh_pwm_start(LED_R_CHANNEL,state);
+            sm15633eh_pwm_start(LED_G_CHANNEL,state);
+            sm15633eh_pwm_start(LED_B_CHANNEL,state);
+            sm15633eh_pwm_start(LED_WHITE_CHANNEL,state);
+            sm15633eh_pwm_start(LED_WARM_CHANNEL,state);
+        #else
         bp5758d_set_standby(!state);
+        #endif
         break;
     case LED_STATUS:
 #ifdef __no_stub__
@@ -138,7 +162,7 @@ void led_widget_blink(struct led_widget *lw, int duration)
 
 void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
 {
-    uint32_t r, g, b;
+    uint32_t r=0, g=0, b=0;
     HsvColor_t hsv;
 
     lw->rgb = rgb;
@@ -149,15 +173,25 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
 
     hsv = RgbToHsv(rgb.r, rgb.g, rgb.b);
     lw->level = hsv.v;
-
+    printf("%s,rgb.r=%d,g=%d,b=%d,hsv.h=%d,s=%d,v=%d\r\n",__FUNCTION__,rgb.r,rgb.g,rgb.b,hsv.h,hsv.s,hsv.v);
+#ifndef SUPPORT_SM15633EH_LED_DRIVER
     r = (rgb.r * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     g = (rgb.g * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
     b = (rgb.b * (bp5758d_get_max_level() - bp5758d_get_min_level())) / 255;
-
+#endif
     switch (lw->led)
     {
     case LED_LIGHT:
+#ifdef SUPPORT_SM15633EH_LED_DRIVER
+        sm15633eh_pwm_init(LED_R_CHANNEL,rgb.r,0,0,0,0);
+        sm15633eh_pwm_init(LED_G_CHANNEL,0,rgb.g,0,0,0);
+        sm15633eh_pwm_init(LED_B_CHANNEL,0,0,rgb.b,0,0);
+        sm15633eh_pwm_start(LED_R_CHANNEL,1);
+        sm15633eh_pwm_start(LED_G_CHANNEL,1);
+        sm15633eh_pwm_start(LED_B_CHANNEL,1);
+#else        
         bp5758d_set_rgbcw_channel(r, g, b, 0, 0);
+#endif
         break;
     case LED_STATUS:
         break;
@@ -168,15 +202,26 @@ static void led_widget_control_white(struct led_widget *lw)
 {
     uint32_t target = 0;
     uint16_t cool, warm;
-
+#ifdef SUPPORT_SM15633EH_LED_DRIVER
+    target = (lw->level == 0) ? 0 :lw->level;
+#else
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
+#endif
     cool = (uint16_t)((target * lw->temp) / 100);
     warm = (uint16_t)((target * (100 - lw->temp)) / 100);
-
+    printf("%s,target=%d,cool=%d,warm=%d\r\n",__FUNCTION__,target,cool,warm);
+    
     if (lw->led == LED_LIGHT)
     {
+#ifdef SUPPORT_SM15633EH_LED_DRIVER
+        sm15633eh_pwm_init(LED_WHITE_CHANNEL,0,0,0,cool,0);
+        sm15633eh_pwm_init(LED_WARM_CHANNEL,0,0,0,0,warm);
+        sm15633eh_pwm_start(LED_WHITE_CHANNEL,1);
+        sm15633eh_pwm_start(LED_WARM_CHANNEL,1);
+#else        
         bp5758d_set_rgbcw_channel(0, 0, 0, cool, warm);
+#endif
     }
     else if (lw->led == LED_STATUS)
     {
