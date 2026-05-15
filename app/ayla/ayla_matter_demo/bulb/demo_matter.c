@@ -858,7 +858,8 @@ static void demo_matter_event_cb(enum adm_event_id id)
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(-1, 180000/* 3 min. */, demo_lc_completed);
+        /* Reduce the initinal flashing time */
+        lighting_ctrl_run(-1, 5000/* 3 min. */, demo_lc_completed);
 
         onboarding = true;
     }
@@ -1263,3 +1264,32 @@ void demo_idle(void)
 	    wise_task_wdt_reset(NULL);
 	}
 }
+
+#define AYLA_BUTTON_PUSH_REG_DEMO_ENABLE 1
+#if AYLA_BUTTON_PUSH_REG_DEMO_ENABLE
+/* use cmd to start ayla register window. */
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+
+#include <cli.h>
+
+static int do_ayla_reg(int argc, char *argv[])
+{
+    const char *format;
+
+    format = argv[1];
+    if (!strcmp(format, "on")) {
+        printf("ada_client_reg_window_start!!!\n");
+        ada_client_reg_window_start();
+    } else {
+        return CMD_RET_USAGE;
+    }
+
+	return CMD_RET_SUCCESS;
+}
+
+CMD(ayla_reg, do_ayla_reg, "trigger ayla register window", "ayla_reg on");
+
+#endif

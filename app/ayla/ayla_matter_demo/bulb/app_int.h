@@ -14,9 +14,10 @@
 
 #define BUILD_STRING            APP_VER " "  __DATE__ " " __TIME__
 
-#define DEMO_OEM_ID	            "f89a45d1" /* may be set to your Ayla OEM ID */
-#define DEMO_OEM_MODEL	        "a60-rgbcct-m-dev" /* may be set to your OEM model name */
-#define DEMO_TEMPLATE_VERSION   "m color bulb 1.0" /* demo template version */
+/* Use SCM Demo Defines before customers use their own. */
+#define DEMO_OEM_ID	            "d9754164" /* may be set to your Ayla OEM ID */
+#define DEMO_OEM_MODEL	        "a60-rgbcct-m" /* may be set to your OEM model name */
+#define DEMO_TEMPLATE_VERSION   "m color bulb 3" /* demo template version */
 #define DEMO_FACTORY_NAME       "MFG"
 #define DEMO_PURCHASE_ORDER     "PO"
 #define DEMO_DEVICE_ID          "Ayla-0506"
