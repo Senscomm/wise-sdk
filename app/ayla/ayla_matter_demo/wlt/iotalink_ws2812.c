@@ -1411,36 +1411,36 @@ void wlt_mode_sunup_init(void)
 	} rgb_value_sync();//
 }
 
-void wlt_mode_sunup(void)
-{
+// void wlt_mode_sunup(void)
+// {
 
-	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
-	{
-		if (sg_light_ctrl_data.magicunit!=1)
-		{
-			return ;
-	    }
-		index_rgb_Move_Back(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
-		iotalink_rgb_relax_1(40);
-	}
+// 	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
+// 	{
+// 		if (sg_light_ctrl_data.magicunit!=1)
+// 		{
+// 			return ;
+// 	    }
+// 		index_rgb_Move_Back(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
+// 		iotalink_rgb_relax_1(40);
+// 	}
 
-}
+// }
 
-void wlt_mode_sundown(void)
-{
+// void wlt_mode_sundown(void)
+// {
 
-	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
-	{
+// 	for (int i= 0; i<MAGIC_SCENE_DATA.magicallcnt; i++)//颜色组
+// 	{
 
-		if (sg_light_ctrl_data.magicunit!=2)
-		{
-			return ;
-	    }
-		index_rgb_Move_Pre(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
-		iotalink_rgb_relax_1(40);
-	}
+// 		if (sg_light_ctrl_data.magicunit!=2)
+// 		{
+// 			return ;
+// 	    }
+// 		index_rgb_Move_Pre(0, RGB_LED_NUM, magic_rgb_relax[i].r, magic_rgb_relax[i].g, magic_rgb_relax[i].b);
+// 		iotalink_rgb_relax_1(40);
+// 	}
 
-}
+// }
 
 
 //整灯同步呼吸测试-约会
@@ -1748,23 +1748,23 @@ void  wlt_disco_mode(void)
 	}
 }
 
-//模式 ： 跳变彩虹     		用中间变量  sr sb sg
-void  colorful_rainbow_run(void)
-{
-	int i,j;
-	static u16 sh[] = {0,30,60,90,120,150,180,210,240,270,300,330,360};
+// //模式 ： 跳变彩虹     		用中间变量  sr sb sg
+// void  colorful_rainbow_run(void)
+// {
+// 	int i,j;
+// 	static u16 sh[] = {0,30,60,90,120,150,180,210,240,270,300,330,360};
 
-	for (i=0;i<RGB_LED_NUM;i++)
-	{
+// 	for (i=0;i<RGB_LED_NUM;i++)
+// 	{
 		
-		sh[i]=sh[i]-20;//+5 观感向前（下） 调整大小可更改跳变感
-		if (sh[i]>=360)sh[i]=360;
-		hsv_to_rgb(&sr[i], &sg[i], &sb[i], sh[i], 100, 100);
-		rgb_colorful_buffer_set(i, sr[i],	sg[i], sb[i]); //写入当前点rgb
+// 		sh[i]=sh[i]-20;//+5 观感向前（下） 调整大小可更改跳变感
+// 		if (sh[i]>=360)sh[i]=360;
+// 		hsv_to_rgb(&sr[i], &sg[i], &sb[i], sh[i], 100, 100);
+// 		rgb_colorful_buffer_set(i, sr[i],	sg[i], sb[i]); //写入当前点rgb
 
-   }
-	rgb_value_sync();//
-}
+//    }
+// 	rgb_value_sync();//
+// }
 
 
 //模式 ： 流星雨  初始化后直接流动即可
@@ -4575,10 +4575,10 @@ void iotalink_magic_lantern_process (void * argv)
 				switch (sg_light_ctrl_data.magicunit)//场景号
 				{
 
-					case 1://日出    过渡流动
+					case 1://日出
 						wlt_mode_sunup();
 						break;
-					case 2://日落   过渡流动
+					case 2://日落 
 						wlt_mode_sundown();	
 						break;
 					case 3://生日   测试
@@ -4588,12 +4588,11 @@ void iotalink_magic_lantern_process (void * argv)
 					    wlt_ms_delay(magic_rate*0.35+2);
 						break;
 					case 4://烛光
-					
-						fire_jump();//*
-						wlt_ms_delay(magic_rate*0.35+2);
+						wlt_matrix_candle();
+
 						break;
-					case 5: // 烟花
-						colorful_firework();//*
+					case 5: // 烟花：从底部发射，上升后爆炸散开
+						wlt_matrix_firework_mode();//*
 					
 						break;
 					case 6: // 聚会：七色随机频闪
@@ -4606,9 +4605,8 @@ void iotalink_magic_lantern_process (void * argv)
 
 					
 						break;
-					case 8: // 星空：随机闪
-					
-						star_twinkle();//*
+					case 8: // 星空：深蓝色背景上白色星星闪烁
+						wlt_matrix_star_mode();//*
 						
 						break;
 					case 9: // 浪漫：红粉紫随机显示（三个点一个颜色）
@@ -4619,10 +4617,8 @@ void iotalink_magic_lantern_process (void * argv)
 						// colorful_disco();
 						
 						break;
-					case 11: // 彩虹：
-					
-						colorful_rainbow_run();
-						wlt_ms_delay(magic_rate*1+20);
+					case 11: // 彩虹：七色流动
+						wlt_matrix_rainbow();
 					
 						break;
 					case 12: // 电影：青蓝色静态oo
@@ -4696,20 +4692,18 @@ void iotalink_magic_lantern_process (void * argv)
 
 							
 						break;
-					case 22: // 结婚纪念日：红粉紫随机跳变
-								
-						wlt_wedding_mode();
-						wlt_ms_delay(magic_rate*10+100);	
+					case 22: // 结婚纪念日：双心跳动
+						wlt_matrix_wedding();
 					
 						break;
-					case 23: // 雪花：白色+无色随机显示（一个点一个颜色），白色到无色需要渐变过程
-						wlt_snowflakes_mode();//*
+					case 23: // 雪花：白色雪花从顶部飘落
+						wlt_matrix_snow_mode();//*
 						
 						break;
-					case 24: // 火焰：，中间是两种颜色的渐变过程，随机显示颜色的占比
+					case 24: // 火焰：
 					
 
-						wlt_fire_mode();//*
+						wlt_matrix_fire_mode();//*
 
 						
 						break;

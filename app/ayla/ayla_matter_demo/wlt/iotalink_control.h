@@ -23,7 +23,8 @@ typedef enum LIGHT_MODE{
  MUSIC_MODE    , //本地音乐
  CUSTOME_MODE  ,//自定义4 
  MATTER_MODE  ,//暂时使用 避免同步问题 
- MODE_MAX   =6  
+ SLEEP_MODE ,//睡眠灯6
+ MODE_MAX   =7 
 } LIGHT_MODE_E;
 
 typedef enum RGB_SEQUENCE{
@@ -78,6 +79,48 @@ typedef struct __attribute__((packed)){
 
 }light_ctrl_data_t;
 
+//--------------------------------------------------------------------------------------------
+// 睡眠灯
+typedef struct {
+    // 模式开关
+    uint8_t  sleep_enable;      // 睡眠模式：0=关闭 1=开启
+    // 时间相关
+    uint8_t  duration;          // 总时长：1~240 分钟 
+	uint16_t  duration_sec;
+    uint8_t  countdown_hour;    // 倒计时-时
+    uint8_t  countdown_min;     // 倒计时-分
+    uint8_t  countdown_sec;     // 倒计时-秒
+
+    // 灯光颜色 + 亮度
+    uint8_t  brightness;        // 亮度 0~100
+    uint8_t  color_r;           // 红 0~255
+    uint8_t  color_g;           // 绿 0~255
+    uint8_t  color_b;           // 蓝 0~255
+
+    // 音乐 + 音量
+    uint8_t  volume;            // 音量 0~10
+    uint8_t  music_id;          // 音乐编号 0~9
+    uint8_t  play_ctrl;         // 播放控制：0=暂停 1=播放
+
+    // 血氧（设备上报）
+  //  uint8_t  blood_oxygen;      // 血氧值
+} SleepStatus_t;
+
+void duration_sec_to_hhmmss(uint32_t total_sec,  uint8_t *out_hour,uint8_t *out_min,uint8_t *out_sec);
+
+u8 light_sleep_bright_get( void );
+
+void wlt_sleep_data_ble_up( void  );
+// 一键睡眠开
+void wlt_sleep_start_deal(void);
+
+// 一键睡眠关
+void wlt_sleep_end_deal(void);
+
+//--------------------------------------------------------------------------------------------
+
+
+
 
 //仅仅第一次初始化写入，后面从flash读取
 int iotalink_light_ctrl_data_init(void);
@@ -114,6 +157,7 @@ void light_sensitivity_update(uint32_t value);
 void light_rgb_sequence_update(uint32_t value);
 
 
+//--------------------------------------------------------------------------------------------
 
 
 
@@ -127,8 +171,11 @@ void iotalink_control_timer_init( void );
 void countdown_timer_cb(void *arv);
 void auto_timer_cb(void *arv);
 void flash_timer_cb(void *arv);
+void sleep_timer_cb(void *arg);
+
 
 void auto_flash_operation_init(void);
+
 
 
 void wlt_ble_remote_control(u8 keyvalue);

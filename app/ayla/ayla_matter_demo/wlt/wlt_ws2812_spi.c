@@ -188,6 +188,7 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 	
 	///printf("bright %d \n",bright);
 	if(MATTER_MODE == light_mode_get())bright=100;
+	if(SLEEP_MODE == light_mode_get())bright=light_sleep_bright_get();
 	
     for (uint16_t pixel_idx = 0; pixel_idx < WS2812_PIXEL_NUM; pixel_idx++)
 	{
@@ -222,10 +223,15 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 #endif
 
 #else	//RBG  落地灯
-
+		//GRB  睡眠灯
 	// 1. 处理红色分量
 
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
+	for (int8_t bit = 7; bit >= 0; bit -= 2) {
+		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
+	}
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
 		uint8_t high_bit  = (bright*(curr_pixel->red)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		uint8_t low_bit  =  (bright*(curr_pixel->red)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
@@ -234,11 +240,6 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
 		uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
-	}
-	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 
@@ -450,7 +451,7 @@ void wlt_led_pwm_set_duty(E_LED_PWM_CHANNEL ch, u8 duty)
         duty = 99;
     }
     ledc_config[ch_s].data.pwm.high = LED_PWM_CYCLE * duty / 100;
-    ledc_config[ch_s].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch].data.pwm.high;
+    ledc_config[ch_s].data.pwm.low = LED_PWM_CYCLE - ledc_config[ch_s].data.pwm.high;
 	
     // printf(" ch : %d ,higt : %d , low : %d \n",ch ,ledc_config[ch].data.pwm.high , ledc_config[ch].data.pwm.low);  
     scm_timer_stop(SCM_TIMER_IDX_0,ch_s);
@@ -536,9 +537,6 @@ void wlt_light_set_rgbcw (unsigned short cold, unsigned short warm,unsigned shor
 		rgb_value_sync();
 	}
 	
-
-
-
 }
 
 

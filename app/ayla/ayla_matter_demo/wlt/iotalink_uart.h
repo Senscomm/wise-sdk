@@ -61,6 +61,11 @@ void radar_set_report_1s(void);
 
 int iotalink_uart2_send_data( uint8_t * data, int len);
 
+/**
+ * @brief 串口2控制音乐模组
+ */
+void wlt_control_music(uint8_t   volume , uint8_t  music_id ,uint8_t  play_ctrl);
+
 
 #endif // iotalink_uart.h
 

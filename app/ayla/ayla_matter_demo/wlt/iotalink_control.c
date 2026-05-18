@@ -14,15 +14,23 @@ static osTimerId_t countdown_timer;
 // 自动模式定时器
 osTimerAttr_t auto_timer_attr;
 static osTimerId_t auto_timer;
-
+// 5s断电记忆
 osTimerAttr_t flash_timer_attr;
 static osTimerId_t flash_timer;
+//睡眠倒计时定时器
+osTimerAttr_t sleep_timer_attr;
+static osTimerId_t sleep_timer;
 
 static u8  auto_flag =0;
 
 
 // 	云端或面板控制参数
 light_ctrl_data_t sg_light_ctrl_data;
+
+
+
+//
+SleepStatus_t sleep_data;
 
 //仅仅第一次初始化写入，后面从flash读取
 int iotalink_light_ctrl_data_init(void)
@@ -55,6 +63,20 @@ int iotalink_light_ctrl_data_init(void)
 	sg_light_ctrl_data.target_val.green = 100;
 	sg_light_ctrl_data.target_val.blue =100;
 
+
+//睡眠灯默认值
+	sleep_data.sleep_enable =0; 	   // 睡眠开关
+	sleep_data.duration = 120; 		   // 总时长（分钟 1~240）
+	sleep_data.brightness =100;		   // 亮度 0~100
+	sleep_data.color_r =10;			   // R
+	sleep_data.color_g =0; 		   // G
+	sleep_data.color_b = 50; 		   // B
+	sleep_data.volume=5;			   // 音量 0~10
+	//sleep_data.music_id=0;		   // 音乐编号 0~9
+	//sleep_data.play_ctrl=0;		   // 播放控制
+
+
+
 	iotalink_light_ctrl_process();
 
 }
@@ -66,6 +88,7 @@ void iotalink_control_timer_init( void )
 	countdown_timer = osTimerNew(countdown_timer_cb, osTimerOnce, NULL, &countdown_timer_attr);
 	auto_timer = osTimerNew(auto_timer_cb, osTimerPeriodic, NULL, &auto_timer_attr);
 	flash_timer = osTimerNew(flash_timer_cb, osTimerOnce, NULL, &flash_timer_attr);
+	sleep_timer = osTimerNew(sleep_timer_cb, osTimerPeriodic, NULL, &sleep_timer_attr);
 	//消息线程初始化
 	auto_flash_operation_init();
 
@@ -304,20 +327,25 @@ void iotalink_light_ctrl_process(void)
 				break;
 			case MATTER_MODE://临时显示
 				wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,sg_light_ctrl_data.target_val.red,sg_light_ctrl_data.target_val.green,sg_light_ctrl_data.target_val.blue);
+				break;
+			case SLEEP_MODE ://睡眠灯
+				wlt_light_set_rgbcw(0,0,sleep_data.color_r ,sleep_data.color_g, sleep_data.color_b  );
+				break;
+
 			default:
 				
 				break;
 		}
-
-	} 
+	}
 	else	//onoff ctrl state -- turn off
 	{
 
 		sg_light_ctrl_data.switch_status = 0;
 		MUSIC_LOCAL_MODE = 0;
 		LOCAL_MAGIC_MODE = 0;
+		sleep_data.sleep_enable =0;
+		wlt_control_music(0,0,0);
 	}
-
 }
 
 
@@ -414,7 +442,33 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 				light_sensitivity_set(buf[2]);
 				break;
 
-			case 0x1a://一键睡眠	
+//-------------------------------------- 0x17-1c ---------------------------------------------------------------------
+			case 0x17://设置睡眠颜色和亮度
+
+				sleep_data.brightness = buf[3];
+
+				sleep_data.color_r   = buf[4];
+				sleep_data.color_g   = buf[5];
+				sleep_data.color_b  = buf[6];
+
+				break;		
+			case 0x18://控制串口 0x1D	0x18	0x01	0～10	0～9	0x00/0x01	0xff	0xff	0xD1
+
+				sleep_data.volume    = buf[3];
+				sleep_data.music_id  = buf[4];
+				sleep_data.play_ctrl = buf[5];
+				
+				break;
+			case 0x19://睡眠时长1～240
+			
+				sleep_data.duration = buf[3];	
+				sleep_data.duration_sec = buf[3]*60;
+				
+				duration_sec_to_hhmmss(sleep_data.duration_sec,sleep_data.countdown_hour, sleep_data.countdown_min , sleep_data.countdown_sec);
+
+			case 0x1a://一键睡眠	 控制串口 模式输出 
+			
+#if 0
 
 				scm_gpio_write(6 , 0);
 				wlt_ms_delay(200);
@@ -425,8 +479,22 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 				cwrgb_target_val_set (0, 0,10,0,50);
 
 				return;
+#else
 
+				scm_gpio_write(6 , 0);
+				wlt_ms_delay(200);
+				scm_gpio_write(6 , 1);
+				if(buf[3])wlt_sleep_start_deal();	
+				else wlt_sleep_end_deal();
 
+				break;
+				
+#endif
+			case 0x1c://睡眠状态获取
+			
+				if(buf[2])	wlt_sleep_data_ble_up();
+				
+				break;
 			
 			default :
 			
@@ -444,7 +512,7 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 	}	
 	
 }
-
+//-------------------------------------------- beacon 遥控 ----------------------------------------------------//
 // 键值宏定义
 
 #define HYD_KEY_R1_L    	0
@@ -868,14 +936,105 @@ void wlt_ble_remote_control(u8 keyvalue)
 }
 
 
+//-------------------------------------------------睡眠灯相关----------------------------------------------------------------//
+/**
+* @brief  
+* @retval 睡眠模式亮度
+*/
+u8 light_sleep_bright_get( void )
+{
+	return sleep_data.brightness;
+}
 
-//	osTimerStart(countdown_timer,   MS_TO_TICKS(60*60*1000)) ;
+
+/**
+ * @brief  秒数 转换为 时:分:秒
+ * @param  total_sec  输入：总秒数
+ * @param  out_hour   输出：小时
+ * @param  out_min    输出：分钟
+ * @param  out_sec    输出：秒
+ * @retval 无
+ */
+void duration_sec_to_hhmmss(uint32_t total_sec,  uint8_t *out_hour,uint8_t *out_min,uint8_t *out_sec)
+{
+    // 计算小时：1小时=3600秒
+    *out_hour = total_sec / 3600;
+    // 计算剩余秒数
+    uint32_t remain = total_sec % 3600;
+    // 计算分钟
+    *out_min = remain / 60;  
+    // 剩余就是秒
+    *out_sec = remain % 60;
+}
+
+//上报sleep_data
+/*
+睡眠状态上传（状态改变主动上传或者App获取时上传；
+开启一键睡眠后，每隔一秒上传状态，同步倒计时给App*/
+void wlt_sleep_data_ble_up( void  )
+{
+//	0x1D	0x1c	0x02	0x00/0x01	1～240 0～23	0～59	0～59	0～100 0～255 0～255 0～255 0～10	0～9	0x00/0x01	0 xff	0xD1
+	//						    	 一键睡眠	时长	时	分       秒	 亮度	红    绿 蓝 	  音量 编号 	 放停
+	u8 sleep_ble[17]={0x1D,0x1c,0x02,0x01,   120,  1, 20,   5,   80, 255,255,255, 5, 3,     1, 0xff, 0xD1};
+	// ==============================================
+	// 把 sleep_data 填充到 sleep_ble 发送数组
+	// ==============================================
+	sleep_ble[3]  = sleep_data.sleep_enable; 	   // 睡眠开关
+	sleep_ble[4]  = sleep_data.duration; 		   // 总时长（分钟 1~240）
+	sleep_ble[5]  = sleep_data.countdown_hour;	   // 倒计时-时
+	sleep_ble[6]  = sleep_data.countdown_min;	   // 倒计时-分
+	sleep_ble[7]  = sleep_data.countdown_sec;	   // 倒计时-秒
+	sleep_ble[8]  = sleep_data.brightness;		   // 亮度 0~100
+	sleep_ble[9]  = sleep_data.color_r;			   // R
+	sleep_ble[10] = sleep_data.color_g; 		   // G
+	sleep_ble[11] = sleep_data.color_b; 		   // B
+	sleep_ble[12] = sleep_data.volume;			   // 音量 0~10
+	sleep_ble[13] = sleep_data.music_id;		   // 音乐编号 0~9
+	sleep_ble[14] = sleep_data.play_ctrl;		   // 播放控制
+
+	wlt_radar_notify(sleep_ble,sizeof(sleep_ble));
 
 
-	//	osTimerStop(countdown_timer);
-	//	osTimerStart(my_test_timer, MS_TO_TICKS(10));
+}
+// 一键睡眠 需提前有时长和颜色
+void wlt_sleep_start_deal(void)
+{
+	//1s定时器  
+	osTimerStart(sleep_timer, MS_TO_TICKS(1000)) ;
 
+// 	时长 颜色用 默认值或断电前最后配置的数据
+	sleep_data.duration_sec = sleep_data.duration*60;
+// 串口2控制 音乐模组
+	wlt_control_music(sleep_data.volume,sleep_data.music_id,sleep_data.play_ctrl);
+	
+	light_power_set(1);
+	light_mode_set(SLEEP_MODE);	
+	iotalink_light_ctrl_process();	
+}
+// 睡眠倒计时结束处理
+void wlt_sleep_end_deal(void)
+{
+	osTimerStop(sleep_timer);	
+	//关闭灯光音乐等
+	light_power_set(0);
+	iotalink_light_ctrl_process();		
 
+}
+// 睡眠倒计时处理
+void sleep_timer_cb(void *arg)
+{
+	
+	if(sleep_data.duration_sec>0)
+	{
+		sleep_data.duration_sec--;	
+		duration_sec_to_hhmmss(sleep_data.duration_sec,sleep_data.countdown_hour, sleep_data.countdown_min , sleep_data.countdown_sec);	
+		//每s上报剩余时间
+		wlt_sleep_data_ble_up();
+	}
+	else if(sleep_data.duration_sec==0)//结束睡眠
+	{		
+		wlt_sleep_end_deal();
+	}
 
-
+}
 

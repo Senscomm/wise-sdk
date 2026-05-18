@@ -8,44 +8,44 @@
 //SCM_ADC_SINGLE_CH_5  gpio7  0-3.3--> 0-4095
 
 
-#define CONFIG_MUSIC_SAMPLING_COUNT 30 //adcé‡‡é›†æ•°
+#define CONFIG_MUSIC_SAMPLING_COUNT 30 //adc²É¼¯Êı
 int Voltages[CONFIG_MUSIC_SAMPLING_COUNT+1] = { 0 };
 
 
  #define num_max 10
 
 
-unsigned char MUSIC_SENSITIVITY = 200; // ç”¨äºå¾‹åŠ¨çµæ•åº¦è°ƒæ•´
+unsigned char MUSIC_SENSITIVITY = 200; // ÓÃÓÚÂÉ¶¯ÁéÃô¶Èµ÷Õû
 
 
 #define abs(a,b)  (a>b ? a-b : b-a )
 
-#define  MUSIC_STATIC  240 // é™æ€æ— å£°éŸ³è·å–çš„adcå€¼
+#define  MUSIC_STATIC  240 // ¾²Ì¬ÎŞÉùÒô»ñÈ¡µÄadcÖµ
 
 
 
 
-static  u16  RGB_LED_NUM = 40 ;//æŒ‰40ä¸ªç¯ç 
+static  u16  RGB_LED_NUM = 40 ;//°´40¸öµÆÖé
 
 extern bool MUSIC_LOCAL_MODE;	
 
-//ä»…æœ¬åœ°å¾‹åŠ¨æ§åˆ¶è°ƒç”¨
+//½ö±¾µØÂÉ¶¯¿ØÖÆµ÷ÓÃ
 static void iotalink_light_ctrl(u16 h, u16 s,u16 v )
 {
 	 h = h > 360  ? 360  : h;
      s = s > 100 ? 100 : s;
      v = v > 100 ? 100 : v;	 
 	 singleColor(h,s,v);
-	 rgb_value_sync();//RGBæ•°å€¼è¾“å‡º
+	 rgb_value_sync();//RGBÊıÖµÊä³ö
 }
 
-/*-----------------------------ã€Š éŸ³ä¹å¾‹åŠ¨æ¨¡å¼ ã€‹------------------------------------*/
-/*>>>>>>>>>>>>  å…¬ç‰ˆçˆµå£« èŠ‚å¥ï¼š  <<<<<<<<<<<<*/
+/*-----------------------------¡¶ ÒôÀÖÂÉ¶¯Ä£Ê½ ¡·------------------------------------*/
+/*>>>>>>>>>>>>  ¹«°æ¾ôÊ¿ ½Ú×à£º  <<<<<<<<<<<<*/
 /*H: MAGIC_MUSIC_DATA.music_change_mode.quiet_state
 * L: MAGIC_MUSIC_DATA.music_change_mode.dynamic_state
-* H 0 L 3           æ‘‡æ»š
-* H 0 L 2			çˆµå£«
-* H 1 L 2 		    ç»å…¸
+* H 0 L 3           Ò¡¹ö
+* H 0 L 2			¾ôÊ¿
+* H 1 L 2 		    ¾­µä
 */	
 void iotalink_music_process_0_0(void)
 {
@@ -64,16 +64,16 @@ void iotalink_music_process_0_0(void)
 		}
 	} 
 	my_printf ("-----max_voltage  :%d ----\n",max_voltage); 
-	v_value = abs( max_voltage,MUSIC_STATIC );	//å¤§çº¦20~1584
+	v_value = abs( max_voltage,MUSIC_STATIC );	//´óÔ¼20~1584
 	hue+=30;	
 	if (hue > 359)
 	{
 		hue = 0;
 	}
-//è·å–å‡å€¼çº¿
+//»ñÈ¡¾ùÖµÏß
 		loop1++;
 		rhythm_value_sum +=v_value; 		
-		if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		{		
 			rhythm_value_avr=rhythm_value_sum/relax_flag;
 			rhythm_value_sum = 0;
@@ -91,8 +91,8 @@ void iotalink_music_process_0_0(void)
 	else
 	{	
 		diff=(float)(v_value-rhythm_value_avr)/rhythm_value_avr;
-		v_value= diff*50+50;//å¤„ç†äº®åº¦
-//åˆ†æ®µä¸‰ç§é—ªäº®
+		v_value= diff*50+50;//´¦ÀíÁÁ¶È
+//·Ö¶ÎÈıÖÖÉÁÁÁ
 		/*if (num>10)
 		{
 			iotalink_light_ctrl(hue,1000,v_value);
@@ -117,7 +117,7 @@ void iotalink_music_process_0_0(void)
 	iotalink_light_ctrl(hue,100,v_value);
 	
 }
-/*æ¨¡å¼ 0 å…¬ç‰ˆçˆµå£«>>>>>>>>hueéšADCå˜åŒ–æ¨¡å¼äº®åº¦ä¸å˜<<<<<<<<<<<<*/
+/*Ä£Ê½ 0 ¹«°æ¾ôÊ¿>>>>>>>>hueËæADC±ä»¯Ä£Ê½ÁÁ¶È²»±ä<<<<<<<<<<<<*/
 void iotalink_music_process_0_1(void)
 {
 	static unsigned int hue=0, v_value = 0;
@@ -132,11 +132,11 @@ void iotalink_music_process_0_1(void)
 			max_voltage = Voltages[loop];
 		}
 	} 
-	v_value = abs( max_voltage,MUSIC_STATIC );	//å¤§çº¦20~1584 
-//è·å–å‡å€¼çº¿
+	v_value = abs( max_voltage,MUSIC_STATIC );	//´óÔ¼20~1584 
+//»ñÈ¡¾ùÖµÏß
 	loop1++;
 	rhythm_value_sum +=v_value; 		
-	if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+	if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 	{		
 		rhythm_value_avr=rhythm_value_sum/relax_flag;
 		rhythm_value_sum = 0;
@@ -165,7 +165,7 @@ void iotalink_music_process_0_1(void)
 }
 
 
-/*æ¨¡å¼0-2>>>>>>>>>>>>   å…¬ç‰ˆç»å…¸ äº®åº¦(é‡‡é›†å€¼)å¹³æ»‘æ¸å˜æ¨¡å¼(relax mode  )	  <<<<<<<<<<<<*/
+/*Ä£Ê½0-2>>>>>>>>>>>>   ¹«°æ¾­µä ÁÁ¶È(²É¼¯Öµ)Æ½»¬½¥±äÄ£Ê½(relax mode  )	  <<<<<<<<<<<<*/
 void iotalink_music_process_0_2(void)
 {
 	static unsigned int hue=0 , v_value = 0,v_value_back=0;
@@ -184,18 +184,18 @@ void iotalink_music_process_0_2(void)
 	} 
 	my_printf("-----max_voltage0:%d ----\n",max_voltage);
 	
-	v_value = abs( max_voltage,MUSIC_STATIC );	//å¤§çº¦20~1584
+	v_value = abs( max_voltage,MUSIC_STATIC );	//´óÔ¼20~1584
 	hue+=30;
-//è·å–å‡å€¼çº¿
+//»ñÈ¡¾ùÖµÏß
 		loop1++;
 		rhythm_value_sum +=v_value; 		
-		if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		{		
 			rhythm_value_avr=rhythm_value_sum/relax_flag;
 			rhythm_value_sum = 0;
 			loop1 = 0;
 		}				
-/********************>>>æ•°æ®é…ç½®<<<***********************************/ 	
+/********************>>>Êı¾İÅäÖÃ<<<***********************************/ 	
 	if (v_value < rhythm_value_avr|| v_value <MUSIC_SENSITIVITY)
 	{	
 		v_value  = 5;hue -= 30;			
@@ -203,7 +203,7 @@ void iotalink_music_process_0_2(void)
 	else if (v_value > rhythm_value_avr)
 	{
 		diff=(float)(v_value-rhythm_value_avr)/rhythm_value_avr;
-		v_value= diff*50+50;//å¤„ç†äº®åº¦	
+		v_value= diff*50+50;//´¦ÀíÁÁ¶È	
 		v_value=v_value>100? 100 : v_value;
 
 	}	
@@ -211,23 +211,23 @@ void iotalink_music_process_0_2(void)
 	{
 		hue = 0;
 	}
-/***************>>>  æ¸å˜å¤„ç†	é»˜è®¤<<<  *********************/	
+/***************>>>  ½¥±ä´¦Àí	Ä¬ÈÏ<<<  *********************/	
 	//printf("-----v_value	:%d ----\n",v_value);	
-	if (v_value_back>v_value)//äº®åº¦æ¸å¼±
+	if (v_value_back>v_value)//ÁÁ¶È½¥Èõ
 	{
 		//step=(v_value_back-v_value)/10;
 		for (loop2=v_value_back;loop2>v_value;loop2-=step)
 		{
-			if (MUSIC_LOCAL_MODE==0)return ;//è§£å†³åˆ‡æ¢åˆ°å½©è‰²é—®é¢˜
+			if (MUSIC_LOCAL_MODE==0)return ;//½â¾öÇĞ»»µ½²ÊÉ«ÎÊÌâ
 			iotalink_light_ctrl(hue,100,loop2);
 			wlt_ms_delay(20);
 		}
 	}
-	else	//äº®åº¦æ¸å¼º
+	else	//ÁÁ¶È½¥Ç¿
 	{
 		for (loop2=v_value_back;loop2<v_value;loop2+=step)
 		{
-			if (MUSIC_LOCAL_MODE==0)return ;//è§£å†³åˆ‡æ¢åˆ°å½©è‰²é—®é¢˜
+			if (MUSIC_LOCAL_MODE==0)return ;//½â¾öÇĞ»»µ½²ÊÉ«ÎÊÌâ
 			iotalink_light_ctrl(hue,100,loop2);
 			wlt_ms_delay(10);			
 		}
@@ -236,7 +236,7 @@ void iotalink_music_process_0_2(void)
 }
 
 
-/*******************éŸ³æµª*******************/
+/*******************ÒôÀË*******************/
  void iotalink_music_process_1(void)
  {
 	 static int v_value ;
@@ -253,18 +253,18 @@ void iotalink_music_process_0_2(void)
 			 max_voltage = Voltages[loop];
 		 }
 	 } 
-	 v_value = abs(max_voltage, MUSIC_STATIC) ;//å¤§çº¦20~1584
- //è·å–å‡å€¼çº¿
+	 v_value = abs(max_voltage, MUSIC_STATIC) ;//´óÔ¼20~1584
+ //»ñÈ¡¾ùÖµÏß
 		 loop1++;
 		 rhythm_value_sum +=v_value;		 
-		 if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		 if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		 {		 
 			 rhythm_value_avr=rhythm_value_sum/relax_flag;
 			 rhythm_value_sum = 0;
 			 loop1 = 0;
 			 my_printf("-----rhythm_value_avr:%d ----\n",rhythm_value_avr);
 		 }
- /***************ã€‹ã€‹ç„•å½©æ•°å€¼å¤„ç†ã€Šã€Š**********************/	 
+ /***************¡·¡·»À²ÊÊıÖµ´¦Àí¡¶¡¶**********************/	 
 	 unsigned int i = 0,j=0;
 	 //static unsigned int cnt=0;
 	 static hsv_h_t sh=0;
@@ -281,20 +281,20 @@ void iotalink_music_process_0_2(void)
 	 else if (v_value < rhythm_value_avr)
 	 {
 		 diff=(float)(rhythm_value_avr-v_value)/rhythm_value_avr;
-		 num=  7- diff*8;  //å¤„ç†num	 
+		 num=  7- diff*8;  //´¦Àínum	 
 	 }	 
 	 else 
 	 {
 		 diff=(float)(v_value-rhythm_value_avr)/rhythm_value_avr;
-		 num= diff*8 + 8;//å¤„ç†num	 
+		 num= diff*8 + 8;//´¦Àínum	 
 	 } 
- //numå¤„ç†
+ //num´¦Àí
 	 if (num<=0)num =0;
-	 num= num > num_max ? num_max : num  ;	//åŸ 10	
+	 num= num > num_max ? num_max : num  ;	//Ô­ 10	
 	sh+=60;
 	if(sh>=360)sh=0;
 	hsv_to_rgb(&r, &g, &b, sh, 100, sv);
-	 if (num<num_back)	//éŸ³é‡ä¸‹é™
+	 if (num<num_back)	//ÒôÁ¿ÏÂ½µ
 	 {
 		 while(num<num_back)
 		 { 	
@@ -302,9 +302,9 @@ void iotalink_music_process_0_2(void)
  			
 			 for (i =0 ; i<num_back ; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/num_max;j++)//åˆ†Næ®µ: RGB_LED_NUM/10===æ¯æ®µæœ€å°‘10
+				 for (j=0;j<RGB_LED_NUM/num_max;j++)//·ÖN¶Î: RGB_LED_NUM/10===Ã¿¶Î×îÉÙ10
 				 {	 
-					 if(MUSIC_LOCAL_MODE==0)return;//å°æ¦‚ç‡åˆ‡æ¢å½©è‰²ä¸å®Œæ•´
+					 if(MUSIC_LOCAL_MODE==0)return;//Ğ¡¸ÅÂÊÇĞ»»²ÊÉ«²»ÍêÕû
 					// hsv_to_rgb(&r, &g, &b, sh[j], ss, sv);
 
 					 rgb_colorful_buffer_set(i+num_max*j , r,  g, b );
@@ -316,17 +316,17 @@ void iotalink_music_process_0_2(void)
 			 num_back--;
 		 }
 	 }
-	 else	//éŸ³é‡ä¸Šå‡
+	 else	//ÒôÁ¿ÉÏÉı
 	 {	 
 		 while(num>num_back)
 		 {
-			 rgb_colorful_buffer_clean();//æ¯å˜ä¸€æ¬¡æ¸…é›¶RGBæ•°ç»„
+			 rgb_colorful_buffer_clean();//Ã¿±äÒ»´ÎÇåÁãRGBÊı×é
 			 
 			 for (i =0; i<num_back; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/num_max;j++)//é»˜è®¤åˆ†5æ®µ
+				 for (j=0;j<RGB_LED_NUM/num_max;j++)//Ä¬ÈÏ·Ö5¶Î
 				 {
-				 	if(MUSIC_LOCAL_MODE==0)return;//å°æ¦‚ç‡åˆ‡æ¢å½©è‰²ä¸å®Œæ•´
+				 	if(MUSIC_LOCAL_MODE==0)return;//Ğ¡¸ÅÂÊÇĞ»»²ÊÉ«²»ÍêÕû
 					rgb_colorful_buffer_set(i+num_max*j , r,  g, b );
 				 }				 
 					 
@@ -337,7 +337,7 @@ void iotalink_music_process_0_2(void)
 	 }
 	 num_back = num ;
  }
-/*æ¨¡å¼2>>>>>>>>>>>>èƒ½é‡æ¨¡å¼<<<<<<<<<<<<*/
+/*Ä£Ê½2>>>>>>>>>>>>ÄÜÁ¿Ä£Ê½<<<<<<<<<<<<*/
 void iotalink_music_process_2(void)
 {
     static unsigned int  v_value =0;
@@ -358,22 +358,22 @@ void iotalink_music_process_2(void)
 	
 	int i = 0;
 	static unsigned char  j=0;
-	//hsv_h_t sh[] = {0,200,120,36,243};//äº”æ®µé¢œè‰²
+	//hsv_h_t sh[] = {0,200,120,36,243};//Îå¶ÎÑÕÉ«
 	hsv_h_t sh[] = {0,30,150,200,240};
 	hsv_s_t ss = 100;
 	hsv_v_t sv = 100;
 	unsigned char r, g, b;
-//è·å–å‡å€¼çº¿
+//»ñÈ¡¾ùÖµÏß
 		loop1++;
 		rhythm_value_sum +=v_value;			
-		if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		{		
 			rhythm_value_avr=rhythm_value_sum/relax_flag;
 			rhythm_value_sum = 0;
 			loop1 = 0;
 			my_printf("-----process_2_avr:%d ----\n",rhythm_value_avr);
 		}				
-/********************>>>æ•°æ®é…ç½®<<<***********************************/	
+/********************>>>Êı¾İÅäÖÃ<<<***********************************/	
 
 	if (v_value <MUSIC_SENSITIVITY)
 	{
@@ -385,7 +385,7 @@ void iotalink_music_process_2(void)
 		flag++;
 		if (flag>1)	
 		{		
-			singleColor(sh[j],100, 100);//å…ˆå…¨äº®ä¸€ä¸‹
+			singleColor(sh[j],100, 100);//ÏÈÈ«ÁÁÒ»ÏÂ
 			rgb_value_sync();
 			wlt_ms_delay(10);
 			rgb_colorful_buffer_clean();
@@ -394,9 +394,9 @@ void iotalink_music_process_2(void)
 		else
 		{	
 
-			static  u16  RGB_LED_NUM = 20 ;//æŒ‰20ä¸ªç¯ç  ==>åŒ¹é…å•10
+			static  u16  RGB_LED_NUM = 20 ;//°´20¸öµÆÖé ==>Æ¥Åäµ¥10
 			
-			for (i=RGB_LED_NUM/4;i>=0;i--)//ä¸¤ä¸¤å¯¹æ’(4æ®µ)12
+			for (i=RGB_LED_NUM/4;i>=0;i--)//Á½Á½¶Ô×²(4¶Î)12
 			{
 				rgb_colorful_buffer_set( i  , 0,  0, 0);			
 				rgb_colorful_buffer_set((RGB_LED_NUM/2)-i, 0,  0, 0);
@@ -404,9 +404,9 @@ void iotalink_music_process_2(void)
 				rgb_colorful_buffer_set(RGB_LED_NUM-i, 0,  0, 0);
 				rgb_value_sync();
 				wlt_ms_delay(20-i);
-			//	if(sg_light_ctrl_data.switch_status==0||MUSIC_LOCAL_MODE==0)//å…³ç¯åˆ‡æ¢
+			//	if(sg_light_ctrl_data.switch_status==0||MUSIC_LOCAL_MODE==0)//¹ØµÆÇĞ»»
 			
-				if(MUSIC_LOCAL_MODE==0)//å…³ç¯åˆ‡æ¢
+				if(MUSIC_LOCAL_MODE==0)//¹ØµÆÇĞ»»
 				{
 					return;
 				}
@@ -419,7 +419,7 @@ void iotalink_music_process_2(void)
 	else  
 	{
 		flag = 0 ;
-		for (i=0;i<=RGB_LED_NUM/4;i++)//ä¸¤ä¸¤å¯¹æ’
+		for (i=0;i<=RGB_LED_NUM/4;i++)//Á½Á½¶Ô×²
 		{
 			hsv_to_rgb(&r, &g, &b, sh[j], ss, sv);
 			rgb_colorful_buffer_set( i	, r,  g, b);			
@@ -429,7 +429,7 @@ void iotalink_music_process_2(void)
 			rgb_value_sync();
 			wlt_ms_delay(20-i);
 			
-			 if(MUSIC_LOCAL_MODE==0)//å…³ç¯åˆ‡æ¢
+			 if(MUSIC_LOCAL_MODE==0)//¹ØµÆÇĞ»»
 			 {
 				 return;
 			 }
@@ -437,12 +437,12 @@ void iotalink_music_process_2(void)
 		j++;
 		my_printf ("big : %d\n",v_value);
 	}	
-//é¢œè‰²å¤„ç†
+//ÑÕÉ«´¦Àí
 	if (j>=5) j =0;
 }
 
 
-/*************ã€‹ã€‹ã€‹æ¨¡å¼0ï¼š å½©è™¹ã€Šã€Šã€Š****************/
+/*************¡·¡·¡·Ä£Ê½0£º ²Êºç¡¶¡¶¡¶****************/
  void iotalink_music_process_3(void)
  {
 	 static int v_value ;
@@ -458,20 +458,20 @@ void iotalink_music_process_2(void)
 			 max_voltage = Voltages[loop];
 		 }
 	 } 
-	 v_value = abs(max_voltage, MUSIC_STATIC) ;//å¤§çº¦20~1584
- //è·å–å‡å€¼çº¿
+	 v_value = abs(max_voltage, MUSIC_STATIC) ;//´óÔ¼20~1584
+ //»ñÈ¡¾ùÖµÏß
 	 loop1++;
 	 rhythm_value_sum +=v_value;		 
-	 if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+	 if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 	 {		 
 		 rhythm_value_avr=rhythm_value_sum/relax_flag;
 		 rhythm_value_sum = 0;
 		 loop1 = 0;
 		 my_printf("-----rhythm_value_avr:%d ----\n",rhythm_value_avr);
 	 }
- /***************ã€‹ã€‹ç„•å½©æ•°å€¼å¤„ç†ã€Šã€Š**********************/	 
+ /***************¡·¡·»À²ÊÊıÖµ´¦Àí¡¶¡¶**********************/	 
 	 unsigned int i = 0,j=0;
-	 //hsv_h_t sh[] = {0,200,120,36,243};//äº”æ®µé¢œè‰²
+	 //hsv_h_t sh[] = {0,200,120,36,243};//Îå¶ÎÑÕÉ«
 	 hsv_h_t sh[] = {0,30,150,200,240};
 	 hsv_s_t ss = 100;
 	 hsv_v_t sv = 100;
@@ -488,35 +488,35 @@ void iotalink_music_process_2(void)
 	 else if (v_value < rhythm_value_avr)
 	 {
 		 diff=(float)(rhythm_value_avr-v_value)/rhythm_value_avr;
-		 num=  7- diff*5;  //å¤„ç†num
+		 num=  7- diff*5;  //´¦Àínum
 		 
 		 my_printf("--------diff:%.4f ----\n",diff);
 	 }	 
 	 else 
 	 {
 		 diff=(float)(v_value-rhythm_value_avr)/rhythm_value_avr;
-		 num= diff*5 + 10;//å¤„ç†num	 
+		 num= diff*5 + 10;//´¦Àínum	 
 		 my_printf("--------++++diff:%.4f ----\n",diff); 
 	 }
 	 
- //numå¤„ç†
+ //num´¦Àí
 	 if (num<=0)num =0;
 	 num= num > num_max ? num_max: num  ;
 	 my_printf("-----num :%d ----\n",num);
 	 
  
-	 if (num<num_back)	//éŸ³é‡ä¸‹é™
+	 if (num<num_back)	//ÒôÁ¿ÏÂ½µ
 	 {
 		 while(num<num_back)
 		 { 	
 			 rgb_colorful_buffer_clean();
 			 for (i =0 ; i<num_back ; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/num_max;j++)//åˆ†Næ®µ: RGB_LED_NUM/10===æ¯æ®µæœ€å°‘10
+				 for (j=0;j<RGB_LED_NUM/num_max;j++)//·ÖN¶Î: RGB_LED_NUM/10===Ã¿¶Î×îÉÙ10
 				 {	 
-					 if(MUSIC_LOCAL_MODE==0)return;//å°æ¦‚ç‡åˆ‡æ¢å½©è‰²ä¸å®Œæ•´
+					 if(MUSIC_LOCAL_MODE==0)return;//Ğ¡¸ÅÂÊÇĞ»»²ÊÉ«²»ÍêÕû
 					
-					// rgb_colorful_buffer_set(i+num_max*j , MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b); 	//å‰ä¸€ä½ç½®äº®10=RGB_LED_NUM/5
+					// rgb_colorful_buffer_set(i+num_max*j , MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b); 	//Ç°Ò»Î»ÖÃÁÁ10=RGB_LED_NUM/5
 					 hsv_to_rgb(&r, &g, &b, sh[j], ss, sv);
 					 rgb_colorful_buffer_set(9-i+10*j , r,  g, b );
 				 }				 
@@ -526,24 +526,24 @@ void iotalink_music_process_2(void)
 			 num_back--;
 		 }
 	 }
-	 else	//éŸ³é‡ä¸Šå‡
+	 else	//ÒôÁ¿ÉÏÉı
 	 {	 
 		 while(num>num_back)
 		 {
-			 rgb_colorful_buffer_clean();//æ¯å˜ä¸€æ¬¡æ¸…é›¶RGBæ•°ç»„
+			 rgb_colorful_buffer_clean();//Ã¿±äÒ»´ÎÇåÁãRGBÊı×é
 			 
-			 //singleColor(0,0,100);//åº•è‰²
+			 //singleColor(0,0,100);//µ×É«
 			 for (i =0; i<num_back; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/num_max;j++)//é»˜è®¤åˆ†5æ®µ
+				 for (j=0;j<RGB_LED_NUM/num_max;j++)//Ä¬ÈÏ·Ö5¶Î
 				 {
-				 	if(MUSIC_LOCAL_MODE==0)return;//å°æ¦‚ç‡åˆ‡æ¢å½©è‰²ä¸å®Œæ•´
+				 	if(MUSIC_LOCAL_MODE==0)return;//Ğ¡¸ÅÂÊÇĞ»»²ÊÉ«²»ÍêÕû
 
-					// é…ç½®é¢œè‰²
-					// rgb_colorful_buffer_set(i+num_max*j ,MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b);//æ¯æ®µç›¸å·®num_max
+					// ÅäÖÃÑÕÉ«
+					// rgb_colorful_buffer_set(i+num_max*j ,MAGIC_SCENE_DATA.magic_rgb[i].r,MAGIC_SCENE_DATA.magic_rgb[i].g,MAGIC_SCENE_DATA.magic_rgb[i].b);//Ã¿¶ÎÏà²înum_max
 				
 					hsv_to_rgb(&r, &g, &b, sh[j], ss, sv);
-					 rgb_colorful_buffer_set(9-i+10*j , r,  g, b );//æ¯æ®µç›¸å·®10	
+					 rgb_colorful_buffer_set(9-i+10*j , r,  g, b );//Ã¿¶ÎÏà²î10	
 				 }				 	 
 			 }
 			 	 rgb_value_sync();
@@ -555,7 +555,7 @@ void iotalink_music_process_2(void)
  }
 
 
-/*************ã€‹ã€‹ã€‹æ¨¡å¼4ï¼šä¸¤ç«¯åŒæ—¶è·³åŠ¨ åŒè‰²å˜ ****************/
+/*************¡·¡·¡·Ä£Ê½4£ºÁ½¶ËÍ¬Ê±Ìø¶¯ Í¬É«±ä ****************/
  void iotalink_music_process_4(void)
  {
 	 static int v_value ;
@@ -572,18 +572,18 @@ void iotalink_music_process_2(void)
 			 max_voltage = Voltages[loop];
 		 }
 	 } 
-	 v_value = abs(max_voltage, MUSIC_STATIC) ;//å¤§çº¦20~1584
- //è·å–å‡å€¼çº¿
+	 v_value = abs(max_voltage, MUSIC_STATIC) ;//´óÔ¼20~1584
+ //»ñÈ¡¾ùÖµÏß
 		 loop1++;
 		 rhythm_value_sum +=v_value;		 
-		 if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		 if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		 {		 
 			 rhythm_value_avr=rhythm_value_sum/relax_flag;
 			 rhythm_value_sum = 0;
 			 loop1 = 0;
 			 my_printf("-----rhythm_value_avr:%d ----\n",rhythm_value_avr);
 		 }
- /***************ã€‹ã€‹ç„•å½©æ•°å€¼å¤„ç†ã€Šã€Š**********************/	 
+ /***************¡·¡·»À²ÊÊıÖµ´¦Àí¡¶¡¶**********************/	 
 		 unsigned int i = 0,j=0;
 		 static unsigned int cnt=0;
 		 static hsv_h_t sh=0;
@@ -600,23 +600,23 @@ void iotalink_music_process_2(void)
 	 else if (v_value < rhythm_value_avr)
 	 {
 		 diff=(float)(rhythm_value_avr-v_value)/rhythm_value_avr;
-		 num=  7- diff*5;  //å¤„ç†num	 
+		 num=  7- diff*5;  //´¦Àínum	 
 	 }	 
 	 else 
 	 {
 		 diff=(float)(v_value-rhythm_value_avr)/rhythm_value_avr;
-		 num= diff*5 + 5;//å¤„ç†num	 
+		 num= diff*5 + 5;//´¦Àínum	 
 	 } 
- //numå¤„ç†
+ //num´¦Àí
 	 if (num<=0)num =0;
-	 num= num > num_max ? num_max : num  ;	//åŸ 10	
+	 num= num > num_max ? num_max : num  ;	//Ô­ 10	
 
 	sh+=60;
 	if(sh>=360)sh=0;
 	hsv_to_rgb(&r, &g, &b, sh, 100, sv);
 	
 	 bk_printf("-----max_voltage:%d ----\n",max_voltage);
-	 if (num<num_back)	//éŸ³é‡ä¸‹é™
+	 if (num<num_back)	//ÒôÁ¿ÏÂ½µ
 	 {
 		 while(num<num_back)
 		 { 	
@@ -624,9 +624,9 @@ void iotalink_music_process_2(void)
  			 rgb_value_sync();
 			 for (i =0 ; i<num_back ; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/(num_max_4);j++)//åˆ†Næ®µ: RGB_LED_NUM/10===æ¯æ®µæœ€å°‘10
+				 for (j=0;j<RGB_LED_NUM/(num_max_4);j++)//·ÖN¶Î: RGB_LED_NUM/10===Ã¿¶Î×îÉÙ10
 				 {	 
-					 if(MUSIC_LOCAL_MODE==0)return;//å°æ¦‚ç‡åˆ‡æ¢å½©è‰²ä¸å®Œæ•´
+					 if(MUSIC_LOCAL_MODE==0)return;//Ğ¡¸ÅÂÊÇĞ»»²ÊÉ«²»ÍêÕû
 				
 					 rgb_colorful_buffer_set(i+num_max_4+num_max_4*2*j, r,  g, b );
 					 rgb_colorful_buffer_set(num_max_4-1-i+num_max_4*2*j , r,  g, b );
@@ -638,15 +638,15 @@ void iotalink_music_process_2(void)
 			 num_back--;
 		 }
 	 }
-	 else	//éŸ³é‡ä¸Šå‡
+	 else	//ÒôÁ¿ÉÏÉı
 	 {	 
 		 while(num>num_back)
 		 {
-			 rgb_colorful_buffer_clean();//æ¯å˜ä¸€æ¬¡æ¸…é›¶RGBæ•°ç»„	 
-			 //singleColor(0,0,100);//åº•è‰²
+			 rgb_colorful_buffer_clean();//Ã¿±äÒ»´ÎÇåÁãRGBÊı×é	 
+			 //singleColor(0,0,100);//µ×É«
 			 for (i =0; i<num_back; i++)
 			 {	 
-				 for (j=0;j<RGB_LED_NUM/num_max_4;j++)//é»˜è®¤åˆ†5æ®µ
+				 for (j=0;j<RGB_LED_NUM/num_max_4;j++)//Ä¬ÈÏ·Ö5¶Î
 				 {
 					rgb_colorful_buffer_set(i+num_max_4+num_max_4*2*j, r,  g, b );
 					rgb_colorful_buffer_set(num_max_4-1-i+num_max_4*2*j , r,  g, b );
@@ -682,23 +682,23 @@ void iotalink_music_process_5(void)
 	int i = 0;
 	static int z = 0;
 	static unsigned char  j=0;
-	//hsv_h_t sh[] = {0,200,120,36,243};//äº”æ®µé¢œè‰²
+	//hsv_h_t sh[] = {0,200,120,36,243};//Îå¶ÎÑÕÉ«
 	//hsv_h_t sh[] = {0,60,120,180,240,300,340};
     static hsv_h_t sh=0;
 	hsv_s_t ss = 100;
 	hsv_v_t sv = 50;
 	unsigned char r, g, b;
-//è·å–å‡å€¼çº¿
+//»ñÈ¡¾ùÖµÏß
 		loop1++;
 		rhythm_value_sum +=v_value;			
-		if (loop1==relax_flag)//æ¯è¿›åæ¬¡åˆ·æ–°
+		if (loop1==relax_flag)//Ã¿½øÊ®´ÎË¢ĞÂ
 		{		
 			rhythm_value_avr=rhythm_value_sum/relax_flag;
 			rhythm_value_sum = 0;
 			loop1 = 0;
 			my_printf("-----process_2_avr:%d ----\n",rhythm_value_avr);
 		}				
-/********************>>>æ•°æ®é…ç½®<<<***********************************/	
+/********************>>>Êı¾İÅäÖÃ<<<***********************************/	
 	sh+=60;
 	if(sh>=360)sh=0;
 
@@ -735,73 +735,85 @@ void iotalink_music_process_5(void)
 }
 
 
-/*-----------------------------ã€Š adc æŒ‰é”®è°ƒè¯•demoã€‹------------------------------------*/
+/*-----------------------------¡¶ adc °´¼üµ÷ÊÔdemo¡·------------------------------------*/
 
 
-
-
-
-// ===================== è§¦æ‘¸æŒ‡ç¤ºç¯ =====================
+// ===================== ´¥ÃşÖ¸Ê¾µÆ =====================
 
 #define KEY_LED    24	
 
-#define LED_ON_TIME 5000 //5s è§¦æ‘¸ä¿æŒæ—¶é—´
 
 osTimerAttr_t key_led_timer_attr;
 static osTimerId_t key_led_timer;
 
 void key_led_timer_cb(void *arv)
 {
-//è§¦æ‘¸äº®ç¯ 5s åå…³é—­	
+//´¥ÃşÁÁµÆ 5s ºó¹Ø±Õ	
 	scm_gpio_write(KEY_LED , 0);	
 }
 
 // ==========================================
 
-#include "scm_adc.h"     // èŠ¯ç‰‡ADCé©±åŠ¨å¤´æ–‡ä»¶
+#include "scm_adc.h"     // Ğ¾Æ¬ADCÇı¶¯Í·ÎÄ¼ş
 
-// ===================== é…ç½®å®å®šä¹‰ =====================
-#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_4  // é€‰æ‹©ADCé€šé“4ï¼ˆå¯¹åº”ç¡¬ä»¶GPIO4ï¼‰
-//#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_5  // é€‰æ‹©ADCé€šé“5ï¼ˆå¯¹åº”ç¡¬ä»¶GPIO7ï¼‰
+// ===================== ÅäÖÃºê¶¨Òå =====================
+#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_4  // Ñ¡ÔñADCÍ¨µÀ4£¨¶ÔÓ¦Ó²¼şGPIO4£©
+//#define ADC_KEY_CHANNEL    SCM_ADC_SINGLE_CH_5  // Ñ¡ÔñADCÍ¨µÀ5£¨¶ÔÓ¦Ó²¼şGPIO7£©
 
-#define MUSIC_KEY  6	//æš‚æ—¶æ§åˆ¶éŸ³ä¹æ’­æ”¾çš„æŒ‰é”®
+#define MUSIC_KEY  6	//ÔİÊ±¿ØÖÆÒôÀÖ²¥·ÅµÄ°´¼ü
+
+// ÏµÍ³½ÚÅÄÊı ¡ú ºÁÃë
+#define TICKS_TO_MS(ticks) ((uint32_t)(((uint32_t)(ticks) * 1000U) / osKernelGetTickFreq()))
 
 
+#define ADC_SAMPLE_CNT     10                  // ADC²ÉÑùÂË²¨´ÎÊı
+#define KEY_DEBOUNCE_MS    20                  // °´¼üÏû¶¶Ê±¼ä(ms)
+#define KEY_SCAN_INTERVAL  10                  // °´¼üÉ¨Ãè¼ä¸ô(ms)
 
-#define ADC_SAMPLE_CNT     10                  // ADCé‡‡æ ·æ»¤æ³¢æ¬¡æ•°
-#define KEY_DEBOUNCE_MS    20                  // æŒ‰é”®æ¶ˆæŠ–æ—¶é—´(ms)
-#define KEY_SCAN_INTERVAL  10                  // æŒ‰é”®æ‰«æé—´éš”(ms)
+// °´¼üÅäÖÃ²ÎÊı
+#define KEY_DEBOUNCE_MS        20      // Ïû¶¶Ê±¼ä(ms)
+#define KEY_SCAN_INTERVAL_MS   20      // °´¼üÉ¨Ãè¼ä¸ô(ms)
+#define LONG_PRESS_TIME_MS     3000     // ³¤°´´¥·¢ãĞÖµ(ms)£¬³¤°´3000msÉúĞ§
 
-// ADCæŒ‰é”®é˜ˆå€¼ï¼ˆæ ¹æ®å®é™…åˆ†å‹ç”µè·¯è°ƒæ•´ï¼Œéœ€å®æµ‹æ ¡å‡†ï¼‰
-#define KEY_NONE_THRESH    800    // æ— æŒ‰é”®é˜ˆå€¼
+#define LED_ON_TIME            5000     // °´¼üÖ¸Ê¾µÆÁÁµÆÊ±¼ä(ms)
 
-#define KEY1_THRESH_LOW    200    // KEY1æœ€å°å€¼
-#define KEY1_THRESH_HIGH   280   // KEY1æœ€å¤§å€¼
+// ADC°´¼üãĞÖµ£¨¸ù¾İÊµ¼Ê·ÖÑ¹µçÂ·µ÷Õû£¬ĞèÊµ²âĞ£×¼£©
+#define KEY_NONE_THRESH    800    // ÎŞ°´¼üãĞÖµ
 
-#define KEY2_THRESH_LOW    700    // KEY2æœ€å°å€¼
-#define KEY2_THRESH_HIGH   750    // KEY2æœ€å¤§å€¼
+#define KEY1_THRESH_LOW    200    // KEY1×îĞ¡Öµ
+#define KEY1_THRESH_HIGH   280   // KEY1×î´óÖµ
 
-#define KEY3_THRESH_LOW    760    // KEY3æœ€å°å€¼
-#define KEY3_THRESH_HIGH   780    // KEY3æœ€å¤§å€¼
+#define KEY2_THRESH_LOW    700    // KEY2×îĞ¡Öµ
+#define KEY2_THRESH_HIGH   750    // KEY2×î´óÖµ
 
-// æŒ‰é”®æšä¸¾
+#define KEY3_THRESH_LOW    760    // KEY3×îĞ¡Öµ
+#define KEY3_THRESH_HIGH   780    // KEY3×î´óÖµ
+
+// °´¼üÃ¶¾Ù
 typedef enum {
-    KEY_NONE = 0,  // æ— æŒ‰é”®
-    KEY1,          // æŒ‰é”®1
-    KEY2,          // æŒ‰é”®2
-    KEY3           // æŒ‰é”®3
+    KEY_NONE = 0,  // ÎŞ°´¼ü
+    KEY1,          // °´¼ü1
+    KEY2,          // °´¼ü2
+    KEY3           // °´¼ü3
 } adc_key_t;
+	
+// °´¼ü×´Ì¬»ú£¨ĞÂÔö£ºÓÃÓÚ¹ÜÀí³¤°´/¶Ì°´×´Ì¬£©
+typedef enum {
+    KEY_STATE_IDLE = 0,    // ¿ÕÏĞ×´Ì¬£ºÎŞ°´¼ü
+    KEY_STATE_PRESS,       // °´ÏÂ×´Ì¬£º¶Ì°´¼ì²âÖĞ
+    KEY_STATE_LONG         // ³¤°´×´Ì¬£ºÒÑ´¥·¢³¤°´¶¯×÷
+} key_state_t;
 
-// ===================== é™æ€å‡½æ•°å£°æ˜ =====================
+// ===================== ¾²Ì¬º¯ÊıÉùÃ÷ =====================
 static uint16_t adc_key_read_avg(void);
 static adc_key_t adc_key_scan(void);
 static void adc_key_action(adc_key_t key);
 
-// ===================== æ ¸å¿ƒåŠŸèƒ½å®ç° =====================
+// ===================== ºËĞÄ¹¦ÄÜÊµÏÖ =====================
 
 /**
- * @brief è¯»å–ADCå¹³å‡å€¼ï¼ˆæ»¤æ³¢ï¼ŒæŠ—å¹²æ‰°ï¼‰
- * @return ADCé‡‡æ ·å¹³å‡å€¼
+ * @brief ¶ÁÈ¡ADCÆ½¾ùÖµ£¨ÂË²¨£¬¿¹¸ÉÈÅ£©
+ * @return ADC²ÉÑùÆ½¾ùÖµ
  */
 static uint16_t adc_key_read_avg(void)
 {
@@ -809,7 +821,7 @@ static uint16_t adc_key_read_avg(void)
     uint16_t buf[ADC_SAMPLE_CNT];
     int ret, i;
 
-    // è°ƒç”¨èŠ¯ç‰‡ADCé©±åŠ¨è¯»å–å¤šç»„æ•°æ®
+    // µ÷ÓÃĞ¾Æ¬ADCÇı¶¯¶ÁÈ¡¶à×éÊı¾İ
     ret = scm_adc_read(ADC_KEY_CHANNEL, buf, ADC_SAMPLE_CNT);
     if (ret != 0) 
 	{
@@ -817,7 +829,7 @@ static uint16_t adc_key_read_avg(void)
         return 0;
     }
 
-    // è®¡ç®—å¹³å‡å€¼
+    // ¼ÆËãÆ½¾ùÖµ
     for (i = 0; i < ADC_SAMPLE_CNT; i++)
 	{
         sum += buf[i];
@@ -827,15 +839,15 @@ static uint16_t adc_key_read_avg(void)
 }
 
 /**
- * @brief æ‰«æADCæŒ‰é”®ï¼ˆè¯†åˆ«æŒ‰é”®ç±»å‹ï¼‰
- * @return æŒ‰é”®ç±»å‹
+ * @brief É¨ÃèADC°´¼ü£¨Ê¶±ğ°´¼üÀàĞÍ£©
+ * @return °´¼üÀàĞÍ
  */
 static adc_key_t adc_key_scan(void)
 {
     uint16_t adc_val = adc_key_read_avg();
     adc_key_t key = KEY_NONE;
 
-    // æ ¹æ®é˜ˆå€¼åˆ¤æ–­æŒ‰é”®
+    // ¸ù¾İãĞÖµÅĞ¶Ï°´¼ü
     if (adc_val > KEY_NONE_THRESH) {
         key = KEY_NONE;
     } else if (adc_val >= KEY1_THRESH_LOW && adc_val <= KEY1_THRESH_HIGH) {
@@ -850,117 +862,185 @@ static adc_key_t adc_key_scan(void)
 }
 
 /**
- * @brief æŒ‰é”®åŠ¨ä½œå¤„ç†
- * @param key æŒ‰ä¸‹çš„æŒ‰é”®
+ * @brief °´¼ü¶Ì°´¶¯×÷´¦Àí
+ * @param key °´ÏÂµÄ°´¼ü
  */
-static void adc_key_action(adc_key_t key)
+static void adc_key_short_action(adc_key_t key)
 {
 	extern light_ctrl_data_t sg_light_ctrl_data;
-
 	bool _switch = sg_light_ctrl_data.switch_status;
 	
-//è§¦æ‘¸äº®ç¯ LED_ON_TIME     åå…³é—­
-	scm_gpio_write(KEY_LED , 1);
-	osTimerStart(key_led_timer, MS_TO_TICKS(LED_ON_TIME)) ;
 
     switch (key) 
 	{
         case KEY3:
-            printf("KEY1 pressed (on/off)\n");
-				light_power_set(!_switch);
-				iotalink_light_ctrl_process();		
-
+            my_printf("KEY3 ¶Ì°´£º¿ª¹ØµÆ\n");  // ONOFF
+			light_power_set(!_switch);
+			iotalink_light_ctrl_process();		
             break;
+            
         case KEY2:
 			
-            printf("KEY2 pressed (sleep)\n");
-
+            my_printf("KEY2 ¶Ì°´£ºË¯ÃßÄ£Ê½\n");
 			scm_gpio_write(MUSIC_KEY , 0);
 			wlt_ms_delay(200);
 			scm_gpio_write(MUSIC_KEY , 1);
-
 			light_mode_set(COLOR_MODE);
-			cwrgb_target_val_set (0, 0,10,0,50);
+			cwrgb_target_val_set(0, 0,10,0,50);
 
 
+
+			
             break;
+            
         case KEY1:
-            printf("KEY3 pressed (mode)\n");
+            my_printf("KEY1 ¶Ì°´£ºÇĞ»»³¡¾°\n"); //M
+			light_mode_set(SCENE_MODE);
+			sg_light_ctrl_data.magicunit++;
+			if(sg_light_ctrl_data.magicunit>33) sg_light_ctrl_data.magicunit =1; 	
+			my_printf("³¡¾°Ä£Ê½£º%d \n",sg_light_ctrl_data.magicunit);
+			light_magicunit_set(sg_light_ctrl_data.magicunit);
+			iotalink_light_ctrl_process();
             break;
+            
         default:
             break;
     }
 }
 
 /**
- * @brief ADCæŒ‰é”®ä»»åŠ¡ï¼ˆæŒç»­æ‰«æ+æ¶ˆæŠ–ï¼‰
+ * @brief °´¼ü³¤°´¶¯×÷´¦Àí£¨×Ô¶¨Òå³¤°´Âß¼­£©
+ * @param key ³¤°´µÄ°´¼ü
  */
-void adc_key_task(void *arg)
+static void adc_key_long_action(adc_key_t key)
 {
-    adc_key_t last_key = KEY_NONE;
-    adc_key_t cur_key;
-
-    printf("ADCæŒ‰é”®ä»»åŠ¡å¯åŠ¨...\n");
-
-    while (1) 
+    switch (key) 
 	{
-        // 1. æ‰«æå½“å‰æŒ‰é”®
-        cur_key = adc_key_scan();
+        case KEY1:
+            my_printf("KEY1 ³¤°´£º´¥·¢³¤°´¹¦ÄÜ\n");
+            break;
+            
+        case KEY2:
+            my_printf("KEY2 ³¤°´£º´¥·¢³¤°´¹¦ÄÜ\n");
 
-        // 2. æ¶ˆæŠ–å¤„ç†ï¼šè¿ç»­ä¸¤æ¬¡æ‰«æç»“æœä¸€è‡´æ‰åˆ¤å®šä¸ºæœ‰æ•ˆæŒ‰é”®
-        if (cur_key != last_key)
-		{
-          // æ¶ˆæŠ–å»¶æ—¶ï¼ˆéœ€é€‚é…èŠ¯ç‰‡å»¶æ—¶æ¥å£ï¼‰
-			udelay(KEY_DEBOUNCE_MS*1000);
-            cur_key = adc_key_scan();     // å†æ¬¡æ‰«æç¡®è®¤
-            if (cur_key == last_key)
-			{
-                goto scan_end;
-            }
-        }
+            break;
+            
+        case KEY3:
+            my_printf("KEY3 ³¤°´ÈıÃë½øÈë¸´Î»ÅäÍøÄ£Ê½ \n");
 
-        // 3. æœ‰æ•ˆæŒ‰é”®è§¦å‘åŠ¨ä½œï¼ˆä»…æŒ‰ä¸‹æ—¶è§¦å‘ä¸€æ¬¡ï¼‰
-        if (cur_key != KEY_NONE && cur_key != last_key) 
-		{
-            adc_key_action(cur_key);
-            last_key = cur_key;
-        }
-
-        // 4. æ— æŒ‰é”®æ—¶é‡ç½®çŠ¶æ€
-        if (cur_key == KEY_NONE) 
-		{
-            last_key = KEY_NONE;
-        }
-	
-
-scan_end:
-        // æŒ‰é”®æ‰«æé—´éš”
-       // hal_msleep(KEY_SCAN_INTERVAL);
-		udelay(KEY_DEBOUNCE_MS*1000);
+			extern void demo_button_toggle(unsigned long pressed, unsigned long released);
+			demo_button_toggle(1,4000+1);
 			
+            break;
+            
+        default:
+            break;
     }
 }
 
-// ===================== åˆå§‹åŒ–å‡½æ•° =====================
+/**
+ * @brief ADC°´¼üÈÎÎñ£¨Ö§³Ö¶Ì°´+³¤°´£¬¾«×¼Ê¶±ğ°´¼ü£©
+ */
+void adc_key_task(void *arg)
+{
+    key_state_t key_state = KEY_STATE_IDLE;
+    adc_key_t cur_key = KEY_NONE;
+    adc_key_t valid_key = KEY_NONE; 
+    uint32_t press_start_tick = 0;
+
+    printf("ADC°´¼üÈÎÎñ(Ö§³Ö¶Ì°´+³¤°´)Æô¶¯\n");
+
+    while (1)
+	{
+        cur_key = adc_key_scan();
+
+        switch(key_state)
+        {
+            // 1. ¿ÕÏĞ×´Ì¬£ºµÈ´ı°´¼ü°´ÏÂ
+            case KEY_STATE_IDLE:
+                if(cur_key != KEY_NONE)
+                {
+                    wlt_ms_delay(KEY_DEBOUNCE_MS); // Ïû¶¶
+                    cur_key = adc_key_scan();
+                    if(cur_key != KEY_NONE)
+                    {
+                        valid_key = cur_key;        // ±£´æÈ·ÈÏºóµÄ°´¼üÖµ
+                        key_state = KEY_STATE_PRESS;
+                        press_start_tick = osKernelGetTickCount();
+						
+						// ´¥ÃşÁÁµÆ£¬¼ÆÊ±ºó¹Ø±Õ
+						scm_gpio_write(KEY_LED , 1);
+						osTimerStart(key_led_timer, MS_TO_TICKS(LED_ON_TIME));
+
+						
+                    }
+                }
+                break;
+
+            // 2. °´ÏÂ×´Ì¬£º¼ì²â¶Ì°´/³¤°´
+            case KEY_STATE_PRESS:
+            {
+                uint32_t pass_tick = osKernelGetTickCount() - press_start_tick;
+                uint32_t pass_ms = TICKS_TO_MS(pass_tick);
+
+                // °´¼üËÉ¿ª ¡ú ÓÃ±£´æµÄvalid_key´¥·¢¶Ì°´
+                if(cur_key == KEY_NONE)
+                {
+                    adc_key_short_action(valid_key);
+                    // ÖØÖÃ×´Ì¬
+                    valid_key = KEY_NONE;
+                    key_state = KEY_STATE_IDLE;
+                }
+                // ³¤°´³¬Ê± ¡ú ÓÃ±£´æµÄvalid_key´¥·¢³¤°´
+                else if(pass_ms >= LONG_PRESS_TIME_MS)
+                {
+                    adc_key_long_action(valid_key);
+                    key_state = KEY_STATE_LONG;
+                }
+                break;
+            }
+
+            // 3. ³¤°´×´Ì¬£ºµÈ´ıËÉ¿ª¸´Î»
+            case KEY_STATE_LONG:
+                if(cur_key == KEY_NONE)
+                {
+                    valid_key = KEY_NONE;
+                    key_state = KEY_STATE_IDLE;
+                }
+                break;
+
+            default:
+                key_state = KEY_STATE_IDLE;
+                break;
+        }
+
+        // É¨Ãè¼ä¸ô
+        wlt_ms_delay(KEY_SCAN_INTERVAL_MS);
+    }
+}
+
+
+
+// ===================== ³õÊ¼»¯º¯Êı =====================
 
 /**
- * @brief ADCæŒ‰é”®åˆå§‹åŒ–
- * @return 0:æˆåŠŸ å…¶ä»–:å¤±è´¥
+ * @brief ADC°´¼ü³õÊ¼»¯
+ * @return 0:³É¹¦ ÆäËû:Ê§°Ü
  */
 int adc_key_init(void)
 {
     int ret;
 
-    // é‡ç½®ADCå¤–è®¾
+    // ÖØÖÃADCÍâÉè
     ///ret = scm_adc_reset();
     if (ret != 0) {
         printf("ADC reset error: 0x%x\n", ret);
         return -1;
     }
 
-    printf("ADCæŒ‰é”®åˆå§‹åŒ–å®Œæˆï¼ˆé€šé“ï¼š%dï¼‰\n", ADC_KEY_CHANNEL);
+    printf("ADC°´¼ü³õÊ¼»¯Íê³É£¨Í¨µÀ£º%d£©\n", ADC_KEY_CHANNEL);
 
-    // åˆ›å»ºADCæŒ‰é”®ä»»åŠ¡
+    // ´´½¨ADC°´¼üÈÎÎñ
   //  xTaskCreate("adc_key_task",   adc_key_task,   NULL,  1024,     10,  NULL); 
 	osThreadAttr_t attr = {
 		.name 		= "adc_key_task",
@@ -972,14 +1052,14 @@ int adc_key_init(void)
     return 0;
 }
 
-// ===================== ä¸»å‡½æ•°ï¼ˆæµ‹è¯•ç”¨ï¼‰ =====================
+// ===================== Ö÷º¯Êı£¨²âÊÔÓÃ£© =====================
 #if 0
 int main(void)
 {
-    // åˆå§‹åŒ–ADCæŒ‰é”®
+    // ³õÊ¼»¯ADC°´¼ü
     adc_key_init();
 
-    // ä¸»å¾ªç¯ï¼ˆèŠ¯ç‰‡åº•å±‚å·²å¤„ç†ä»»åŠ¡è°ƒåº¦ï¼Œæ­¤å¤„ä»…å ä½ï¼‰
+    // Ö÷Ñ­»·£¨Ğ¾Æ¬µ×²ãÒÑ´¦ÀíÈÎÎñµ÷¶È£¬´Ë´¦½öÕ¼Î»£©
     while (1) {
         hal_msleep(1000);
     }
@@ -990,7 +1070,7 @@ int main(void)
 
 
 
-/*-----------------------------ã€Š mic æ•°æ®é‡‡é›† ã€‹------------------------------------*/
+/*-----------------------------¡¶ mic Êı¾İ²É¼¯ ¡·------------------------------------*/
 
 
 static void iotalink_adc_get_process(void * argv)
@@ -1025,26 +1105,27 @@ static void iotalink_adc_get_process(void * argv)
 }
 void iotalink_adc_init(void)
 {
-	//é€šé“å·²é»˜è®¤åˆå§‹åŒ– ç›´æ¥read
+	//Í¨µÀÒÑÄ¬ÈÏ³õÊ¼»¯ Ö±½Óread
 		
 	//u16 buf[8]={0};
 	scm_adc_reset();
 	adc_key_init();
-	//å—spi é©±åŠ¨å½±å“è¦æŠŠå®ƒé…ç½®æˆè¾“å…¥
+	//ÊÜspi Çı¶¯Ó°ÏìÒª°ÑËüÅäÖÃ³ÉÊäÈë
 	
   	scm_gpio_configure(7,SCM_GPIO_PROP_INPUT);
 	scm_gpio_write(7 , 0);
 	scm_gpio_configure(4,SCM_GPIO_PROP_INPUT);//
 	scm_gpio_write(4 , 0);
 
-//æš‚æ—¶ä½¿ç”¨IO.åé¢ç”¨Tx	
+//ÔİÊ±Ê¹ÓÃIO.ºóÃæÓÃTx	
   	scm_gpio_configure(MUSIC_KEY,SCM_GPIO_PROP_OUTPUT);
 	scm_gpio_write(MUSIC_KEY, 1);
-//æŒ‰é”®æŒ‡ç¤ºç¯åˆå§‹åŒ–
+	
+//°´¼üÖ¸Ê¾µÆ³õÊ¼»¯
   	scm_gpio_configure(KEY_LED,SCM_GPIO_PROP_OUTPUT);
 	scm_gpio_write(KEY_LED, 0);
 
-//æ³¨å†Œå•æ¬¡å®šæ—¶å™¨ ledæŒ‡ç¤ºç¯	
+//×¢²áµ¥´Î¶¨Ê±Æ÷ ledÖ¸Ê¾µÆ	
 	key_led_timer = osTimerNew(key_led_timer_cb, osTimerOnce, NULL, &key_led_timer_attr);
 
 	//scm_adc_read(SCM_ADC_SINGLE_CH_4, buf, 8);

@@ -69,6 +69,23 @@ int iotalink_uart2_send_data( uint8_t * data, int len)
 	return scm_uart_tx(SCM_UART_IDX_2, data, len, TEST_TIMEOUT);
 }
 
+/**
+ * @brief 串口2控制音乐模组
+ */
+void wlt_control_music(uint8_t          volume , uint8_t  music_id ,uint8_t  play_ctrl)
+{
+
+	u8 music_cmd[10]={0x1D,	0x18,0x01, 0, 0,	0,  1,	0xff,	0xff,	0xD1};
+	// 	// 音量 0~10
+	music_cmd[3]=volume;
+	// 音乐编号 0~9
+	music_cmd[4]=music_id	;	
+	// 播放控制：0=暂停 1=播放	
+	music_cmd[5]=play_ctrl; 		
+
+	iotalink_uart2_send_data(music_cmd ,10);
+
+}
 // -------------------------- 累加和计算（收发通用） --------------------------
 static uint16_t check_sum_calc(const uint8_t *frame, uint16_t frame_len)
 {
@@ -92,7 +109,7 @@ void radar_send_cmd(uint8_t cmd, uint8_t *data, uint8_t data_len)
     tx_buf[tx_index++] = cmd;
     tx_buf[tx_index++] = data_len;
 
-    // 标准安全写法：先判断指针非空，再判断长度
+    // 先判断指针非空，再判断长度
     if(data != NULL && data_len > 0)
     {
         memcpy(&tx_buf[tx_index], data, data_len);
@@ -119,7 +136,7 @@ void radar_frame_parse(uint8_t cmd, const uint8_t *data, uint16_t data_len)
     // 协议固定32字节，0x20
     if(data_len != RT_DATA_LEN)
 	{
-        printf("?0x30长度错误！协议要求32，实际：%d\n", data_len);
+        printf(" 0x30长度错误！协议要求32，实际：%d\n", data_len);
         return;
     }
 
@@ -144,7 +161,7 @@ void radar_frame_parse(uint8_t cmd, const uint8_t *data, uint16_t data_len)
 
     // 解析结果可视化打印
     printf("=========================================\n");
-    printf("? 0x30 32字节数据解析成功\n");
+    printf(" 0x30 32字节数据解析成功\n");
     printf("设备ID: %02X%02X%02X%02X%02X%02X\n",
            s_radar_data.dev_id[0],s_radar_data.dev_id[1],s_radar_data.dev_id[2],
            s_radar_data.dev_id[3],s_radar_data.dev_id[4],s_radar_data.dev_id[5]);
@@ -163,8 +180,9 @@ extern void wlt_radar_notify( u8 * msg, u8 len);
 // --------------------------  帧解析  --------------------------
 static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 {
-    if(frame_len < 6) {
-        printf("? 帧长度过短：%d\n", frame_len);
+    if(frame_len < 6) 
+	{
+        printf(" 帧长度过短：%d\n", frame_len);
         return -1;
     }
 
@@ -178,12 +196,12 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 //    hex_dump("帧原始数据", (uint8_t*)frame, frame_len);
 
     if((6 + data_len) != frame_len || data_len > 250) {
-        printf("? 帧长度不匹配\n");
+        printf(" 帧长度不匹配\n");
         return -2;
     }
 
     if(calc_sum != rx_sum) {
-        printf("? 校验错误！计算：0x%04X，接收：0x%04X\n", calc_sum, rx_sum);
+        printf(" 校验错误！计算：0x%04X，接收：0x%04X\n", calc_sum, rx_sum);
         return -3;
     }
 
@@ -198,10 +216,6 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 			radar_set_report_1s();
 
 			break;
-		case 0x03：//获取时间
-		
-			break;
-		
 		case 0x30:
 			
 			wlt_radar_notify(frame,frame_len);
@@ -221,7 +235,7 @@ static int8_t frame_decode(const uint8_t *frame, uint8_t frame_len)
 			wlt_radar_notify(frame,frame_len);
 		
 			break;
-		default :
+		default ://都透传上报 03(时间同步)6263..睡眠报告
 			
 			wlt_radar_notify(frame,frame_len);
 			

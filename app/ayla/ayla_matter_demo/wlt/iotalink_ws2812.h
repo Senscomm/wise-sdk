@@ -77,6 +77,11 @@ void  hsv_to_rgb(unsigned char *R, unsigned char *G, unsigned char *B, unsigned 
 void rgb_value_sync(void);//RGB数值输出
 void  singleColor(unsigned short sh,unsigned char ss,unsigned char sv);
 
+// 灯珠控制函数和数组
+extern u8 rgb_colorful_values[77+1][3];  // 灯珠颜色缓冲区
+void rgb_colorful_buffer_clean(void);      // 清空缓冲区
+void rgb_colorful_buffer_set(unsigned char NUM, color_t R, color_t G, color_t B);  // 设置单个灯珠
+
 
 
 
