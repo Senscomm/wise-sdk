@@ -398,3 +398,13 @@ void app_save_cmd(int argc, char **argv)
 	}
 	conf_cli(2, args);
 }
+
+/*
+ * Get The user-registered flag.
+ */
+int app_get_reg_state(void)
+{
+	struct ada_conf *cf = &ada_conf;
+
+	return cf->reg_user;
+}

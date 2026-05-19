@@ -408,7 +408,7 @@ static void adb_wifi_cfg_client_event_handler(void *arg, enum ada_err err)
 	if (!client_up) {
 		client_up = 1;
 		/* Note: HYD APP need use conn_state - 5 to initiate register. */
-		printf("[HYD]the app can register device now!!\n");
+		// printf("[HYD]the app can register device now!!\n");
 		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP,WIFI_ERR_NONE);
 	}
 }

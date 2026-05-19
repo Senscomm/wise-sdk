@@ -59,4 +59,6 @@ void app_save_cmd(int argc, char **argv);
  */
 void app_diag_cmd(int argc, char **argv);
 
+int app_get_reg_state(void);
+
 #endif /* __AYLA_APP_COMMON_H__ */

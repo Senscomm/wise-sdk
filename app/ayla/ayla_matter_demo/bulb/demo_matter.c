@@ -1190,14 +1190,117 @@ static int demo_run_ftm(void)
     return 1;
 }
 
+#define AYLA_BUTTON_PUSH_REG_DEMO_ENABLE 1
+#if AYLA_BUTTON_PUSH_REG_DEMO_ENABLE
+#include "app_common.h"
+
+#define	msecs_to_ticks(ms)	(((ms)*1000)/osKernelGetTickFreq())
+
+void ayla_botton_push_task(void *arg)
+{
+#ifdef AYLA_BUTTON_PUSH_BY_REAL_BUTTON
+    struct {
+        int gpio;
+        int val;
+        uint32_t start_timer;
+    } button_info;
+    int tmp;
+    gpio_config_t io_conf;
+    uint8_t flag = 0;
+
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = GPIO_OUTPUT_PIN_SEL;
+    io_conf.pull_down_en = 0;
+    io_conf.pull_up_en = 0;
+    gpio_config(&io_conf);
+
+    io_conf.intr_type = GPIO_PIN_INTR_DISABLE;
+    io_conf.pin_bit_mask = GPIO_INPUT_PIN_SEL;
+    io_conf.mode = GPIO_MODE_INPUT;
+    io_conf.pull_up_en = 1;
+    gpio_config(&io_conf);
+
+    button_info.gpio = GPIO_BOOT_BUTTON;
+    button_info.val = !gpio_get_level(button_info.gpio);
+    button_info.start_timer = 0;
+
+    /* Wait for cloud connection to come up for the 1st time. */
+    while (!demo_sprop_is_ready()) {
+        osDelay(msecs_to_ticks(500));
+    }
+    printf("%s: cloud connection started\r\n", __func__);
+
+    while (1) {
+        osDelay(msecs_to_ticks(100));
+
+        /* When the button is pressed, zero is returned. */
+        tmp = !gpio_get_level(button_info.gpio);
+        if (tmp == button_info.val) {
+            if (flag) {
+                if ((osKernelGetTickCount() - button_info.start_timer) >= msecs_to_ticks(5000)) {
+                    flag = 0;
+                    client_reg_window_start();
+                }
+            }
+            continue;
+        }
+        if (tmp == 0) {
+            button_info.start_timer = osKernelGetTickCount();
+            flag = 1;
+        } else if (tmp == 1) {
+            if ((osKernelGetTickCount() - button_info.start_timer) < msecs_to_ticks(5000)) {
+                flag = 0;
+            }
+        }
+        button_info.val = tmp;
+        boot_button = button_info.val;
+        printf("%s: boot button %s\r\n", __func__, button_info.val ? "DOWN(1)" : "UP(0)");
+
+        if (boot_button == 0) {
+            continue;
+        }
+    }
+#endif
+
+    /* Currently we use task polling method instead of 'real button push'. */
+    while (1) {
+        if (!mfg_or_setup_mode_active()) {
+            /* 1.ADS is UP; 2.Device is not registered; */
+            if (demo_sprop_is_ready() && !app_get_reg_state()) {
+                // log_put(LOG_INFO "Start a button-push register window.");
+                ada_client_reg_window_start();
+            }
+        }
+        osDelay(msecs_to_ticks(60 * 1000));
+    }
+}
+
+void ayla_button_push_register_init()
+{
+    osThreadAttr_t attr = {
+        .name 		= "ayla-reg-task",
+        .stack_size = 1024,
+        .priority 	= osPriorityNormal,
+    };
+
+    if (osThreadNew(ayla_botton_push_task, NULL, &attr) == NULL) {
+        log_put(LOG_ERR "Ayla Button bush register task start failed.");
+    }
+}
+#endif
+
 void demo_init(void)
 {
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	int rc;
 #endif
 
-	bp5758d_init();
-	bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+#if 0
+    /* Use you own IC init functions instead of bp5758d. */
+    bp5758d_init();
+    bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+#endif
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);
@@ -1242,6 +1345,11 @@ void demo_init(void)
 
 	ada_sprop_mgr_register("demo_matter",
 	    demo_props, ARRAY_LEN(demo_props));
+
+#if AYLA_BUTTON_PUSH_REG_DEMO_ENABLE
+    /* start a timer or task to handle ayla register state. */
+    ayla_button_push_register_init();
+#endif
 }
 
 void demo_idle(void)
@@ -1265,7 +1373,6 @@ void demo_idle(void)
 	}
 }
 
-#define AYLA_BUTTON_PUSH_REG_DEMO_ENABLE 1
 #if AYLA_BUTTON_PUSH_REG_DEMO_ENABLE
 /* use cmd to start ayla register window. */
 #include <stdio.h>
