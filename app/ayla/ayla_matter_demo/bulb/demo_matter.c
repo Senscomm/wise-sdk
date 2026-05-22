@@ -41,6 +41,9 @@
 #include "bp1638cj.h"
 #include "build.h"
 
+#include "scm_gpio.h"
+// #include "gpio_types.h"
+
 #define DEMO_ENDPOINT_LIGHTING	1
 
 #define DEMO_SYNC_RETRY_MAX	10
@@ -71,6 +74,91 @@ static HsvColor_t hsv;
 static XyColor_t xy;
 
 static bool onboarding;
+
+#define DEMO_BUTTON_RESET
+#ifdef DEMO_BUTTON_RESET
+#include "scm_fs.h"
+#include "wise_system.h"
+#define GPIO_RESET_BUTTON   (3)
+
+#define BUTTON_SHORT_PRESSED_PERIOD_MIN 200
+#define BUTTON_SHORT_PRESSED_PERIOD_MAX 2000
+#define BUTTON_LONG_PRESSED_PERIOD 5000
+
+#define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / (uint32_t)1000))
+
+static unsigned long button_pressed;
+static unsigned long button_released;
+
+int gpio_get_level(int gpio)
+{
+	//printf("GPIO: get pin=%d\n", gpio);
+	uint8_t value;
+
+	if (scm_gpio_read((uint32_t)gpio, &value) != WISE_OK) {
+		printf("Error reading GPIO level\n");
+		return -1;
+	}
+	return (int)value;
+}
+
+static void button_reset_toggle(unsigned long pressed, unsigned long released)
+{
+    if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX)) {
+        log_put(LOG_INFO "Button short pressed");
+        /* Do nothing now... */
+    }
+
+    if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) {
+        log_put(LOG_INFO "Button long pressed");
+        /* Trigger factory reset */
+        printf("Call cli: fs clrall\n");
+        scm_fs_clear_all_config_value(NULL);
+        osDelay(MS_TO_TICKS(1000));
+        wise_restart();
+        // ada_conf_reset(1);
+    }
+}
+
+void button_reset_task(void *arg)
+{
+    while (1) {
+        if (gpio_get_level(GPIO_RESET_BUTTON) == 0) {
+            if (button_pressed == 0) {
+                button_pressed = time_now();
+                log_put(LOG_DEBUG "Button pressed");
+            }
+        } else {
+            if (button_pressed) {
+                button_released = time_now();
+                log_put(LOG_DEBUG "Button released");
+                button_reset_toggle(button_pressed, button_released);
+                button_pressed = 0;
+                button_released = 0;
+            }
+        }
+
+        osDelay(MS_TO_TICKS(100));
+    }
+}
+
+static void demo_button_reset_init()
+{
+    scm_gpio_configure(GPIO_RESET_BUTTON, SCM_GPIO_PROP_INPUT_PULL_UP);
+    scm_gpio_write(GPIO_RESET_BUTTON, 1);
+
+    osThreadAttr_t attr = {
+        .name 		= "button-reset",
+        .stack_size = 1024,
+        .priority 	= osPriorityNormal,
+    };
+
+    /* run the demo in a new thread to allow further CLI */
+    if (osThreadNew(button_reset_task, NULL, &attr) == NULL) {
+        printf("Button reset task start failed\n");
+    }
+}
+#endif
 
 /*
  * Matter Certification Declaration(s).
@@ -515,7 +603,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
             lighting_ctrl_add_event(&evt[i]);
         }
-        lighting_ctrl_run(-1, 30000/* 30s. */, demo_lc_completed);
+        lighting_ctrl_run(-1, 10000/* 10s. */, demo_lc_completed);
 
         onboarding = true;
     }
@@ -775,13 +863,6 @@ static void init_ayla_clusters(void)
 
 void demo_init(void)
 {
-#ifdef AYLA_LOCAL_CONTROL_SUPPORT
-	int rc;
-#endif
-
-    /* 替换成其他IC驱动 */
-    // bp5758d_init();
-	// bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
     bp1638cj_init();
     bp1638cj_set_rgbcw_channel(0, 0, 0, 77, 44);
 
@@ -795,23 +876,15 @@ void demo_init(void)
 	adm_init();
     init_ayla_clusters();
 	adm_event_cb_register(demo_matter_event_cb);
-	adm_start(demo_test_cert_declaration,
-	    sizeof(demo_test_cert_declaration));
-
-#ifdef AYLA_LOCAL_CONTROL_SUPPORT
-	/*
-	 * Enable local control access.
-	 */
-	rc = ada_client_lc_up();
-	if (rc) {
-		log_put(LOG_ERR "ADA local control up failed");
-		return;
-	}
-#endif
+	adm_start(demo_test_cert_declaration,sizeof(demo_test_cert_declaration));
 
 	adm_attribute_change_cb_register(&demo_on_off_cb_entry);
 	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
+
+#ifdef DEMO_BUTTON_RESET
+    demo_button_reset_init();
+#endif
 }
 
 void demo_idle(void)
@@ -830,8 +903,9 @@ void demo_idle(void)
 	}
 }
 
-#if 1
-// cli cmd control NVC
+#define NVC_CLI_CTRL_DEMO
+#ifdef NVC_CLI_CTRL_DEMO
+/* cli for nvc lighting demo */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -863,7 +937,6 @@ static int do_nvc_test(int argc, char *argv[])
     } else if (!strcmp(format, "white")) {
         bp1638cj_set_rgbcw_channel(0, 0, 0, value_r, value_g);
     } else if (!strcmp(format, "onoff")) {
-        // bp1638cj_set_standby(value_r);
         if (value_r != 0) {
             bp1638cj_set_rgbcw_channel(100, 100, 100, 0, 0);
         } else {
@@ -876,8 +949,5 @@ static int do_nvc_test(int argc, char *argv[])
 	return CMD_RET_SUCCESS;
 }
 
-CMD(nvc, do_nvc_test,
-		"Test nvc Bulb control",
-		"nvc <color|white|onoff> <r/c/on-off> <g/w/0> <b/0/0>"
-   );
+CMD(nvc, do_nvc_test, "Test nvc Bulb control", "nvc <color|white|onoff> <r/c/on-off> <g/w/0> <b/0/0>");
 #endif
