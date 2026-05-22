@@ -11,6 +11,41 @@ index bfac435030..905aa90a84 100644
      "better-comments.tags": [
          {
              "tag": "!",
+diff --git a/src/include/platform/CHIPDeviceConfig.h b/src/include/platform/CHIPDeviceConfig.h
+index 785b47656d..fb77918628 100644
+--- a/src/include/platform/CHIPDeviceConfig.h
++++ b/src/include/platform/CHIPDeviceConfig.h
+@@ -197,7 +197,7 @@
+  * Human readable name of the device model.
+  */
+ #ifndef CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME
+-#define CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME "TEST_PRODUCT"
++#define CHIP_DEVICE_CONFIG_DEVICE_PRODUCT_NAME "Nvc_RGBCW_Test"
+ #endif
+ 
+ /**
+@@ -220,7 +220,7 @@
+  * Human readable string identifying version of the product assigned by the device vendor.
+  */
+ #ifndef CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING
+-#define CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING "TEST_VERSION"
++#define CHIP_DEVICE_CONFIG_DEFAULT_DEVICE_HARDWARE_VERSION_STRING "1"
+ #endif
+ 
+ /**
+diff --git a/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp b/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+index 30cf92f712..9baa0f0114 100644
+--- a/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
++++ b/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+@@ -700,7 +700,7 @@ CHIP_ERROR FactoryDataProvider::GetVendorName(char * buf, size_t bufSize)
+ 
+     return CHIP_ERROR_BUFFER_TOO_SMALL;
+ #else
+-    static const char vendorName[] = "Senscomm";
++    static const char vendorName[] = "ETI";
+     strncpy(buf, vendorName, bufSize);
+ 
+     return CHIP_NO_ERROR;
 diff --git a/src/platform/senscomm/scm1612s/args.gni b/src/platform/senscomm/scm1612s/args.gni
 index b5bcf97e0a..89cbd20ce5 100644
 --- a/src/platform/senscomm/scm1612s/args.gni
@@ -48,29 +83,10 @@ index 6d5aadb9b4..b1d86fe456 100644
          "${scm1612s_sdk_root}/app/ayla/common/power_cycle_reset/power_cycle_reset.c",
          "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm.c",
          "${scm1612s_sdk_root}/app/ayla/common/ftm/ftm_bulb.c",
-diff --git a/third_party/senscomm/scm1612s/scm1612s_sdk.gni b/third_party/senscomm/scm1612s/scm1612s_sdk.gni
-index bcc27058fc..9535518708 100644
---- a/third_party/senscomm/scm1612s/scm1612s_sdk.gni
-+++ b/third_party/senscomm/scm1612s/scm1612s_sdk.gni
-@@ -68,10 +68,10 @@ template("scm1612s_sdk_sources") {
-     }
- 
-     # Build wise-sdk in-place with specified menuconfig.
--    exec_script("${scm1612s_sdk_build_root}/build-wise-sdk.py",
--            [ rebase_path("${scm1612s_sdk_build_root}", root_build_dir),
--              "scm1612s_matter_defconfig",
--            ])
-+    #exec_script("${scm1612s_sdk_build_root}/build-wise-sdk.py",
-+            #[ rebase_path("${scm1612s_sdk_build_root}", root_build_dir),
-+              #"scm1612s_matter_defconfig",
-+            #])
- 
-     public_deps = []
-     if (defined(invoker.public_deps)) {
 diff --git a/third_party/senscomm/scm1612s/wise-sdk b/third_party/senscomm/scm1612s/wise-sdk
-index 04c20b2821..72e127e036 160000
+index 04c20b2821..ace731d0dc 160000
 --- a/third_party/senscomm/scm1612s/wise-sdk
 +++ b/third_party/senscomm/scm1612s/wise-sdk
 @@ -1 +1 @@
 -Subproject commit 04c20b2821806513a91096e4b75a7897b8fc802a
-+Subproject commit 72e127e036829003af6e112dc67191add788aaf3
++Subproject commit ace731d0dc86201199bafad7bfe71d57a77ac2ce
