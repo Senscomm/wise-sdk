@@ -778,16 +778,16 @@ void key_led_timer_cb(void *arv)
 #define LED_ON_TIME            5000     // 按键指示灯亮灯时间(ms)
 
 // ADC按键阈值（根据实际分压电路调整，需实测校准）
-#define KEY_NONE_THRESH    800    // 无按键阈值
+#define KEY_NONE_THRESH    820    // 无按键阈值860
 
-#define KEY1_THRESH_LOW    200    // KEY1最小值
-#define KEY1_THRESH_HIGH   280   // KEY1最大值
+#define KEY1_THRESH_LOW    700    // KEY1最小值738
+#define KEY1_THRESH_HIGH   780   // KEY1最大值
 
-#define KEY2_THRESH_LOW    700    // KEY2最小值
-#define KEY2_THRESH_HIGH   750    // KEY2最大值
+#define KEY2_THRESH_LOW    600    // KEY2最小值
+#define KEY2_THRESH_HIGH   680    // KEY2最大值628 
 
-#define KEY3_THRESH_LOW    760    // KEY3最小值
-#define KEY3_THRESH_HIGH   780    // KEY3最大值
+#define KEY3_THRESH_LOW    300   // KEY3最小值
+#define KEY3_THRESH_HIGH   400    // KEY3最大值356
 
 // 按键枚举
 typedef enum {
@@ -870,6 +870,9 @@ static void adc_key_short_action(adc_key_t key)
 	extern light_ctrl_data_t sg_light_ctrl_data;
 	bool _switch = sg_light_ctrl_data.switch_status;
 	
+	//
+	extern SleepStatus_t sleep_data;
+	bool sleep_onoff = sleep_data.sleep_enable;
 
     switch (key) 
 	{
@@ -885,11 +888,19 @@ static void adc_key_short_action(adc_key_t key)
 			scm_gpio_write(MUSIC_KEY , 0);
 			wlt_ms_delay(200);
 			scm_gpio_write(MUSIC_KEY , 1);
-			light_mode_set(COLOR_MODE);
-			cwrgb_target_val_set(0, 0,10,0,50);
+			//light_mode_set(COLOR_MODE);
+			//cwrgb_target_val_set(0, 0,10,0,50);
+			if(!sleep_onoff)
+			{
+				sleep_data.sleep_enable =1 ;
+				wlt_sleep_start_deal();
+				
+			}
+			else
+			{
+				wlt_sleep_cancel_deal();
 
-
-
+			}	
 			
             break;
             

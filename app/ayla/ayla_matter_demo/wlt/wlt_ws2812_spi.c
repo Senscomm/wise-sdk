@@ -223,23 +223,23 @@ void ws2812_rgb_to_spi(const ws2812_pixel_t *pixels, uint8_t *spi_buf)
 #endif
 
 #else	//RBG  落地灯
-		//GRB  睡眠灯
+		//GRB  睡眠灯 亮度限制1/3
 	// 1. 处理红色分量
 
 #if SPI_4BIT_CONVERT_TO_WS2812_1BIT
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->green)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->green)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t high_bit  = (bright*(curr_pixel->green)/300 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->green)/300 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->red)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->red)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t high_bit  = (bright*(curr_pixel->red)/300 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->red)/300 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 	for (int8_t bit = 7; bit >= 0; bit -= 2) {
-		uint8_t high_bit  = (bright*(curr_pixel->blue)/100 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
-		uint8_t low_bit  =  (bright*(curr_pixel->blue)/100 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t high_bit  = (bright*(curr_pixel->blue)/300 & (1 << bit)) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
+		uint8_t low_bit  =  (bright*(curr_pixel->blue)/300 & (1 << (bit - 1))) ? WS2812_LOGIC_1_4BIT : WS2812_LOGIC_0_4BIT;
 		spi_buf[buf_idx++] = (high_bit << 4) | low_bit;
 	}
 
@@ -402,7 +402,7 @@ void wlt_ms_delay( int ms)
 	   LED_PWM_CH_MAX,
    }E_LED_PWM_CHANNEL;
 	   
-#define LED_PWM_CYCLE 1000
+#define LED_PWM_CYCLE 2000
  
 #define USE_PWM_NUM 3
 

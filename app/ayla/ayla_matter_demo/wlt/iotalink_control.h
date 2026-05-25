@@ -116,6 +116,8 @@ void wlt_sleep_start_deal(void);
 
 // 一键睡眠关
 void wlt_sleep_end_deal(void);
+// 睡眠取消
+void wlt_sleep_cancel_deal(void);
 
 //--------------------------------------------------------------------------------------------
 

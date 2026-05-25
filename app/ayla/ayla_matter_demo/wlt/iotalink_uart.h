@@ -53,6 +53,8 @@ typedef struct {
     uint8_t reserve3[5];       // Byte[27-31] 预留扩展
 } RadarRTData_t;
 
+void hex_dump(char *title, uint8_t *buf, int len);
+
 
 void wlt_uart_init(void);
 

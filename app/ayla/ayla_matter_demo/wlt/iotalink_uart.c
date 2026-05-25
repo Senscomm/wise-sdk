@@ -43,7 +43,7 @@ static struct scm_uart_cfg uart_rx_cfg = {
 };
 
 // -------------------------- HEX打印工具（排查专用） --------------------------
-static void hex_dump(char *title, uint8_t *buf, int len)
+void hex_dump(char *title, uint8_t *buf, int len)
 {
 	int i;
 	printf("%s [%d字节]:\n", title, len);
@@ -74,8 +74,8 @@ int iotalink_uart2_send_data( uint8_t * data, int len)
  */
 void wlt_control_music(uint8_t          volume , uint8_t  music_id ,uint8_t  play_ctrl)
 {
-
-	u8 music_cmd[10]={0x1D,	0x18,0x01, 0, 0,	0,  1,	0xff,	0xff,	0xD1};
+	
+	u8 music_cmd[9]={0x1D,	0x18,0x01, 0, 0, 1,	0xff,	0xff,	0xD1};
 	// 	// 音量 0~10
 	music_cmd[3]=volume;
 	// 音乐编号 0~9
@@ -83,7 +83,9 @@ void wlt_control_music(uint8_t          volume , uint8_t  music_id ,uint8_t  pla
 	// 播放控制：0=暂停 1=播放	
 	music_cmd[5]=play_ctrl; 		
 
-	iotalink_uart2_send_data(music_cmd ,10);
+	iotalink_uart2_send_data(music_cmd ,9);
+
+	hex_dump("wlt_control_music",music_cmd,9);
 
 }
 // -------------------------- 累加和计算（收发通用） --------------------------
