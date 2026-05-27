@@ -138,3 +138,7 @@ if SCM2020_WLAN_PM
 	bool "Prevent AP from sending NDPA when in sleep mode"
 	default n
 endif
+
+config SCM2020_WLAN_TX_PWR_1212
+	bool "Update WLAN TX Power Setting for 1212/W69/CBU Ref-Board"
+	default y

@@ -74,6 +74,8 @@ CONFIG_SCM2010_PM_WIFI_AUTO_RUN=y
 # CONFIG_SCM2010_PM_HOLE_PUNCH is not set
 # CONFIG_PM_TEST is not set
 
+CONFIG_SCM2020_WLAN_TX_PWR_1212=y
+
 #
 # Power management feature
 #
@@ -89,6 +91,7 @@ CONFIG_PM_AON_GPIO_CTRL=y
 CONFIG_PM_RFC_LP_BYS=y
 CONFIG_PM_DLDO_DCDC_CTRL=y
 # CONFIG_PM_GPIO_DBG is not set
+
 
 #
 # Device configuration
