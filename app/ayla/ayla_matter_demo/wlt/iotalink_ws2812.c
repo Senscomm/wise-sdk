@@ -4536,6 +4536,7 @@ unsigned char  default_scene[33+1][38]=
 	}
  }
 
+u16 g_last_warm_duty;
 void iotalink_magic_lantern_process (void * argv)
 {
 
@@ -4553,9 +4554,10 @@ void iotalink_magic_lantern_process (void * argv)
 		switch(sg_light_ctrl_data.mode)
 		{
 			case WHITE_MODE:
-
-				//wlt_light_set_rgbcw(100,100,0,0,0);
-				wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,0,0,0);
+				if (g_last_warm_duty != sg_light_ctrl_data.target_val.warm) {
+					wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,0,0,0);
+				}
+				g_last_warm_duty = sg_light_ctrl_data.target_val.warm;
 				break;	
 			
 			case COLOR_MODE:
@@ -5103,5 +5105,3 @@ void wlt_light_set_rgbcw(u16 cold, u16 warm,u16 red, u16 green,u16 blue)
 
 }
 #endif
-
-
