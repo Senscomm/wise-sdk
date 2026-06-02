@@ -109,9 +109,12 @@ void app_main()
 	iotalink_control_timer_init();
 	// wlt_init
 
-	wlt_ws2812_test();//spi Çý¶¯	
+	wlt_ws2812_test();//spi Çý¶¯
+	
 	iotalink_light_driver_init();
+
 //	iotalink_button_init();
+
 	iotalink_adc_init();
 	
 	iotalink_light_ctrl_process();

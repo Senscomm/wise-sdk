@@ -794,7 +794,7 @@ int max30102_init(void)
 
 
 /****************************************************/
-#define FINGER_DETECT_THRESHOLD  4000    // 手指检测阈值（无手指信号<1000，有手指>xxx0，要具体微调）
+#define FINGER_DETECT_THRESHOLD  2000    // 手指检测阈值（无手指信号<1000，有手指>xxx0，要具体微调）
 
 // 手指检测：1=有手指  0=无手指
 uint8_t max30102_check_finger(void)
@@ -812,6 +812,7 @@ uint8_t max30102_check_finger(void)
 
 void max30102_task(void)
 {
+	u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
     while(1)
     {
         // 每次重新测量先初始化
@@ -827,10 +828,18 @@ void max30102_task(void)
         {
             if(max30102_check_finger())
             {
-                printf("检测到手指，开始采样...\r\n");
+            	if(dis_spo2==0)//
+            	{
+	                printf("检测到手指，开始采样...\r\n");
+					spo2[3] = 90;
+					wlt_radar_notify(spo2,9);//上报血氧
+
+				}
                 break;
             }
-            osDelay(MS_TO_TICKS(100));
+
+			// printf("正在检测...\r\n");
+            osDelay(MS_TO_TICKS(20));
         }
 
         // 2. 采集500点，**每采一点都检测手指**，松手立刻终止
@@ -841,6 +850,10 @@ void max30102_task(void)
             {
                 printf("采样中途手指松开，本次测量终止\r\n");
                 sample_abort = 1;
+				
+				spo2[3] = 0;
+				wlt_radar_notify(spo2,9);//上报血氧
+
                 break;
             }
 
@@ -856,6 +869,7 @@ void max30102_task(void)
         // 中途松手，直接重新一轮
         if(sample_abort)
         {
+
             dis_hr = 0;
             dis_spo2 = 0;
             osDelay(MS_TO_TICKS(500));
@@ -878,7 +892,7 @@ void max30102_task(void)
          //   printf("心率: %d BPM | 血氧: %d %% \r\n\r\n", dis_hr, dis_spo2);
 			printf(" SPO2 血氧: %d %% \r\n\r\n",  dis_spo2);
 
-			u8 spo2[]={0x1D ,0x1b, 0x02, 95, 0xff ,0xff, 0xff ,0xff ,0xD1};
+			
 		  //  spo2[3] = rand()%5+90;
 			 spo2[3] = dis_spo2;
 			wlt_radar_notify(spo2,9);//上报血氧

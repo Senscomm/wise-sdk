@@ -402,7 +402,7 @@ void wlt_ms_delay( int ms)
 	   LED_PWM_CH_MAX,
    }E_LED_PWM_CHANNEL;
 	   
-#define LED_PWM_CYCLE 2000
+#define LED_PWM_CYCLE 1000
  
 #define USE_PWM_NUM 3
 
