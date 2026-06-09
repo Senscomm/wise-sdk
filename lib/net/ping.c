@@ -21,6 +21,8 @@
 #include "hal/kernel.h"
 #include "hal/timer.h"
 
+#include "ping.h"
+
 #include "lwip/icmp.h"
 #include "lwip/inet_chksum.h"
 #include "lwip/prot/ip4.h"
@@ -480,6 +482,13 @@ wait_reply:
 		ungetc(c, stdin);
 
 	return ret;
+}
+
+int ping_check_external_connectivity(void)
+{
+	char *argv[] = { "ping", "-c", "1", "-q", "8.8.8.8" };
+
+	return ping(5, argv);
 }
 
 

@@ -836,6 +836,8 @@ int al_bt_process_gap_event(void *input)
 			al_bt_connections++;
 			rc = al_bt_connection_add(event->connect.conn_handle);
 			rc = ble_gap_conn_find(event->connect.conn_handle, &desc);
+			/* cb for ota svc */
+			adb_conn_event_notify(ADB_CONN_UP,event->connect.conn_handle);
 
 			char addr_str1[20], addr_str2[20];
 			adb_snprint_addr(desc.our_id_addr.val, addr_str1,sizeof(addr_str1));
@@ -862,6 +864,9 @@ int al_bt_process_gap_event(void *input)
 		printf("disconnect reason %d\n",event->disconnect.reason);
 		rc = al_bt_connection_delete(event->disconnect.conn.conn_handle);
 		al_bt_connections--;
+		/* cb for ota svc */
+		adb_conn_event_notify(ADB_CONN_DOWN,event->connect.conn_handle);
+
 		if (event->disconnect.reason == BLE_HS_ETIMEOUT_HCI) {
 			al_bt_controller_syncd = 0;
 			break;

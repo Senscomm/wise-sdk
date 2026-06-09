@@ -34,6 +34,8 @@
 #include <bootutil/bootutil.h>
 #include <bootutil/image.h>
 
+#include <scm_mcuboot/mcuboot_agent.h>
+
 #define MAX_BUF_LEN         (1024 * 2)
 #define MAX_WRITE_BUF_LEN   (1024 * 4)
 
@@ -42,6 +44,9 @@ extern void flash_crypto_enable(uint8_t enable);
 static int sockfd;
 static char *hbuf;
 static char *fbuf;
+static void (*mcuboot_progress_cb)(uint8_t progress, void *arg);
+static void *mcuboot_progress_arg;
+static uint8_t mcuboot_last_progress;
 
 uint32_t img_oft;
 uint32_t fbuf_idx;
@@ -52,6 +57,23 @@ const struct flash_area *fap;
 #define HTTP_DEBUG_PACKET   1
 
 #define SECODARY_HEADER_OFFSET	CONFIG_SCM2010_OTA_SECONDARY_SLOT_OFFSET
+
+static void mcuboot_agent_report_progress(uint32_t offset, uint32_t file_size)
+{
+    uint8_t progress;
+
+    if (!mcuboot_progress_cb || !file_size) {
+        return;
+    }
+
+    progress = (offset >= file_size) ? 100 : (uint8_t)((offset * 100U) / file_size);
+    if (progress == mcuboot_last_progress) {
+        return;
+    }
+
+    mcuboot_last_progress = progress;
+    mcuboot_progress_cb(progress, mcuboot_progress_arg);
+}
 
 int check_magic(void)
 {
@@ -288,9 +310,15 @@ static int http_recv_rsp(void)
     }
 
     /* copy body part */
-    file_open();
+    ret = file_open();
+    if (ret < 0) {
+        printf("error: open secondary slot\n");
+        return ret;
+    }
+
     ret = file_write(&hbuf[hdr_len + 1], len - (hdr_len + 1));
     offset = len - (hdr_len + 1);
+    mcuboot_agent_report_progress(offset, file_size);
     if (ret) {
         goto out;
     }
@@ -304,6 +332,7 @@ static int http_recv_rsp(void)
 
         offset += len;
         ret = file_write(hbuf, len);
+        mcuboot_agent_report_progress(offset, file_size);
         if (ret) {
             goto out;
         }
@@ -313,8 +342,19 @@ static int http_recv_rsp(void)
 #endif
     }
 
+    if (!ret && offset != file_size) {
+        printf("error: incomplete download %d/%d\n", offset, file_size);
+        ret = -1;
+    }
+
 out:
-    ret = file_close();
+    if (file_close() < 0) {
+        ret = -1;
+    }
+
+    if (!ret) {
+        mcuboot_agent_report_progress(file_size, file_size);
+    }
 
     return ret;
 }
@@ -392,6 +432,9 @@ static int get_firmware(char *addr, uint16_t port, char *path)
     struct sockaddr_in serv;
     int ret = -1;
 
+    hbuf = NULL;
+    fbuf = NULL;
+
     printf("firmware file: [%s:%d] [%s]\n", addr, port, path);
 
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -448,9 +491,11 @@ error:
 
     if (hbuf) {
         free(hbuf);
+        hbuf = NULL;
     }
     if (fbuf) {
         free(fbuf);
+        fbuf = NULL;
     }
 
     return ret;
@@ -480,32 +525,38 @@ static void check_slot_trailer(void)
     flash_area_close(fap);
 }
 
-static int do_mcuboot_agent(int argc, char *argv[])
+int mcuboot_agent_run(const char *url, const struct mcuboot_agent_params *params)
 {
-    char *url = argv[1];
+    char *url_copy;
     char *addr;
     char *port;
     char *path;
     int ret;
     uint16_t port_num;
-    struct device *wdt;
 
-    if (argc < 2) {
-        return CMD_RET_USAGE;
+    if (!url) {
+        return -1;
     }
 
-    if (strncmp(url, "http://", 7) != 0) {
+    url_copy = strdup(url);
+    if (!url_copy) {
+        return -1;
+    }
+
+    if (strncmp(url_copy, "http://", 7) != 0) {
         printf("error: invalid protocol\n");
-        return CMD_RET_USAGE;
+        free(url_copy);
+        return -1;
     }
 
-    addr = url + 7;
+    addr = url_copy + 7;
     path = strchr(addr, '/');
     if (path) {
         *path++ = '\0';
     } else {
         printf("error: invalid path\n");
-        return CMD_RET_USAGE;
+        free(url_copy);
+        return -1;
     }
 
     port = strchr(addr, ':');
@@ -516,26 +567,53 @@ static int do_mcuboot_agent(int argc, char *argv[])
         port_num = 80;
     }
 
+    mcuboot_progress_cb = params ? params->progress_cb : NULL;
+    mcuboot_progress_arg = params ? params->cb_arg : NULL;
+    mcuboot_last_progress = 0xff;
+    mcuboot_agent_report_progress(0, 1);
+
     img_oft = 0;
     fbuf_idx = 0;
 
     check_slot_trailer();
 
     flash_crypto_enable(0);
-
     ret = get_firmware(addr, port_num, path);
-
     flash_crypto_enable(1);
 
+    free(url_copy);
+    url_copy = NULL;
+
     if (ret < 0) {
-        return CMD_RET_FAILURE;
+        return -1;
     }
 
     boot_set_pending_multi(0, 0);
 
-    wdt = device_get_by_name("atcwdt");
-    if (wdt) {
-        wdt_expire_now(wdt);
+    if (params && params->auto_reboot) {
+        struct device *wdt;
+
+        wdt = device_get_by_name("atcwdt");
+        if (wdt) {
+            wdt_expire_now(wdt);
+        }
+    }
+
+    return 0;
+}
+
+static int do_mcuboot_agent(int argc, char *argv[])
+{
+    struct mcuboot_agent_params params = {
+        .auto_reboot = 1,
+    };
+
+    if (argc < 2) {
+        return CMD_RET_USAGE;
+    }
+
+    if (mcuboot_agent_run(argv[1], &params) < 0) {
+        return CMD_RET_FAILURE;
     }
 
     return 0;

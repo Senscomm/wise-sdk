@@ -32,6 +32,7 @@
 #include <adb/adb_ayla_svc.h>
 #include <adb/adb_conn_svc.h>
 #include <adb/adb_wifi_cfg_svc.h>
+#include <adb/adb_ota_svc.h>
 
 #include "app_int.h"
 #include "app_event.h"
@@ -52,9 +53,40 @@
 
 #include "scm_flash.h"
 #include "scm_gpio.h"
+#include "ping.h"
 
 
 #include "iotalink.h"
+
+
+/* Note: OTA_APP_VER format should be x.x.x and x is in range [0,9] */
+#define OTA_APP_VER     "1.0.0"
+int demo_get_app_version()
+{
+    int major, minor, patch;
+    if (sscanf(OTA_APP_VER, "%d.%d.%d", &major, &minor, &patch) != 3) {
+        return -1;
+    }
+    return major * 100 + minor * 10 + patch;
+}
+
+uint8_t ip_up;
+uint8_t demo_get_ip_state()
+{
+    return ip_up;
+}
+
+#define DEMO_EXTERNAL_PING_HOST "8.8.8.8"
+
+int demo_log_external_connectivity(void)
+{
+    int ret = ping_check_external_connectivity();
+
+    log_put(LOG_INFO "External network %s via ping %s",
+        ret == 0 ? "reachable" : "unreachable",
+        DEMO_EXTERNAL_PING_HOST);
+    return ret == 0 ? 1 : 0;
+}
 
 static struct {
     s32 brightness;
@@ -1085,6 +1117,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         break;
     }
 	case ADM_EVENT_IPV4_UP:
+        ip_up = 1;
         if (ac_conn_timer) {
             log_put(LOG_INFO "IPV4 up, notify ADA after %d s!", AC_DELAY_TIMER_MSECS/1000);
             osTimerStart(ac_conn_timer, msecs_to_ticks(AC_DELAY_TIMER_MSECS));
@@ -1096,6 +1129,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		break;
 
 	case ADM_EVENT_IPV4_DOWN:
+        ip_up = 0;
 		ada_client_ip_down();
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
@@ -1569,6 +1603,7 @@ void demo_init(void)
     adb_ayla_svc_register(NULL);
     adb_wifi_cfg_svc_register(NULL);
     adb_conn_svc_register(NULL);
+    adb_ota_svc_register(NULL);
 
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
