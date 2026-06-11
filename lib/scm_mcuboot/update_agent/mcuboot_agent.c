@@ -359,7 +359,7 @@ out:
     return ret;
 }
 
-static int http_send_req(struct sockaddr_in serv, char *path)
+static int http_send_req(const char *host, uint16_t port, char *path)
 {
     int ret;
 
@@ -369,12 +369,32 @@ static int http_send_req(struct sockaddr_in serv, char *path)
             "User-Agent: wise\r\n"
             "Host: %s:%d\r\n"
             "\r\n",
-            path, inet_ntoa(serv.sin_addr),
-            ntohs(serv.sin_port));
+        path, host, port);
 
     ret = send(sockfd, hbuf, strlen(hbuf), 0);
 
     return ret;
+}
+
+static struct addrinfo *resolv_hostname(const char *hostname,
+                                        const char *service,
+                                        int family, int socktype,
+                                        int flags)
+{
+    struct addrinfo hint = {
+        .ai_flags = AI_CANONNAME | flags,
+        .ai_family = family,
+        .ai_socktype = socktype,
+    };
+    struct addrinfo *ai;
+    int ret;
+
+    ret = getaddrinfo(hostname, service, &hint, &ai);
+    if (ret != 0) {
+        return NULL;
+    }
+
+    return ai;
 }
 
 int connect_timeout(struct sockaddr_in *serv, int timeout_ms)
@@ -430,10 +450,10 @@ int connect_timeout(struct sockaddr_in *serv, int timeout_ms)
 static int get_firmware(char *addr, uint16_t port, char *path)
 {
     struct sockaddr_in serv;
+    struct addrinfo *ai;
+    char ipaddr[INET_ADDRSTRLEN];
+    char service[6];
     int ret = -1;
-
-    hbuf = NULL;
-    fbuf = NULL;
 
     printf("firmware file: [%s:%d] [%s]\n", addr, port, path);
 
@@ -456,8 +476,23 @@ static int get_firmware(char *addr, uint16_t port, char *path)
 
     memset(&serv, 0, sizeof(serv));
     serv.sin_family = AF_INET;
-    serv.sin_addr.s_addr = inet_addr(addr);
-    serv.sin_port = htons(port);
+
+    snprintf(service, sizeof(service), "%u", port);
+    ai = resolv_hostname(addr, service, AF_INET, SOCK_STREAM, 0);
+    if (!ai) {
+        printf("error: resolve host %s failed\n", addr);
+        goto error;
+    }
+
+    memcpy(&serv, ai->ai_addr, ai->ai_addrlen);
+    freeaddrinfo(ai);
+
+    if (!inet_ntop(AF_INET, &serv.sin_addr, ipaddr, sizeof(ipaddr))) {
+        printf("error: convert resolved ip failed\n");
+        goto error;
+    }
+
+    printf("resolved host %s to %s\n", addr, ipaddr);
 
     printf("connect to server, sock=%d\n", sockfd);
 
@@ -469,7 +504,7 @@ static int get_firmware(char *addr, uint16_t port, char *path)
 
     printf("send request\n");
 
-    ret = http_send_req(serv, path);
+    ret = http_send_req(addr, port, path);
     if (ret < 0) {
         printf("error: sending request\n");
         goto error;
