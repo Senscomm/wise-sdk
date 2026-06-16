@@ -289,7 +289,7 @@ static enum adb_att_err adb_ota_write_cb(u16 conn, const struct adb_attr * attr,
         status          = adb_ota_ctx.status;
         status.state    = demo_get_ip_state();
         status.result   = demo_log_external_connectivity();
-        status.reserved = ADB_OTA_CMD_GET_NET - 2;
+        status.reserved = ADB_OTA_CMD_GET_NET - 1;
         osMutexRelease(adb_ota_ctx.lock);
         adb_ota_notify_conn(conn, &status);
         return ADB_ATT_SUCCESS;

@@ -553,7 +553,7 @@ extern "C" void adm_log(const char *fmt, ...)
 	ADA_VA_LIST args;
 
 	ADA_VA_START(args, fmt);
-	log_put_va(MOD_LOG_CLIENT, fmt, args);
+	log_put_va(MOD_LOG_MATTER, fmt, args);
 	ADA_VA_END(args);
 }
 
@@ -1710,15 +1710,15 @@ void LogV(const char * module, uint8_t category, const char * msg, va_list v)
 		sev = LOG_SEV_ERR;
 		break;
 	case kLogCategory_Progress:
-	default:
 		sev = LOG_SEV_DEBUG;
 		break;
 	case kLogCategory_Detail:
+	default:
 		sev = LOG_SEV_DEBUG2;
 		break;
 	}
 
-	if (!log_mod_sev_is_enabled(MOD_LOG_CLIENT, sev)) {
+	if (!log_mod_sev_is_enabled(MOD_LOG_MATTER, sev)) {
 		return;
 	}
 
@@ -1729,8 +1729,8 @@ void LogV(const char * module, uint8_t category, const char * msg, va_list v)
 		}
 	}
 
-	snprintf(format, sizeof(format), "matter[%s]: %s", module, msg);
-	log_put_va_sev(MOD_LOG_CLIENT, sev, format, v);
+	snprintf(format, sizeof(format), "[%s]: %s", module, msg);
+	log_put_va_sev(MOD_LOG_MATTER, sev, format, v);
 }
 
 } // namespace Platform

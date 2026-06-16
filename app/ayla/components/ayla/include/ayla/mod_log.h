@@ -36,6 +36,7 @@ PREPACKED_ENUM enum mod_log_id {
 	MOD_LOG_BT,
 	MOD_LOG_FIREDOME,
 	MOD_LOG_MQTT,
+	MOD_LOG_MATTER,
 	__MOD_LOG_LIMIT		/* must be last */
 } PACKED_ENUM;
 ASSERT_SIZE(enum, mod_log_id, 1);
@@ -58,6 +59,7 @@ ASSERT_COMPILE(mod_log_ct, (int)__MOD_LOG_LIMIT - 1 <= (int)LOG_MOD_APP_MAX);
 	[MOD_LOG_BT] = "bt",			\
 	[MOD_LOG_FIREDOME] = "firedome",	\
 	[MOD_LOG_MQTT] = "mqtt",		\
+	[MOD_LOG_MATTER] = "matter",	\
 }
 
 #ifdef __cplusplus

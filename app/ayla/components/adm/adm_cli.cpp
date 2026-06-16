@@ -214,6 +214,12 @@ static int adm_cli_info_show(void)
 	uint8_t buf[64];
 	MutableByteSpan mutable_span;
 	ChipError chip_err;
+#ifdef AYLA_CHIP_BUILD_EXAMPLE_CREDS
+	strcpy((char *)buf, "Default Ayla Examples");
+#else
+	strcpy((char *)buf, "Flash Factory Datas");
+#endif
+	printcli("dataSrc:\t\t%s", buf);
 
 	buf[0] = '\0';
 	diip->GetVendorName((char *)buf, sizeof(buf));
@@ -234,13 +240,13 @@ static int adm_cli_info_show(void)
 
 	memset(buf, 0, sizeof(buf));
 	cm.GetUniqueId((char *)buf, sizeof(buf));
-	printcli("unique id:\t\t%s", buf);
+	printcli("uniqueID(B64):\t\t%s", buf);
 
 	memset(buf, 0, sizeof(buf));
 	mutable_span = MutableByteSpan(buf);
 	chip_err = diip->GetRotatingDeviceIdUniqueId(mutable_span);
 	if (chip_err == CHIP_NO_ERROR) {
-		dumpcli("rotating id:\t\t",
+		dumpcli("uniqueID(HEX):\t\t",
 		    mutable_span.data(), mutable_span.size());
 	} else {
 		printcli("rotating id:");

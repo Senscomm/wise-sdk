@@ -845,18 +845,21 @@ int al_bt_process_gap_event(void *input)
 			printf("our_id:%s, peer_id:%s, conn itvl:%d latency:%d timeout:%d enc:%d auth:%d bond:%d\n",
 				addr_str1, addr_str2, desc.conn_itvl, desc.conn_latency, desc.supervision_timeout,
 				desc.sec_state.encrypted, desc.sec_state.authenticated, desc.sec_state.bonded);
-#if TMP_DEBUG
-			// struct ble_gap_upd_params params = {
-			// 	.itvl_min = 20, // 25ms
-			// 	.itvl_max = 40, // 50ms
-			// 	.latency = 0,
-			// 	.supervision_timeout = 500,  // 5秒
-			// };
-			// rc = ble_gap_update_params(event->connect.conn_handle, &params);
-			// printf("Slave update conn params, rc:%d!!!\n", rc);
+#if 0
+			/* Test by using Central Connection parameters */
+			struct ble_gap_upd_params params = {
+				.itvl_min = 20, // 25ms
+				.itvl_max = 40, // 50ms
+				.latency = 0,
+				.supervision_timeout = 500,  // 5s
+			};
+			rc = ble_gap_update_params(event->connect.conn_handle, &params);
+			adb_log(LOG_INFO "Slave update conn params, rc:%d.\n", rc);
 #endif
-			printf("[BT]Close stopping passive scan workround!\n");
-			// al_bt_scan_special_event_handle();
+#ifdef AL_BT_HYD_CONN_WORKAROUND
+			adb_log(LOG_INFO "%s Using HYD connect workaround.\n", __func__);
+			al_bt_scan_special_event_handle();
+#endif
 		}
 		break;
 
@@ -2496,7 +2499,7 @@ int al_bt_scan_start(void)
         printf("error scanning; rc=%d\n", rc);
         return rc;
     }
-    printf("!!!Start bt scan, intlv:%d; window:%d!\n", scan_params.itvl, scan_params.window);
+	adb_log(LOG_INFO "%s intlv:%u, window:%u", __func__, scan_params.itvl, scan_params.window);
     return 0;
 }
 
@@ -2505,10 +2508,12 @@ int al_bt_scan_cancel(void)
     int rc;
 
     rc = ble_gap_disc_cancel();
-    printf("!!!Stop bt scan!\n");
+	adb_log(LOG_INFO "%s Stop bt passive scan.", __func__);
     return rc;
 }
 
+#ifdef AL_BT_HYD_CONN_WORKAROUND
+/* When process bt connect event, stop passive scan. */
 static osTimerId_t al_bt_scan_timer = NULL;
 #define AL_BT_SCAN_TIMEOUT_MS (60 * 1000)
 u32 al_bt_scan_timeout_ms = (60 * 1000);
@@ -2548,9 +2553,9 @@ void al_bt_scan_special_event_handle(void)
 
 	osMutexRelease(scan_mutex);
 }
+#endif /* AL_BT_HYD_CONN_WORKAROUND */
 
-/* For self debug */
-#if 1
+#ifdef AL_BT_HYD_CMD_DEBUG
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -2588,7 +2593,6 @@ CMD(blescan, do_ble_scan_ctrl,
 		"Change ble scan interval",
 		"blescan <itvl|stop|start> <v > 5s>"
 	);
-
-#endif
+#endif /* AL_BT_HYD_CMD_DEBUG */
 
 #endif /* AYLA_BLUETOOTH_SUPPORT */

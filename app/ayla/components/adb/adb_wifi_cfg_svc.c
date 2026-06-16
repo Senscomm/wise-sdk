@@ -368,7 +368,12 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 		conn_state = WIFI_STATE_NETWORK_CONNECTING;
 		break;
 	case ADM_EVENT_WIFI_STA_GOT_IP:
+#ifdef AYLA_ADA_SERVICE_ENABLE 
 		conn_state = WIFI_STATE_CLOUD_CONNECTING;
+#else
+		/* w/o ayla ada service, we dont need care about cloud then IP status is enough. */
+		conn_state = WIFI_STATE_UP;
+#endif
 		break;
 	case ADM_EVENT_WIFI_SCAN_DONE:
 		printf("WiFi Start Scan!!\n");
@@ -391,6 +396,7 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 }
 #endif
 
+#ifdef AYLA_ADA_SERVICE_ENABLE 
 static void adb_wifi_cfg_client_event_handler(void *arg, enum ada_err err)
 {
 	static u8 client_up;
@@ -412,6 +418,7 @@ static void adb_wifi_cfg_client_event_handler(void *arg, enum ada_err err)
 		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP,WIFI_ERR_NONE);
 	}
 }
+#endif
 
 static enum adb_att_err adb_wifi_cfg_wps_start_cb(u16 conn,
     const struct adb_attr *attr, u8 *buf, u16 length)
@@ -585,7 +592,9 @@ int adb_wifi_cfg_svc_register(const struct adb_attr **service)
 	// adw_wifi_event_register(adb_wifi_cfg_wifi_event_handler, NULL);
 	/* Note: Use ADM cb instead of adw, adw dose not support matter now. */
 	adm_event_cb_register(adb_wifi_cfg_wifi_event_handler);
+#ifdef AYLA_ADA_SERVICE_ENABLE 
 	ada_client_event_register(adb_wifi_cfg_client_event_handler, NULL);
+#endif
 
 	return al_bt_register_service(wifi_cfg_svc_table);
 }
