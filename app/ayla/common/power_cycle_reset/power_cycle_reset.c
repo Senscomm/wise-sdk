@@ -20,8 +20,9 @@
 #include <wise_err.h>
 #include <scm_wifi.h>
 #include <scm_flash.h>
+#ifdef AYLA_ADA_SERVICE_ENABLE
 #include "ftm.h"
-
+#endif
 #define MS_TO_TICKS(ms) ((uint32_t)(((uint32_t)(ms) * osKernelGetTickFreq()) / (uint32_t)1000))
 #define FLASH_SECTOR_SIZE 4096
 #define POWER_CYCLE_THRESHOLD 5        /* Number of power cycles to trigger reset */
@@ -127,11 +128,11 @@ void check_power_cycle_count(void)
             uint8_t state = POWER_STABLE_STATE;
             scm_partition_write(FLASH_PARTITION_LOG, pos - 1, &state, sizeof(state));
         }
-        
+#ifdef AYLA_ADA_SERVICE_ENABLE
         /* Exit from the FTM mode */
         ftm = 0;
         al_persist_data_write(AL_PERSIST_FACTORY, "ftm/ftm", &ftm, sizeof(ftm));
-
+#endif
         /* Trigger factory reset */
         ada_conf_reset(1);
         return;

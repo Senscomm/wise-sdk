@@ -32,8 +32,10 @@
 #include <cmsis_os.h>
 
 #include "cli/cli.h"
+#ifdef AYLA_ADA_SERVICE_ENABLE
 #ifdef CONFIG_AYLA_BULB
 #include "ftm.h"
+#endif
 #endif
 
 #define APP_SETUP_ENABLE_KEY	"secretkey"
@@ -82,6 +84,7 @@ void adap_conf_reset(int factory)
 	wise_restart();
 }
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 static int demo_client_cmd(int argc, char **argv)
 {
 	ada_client_cli(argc, argv);
@@ -107,6 +110,28 @@ ayla_cmd_def(conf) = {
     .hit = "conf [show] - show configuration" ,
     .func = demo_conf_cmd,
 };
+#endif
+
+#ifdef CONFIG_CMDLINE
+int run_ayla_cmd(int argc, char * argv[])
+{
+    const struct app_cli_info *start, *end, *cmd;
+    start = ayla_cmd_start();
+    end   = ayla_cmd_end();
+
+    for (cmd = start; cmd < end; cmd++) {
+        if (strcmp(cmd->cmd, argv[0]) == 0) {
+            return cmd->func(argc, argv);
+        }
+    }
+
+    for (cmd = start; cmd < end; cmd++) {
+        printf("%-16s - %s\n", cmd->cmd, cmd->help);
+    }
+
+    return -1;
+}
+#endif
 
 static int demo_log_cli(int argc, char **argv)
 {
@@ -132,6 +157,7 @@ ayla_cmd_def(matter) = {
     .func = demo_matter_cli
 };
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 static int demo_oem_cli(int argc, char **argv)
 {
 	ada_conf_oem_cli(argc, argv);
@@ -143,6 +169,7 @@ ayla_cmd_def(oem) = {
 	.help = "oem key <secret> [oem-model]",
     .func = &demo_oem_cli
 };
+#endif
 
 static int demo_conf_reset_cli(int argc, char **argv)
 {
@@ -165,6 +192,7 @@ ayla_cmd_def(reset) = {
     .func = &demo_conf_reset_cli
 };
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 static int demo_setup_mode_cli(int argc, char **argv)
 {
     app_setup_mode_cmd(argc, argv);
@@ -334,29 +362,6 @@ ayla_cmd_def(diag) = {
     .func = &demo_diag_cmd
 };
 
-#ifdef CONFIG_CMDLINE
-
-int run_ayla_cmd(int argc, char *argv[])
-{
-	const struct app_cli_info *start, *end, *cmd;
-	start = ayla_cmd_start();
-	end = ayla_cmd_end();
-
-	for (cmd = start; cmd < end; cmd++) {
-		if (strcmp(cmd->cmd, argv[0]) == 0) {
-			return cmd->func(argc, argv);
-		}
-	}
-
-	for (cmd = start; cmd < end; cmd++) {
-		printf("%-16s - %s\n", cmd->cmd, cmd->help);
-	}
-
-	return -1;
-}
-
-#endif
-
 void app_cmd_exec(const char *command)
 {
 	/*
@@ -401,46 +406,4 @@ void app_save_cmd(int argc, char **argv)
 	}
 	conf_cli(2, args);
 }
-
-
-#ifndef STOP_CLI_DEBUG
-static int ctrl_stop_ble_adv(int argc, char **argv)
-{
-	printf("BLE adv: %s\n", ble_gap_adv_active() ? "active" : "inactive");
-	if (argc == 2 && !strcmp(argv[1], "off")) {
-		printf("Stop BLE ADV!\n");
-		ble_gap_adv_stop();
-	} else if (argc == 2 && !strcmp(argv[1], "on")) {
-		printf("Open BLE ADV");
-		struct ble_gap_adv_params adv_params;
-		memset(&adv_params, 0, sizeof(adv_params));
-		adv_params.disc_mode = BLE_GAP_DISC_MODE_GEN;
-		adv_params.conn_mode = BLE_GAP_CONN_MODE_UND;
-		ble_gap_adv_stop();
-		ble_gap_adv_start(BLE_OWN_ADDR_PUBLIC, NULL, BLE_HS_FOREVER, &adv_params, NULL, NULL);
-	} else if (argc == 2 && !strcmp(argv[1], "reset")) {
-		printf("Trigger an Event!!\n");
-		adm_post_event_to_plat_for_test();
-	}
-    return 0;
-}
-
-ayla_cmd_def(bleadv) = {
-    .cmd = "bleadv",
-    .help = "dbg - ctrl ble adv manually, on or off",
-    .func = &ctrl_stop_ble_adv
-};
-
-static int show_dbg_version(int argc, char **argv)
-{
-	/* Distinguish between dbg versions */
-	printf("[HYD][f-l1.0.4][260327]:An Integrate Version!\n");
-	return 0;
-}
-
-ayla_cmd_def(dbgv) = {
-    .cmd = "dbgv",
-    .help = "dbgv - debug version",
-    .func = &show_dbg_version
-};
 #endif

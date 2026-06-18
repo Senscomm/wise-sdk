@@ -1,0 +1,535 @@
+diff --git src/lib/dnssd/Advertiser_ImplMinimalMdns.cpp src/lib/dnssd/Advertiser_ImplMinimalMdns.cpp
+index f29ff25d63..37a9e11bb5 100644
+--- src/lib/dnssd/Advertiser_ImplMinimalMdns.cpp
++++ src/lib/dnssd/Advertiser_ImplMinimalMdns.cpp
+@@ -959,7 +959,7 @@ void AdvertiserMinMdns::AdvertiseRecords(BroadcastAdvertiseType type)
+ 
+         if (err != CHIP_NO_ERROR)
+         {
+-            ChipLogError(Discovery, "Failed to advertise records: %" CHIP_ERROR_FORMAT, err.Format());
++            ChipLogDetail(Discovery, "Failed to advertise records: %" CHIP_ERROR_FORMAT, err.Format());
+         }
+     }
+ 
+diff --git src/lib/dnssd/minimal_mdns/Server.cpp src/lib/dnssd/minimal_mdns/Server.cpp
+index f8a0971f57..3b990ffc94 100644
+--- src/lib/dnssd/minimal_mdns/Server.cpp
++++ src/lib/dnssd/minimal_mdns/Server.cpp
+@@ -223,7 +223,7 @@ CHIP_ERROR ServerBase::Listen(chip::Inet::EndPointManager<chip::Inet::UDPEndPoin
+             interfaceId.GetInterfaceName(interfaceName, sizeof(interfaceName));
+ 
+             // Log only as non-fatal error. Failure to join will mean we reply to unicast queries only.
+-            ChipLogError(DeviceLayer, "MDNS failed to join multicast group on %s for address type %s: %" CHIP_ERROR_FORMAT,
++            ChipLogDetail(DeviceLayer, "MDNS failed to join multicast group on %s for address type %s: %" CHIP_ERROR_FORMAT,
+                          interfaceName, AddressTypeStr(addressType), err.Format());
+ 
+             endPointHolder.reset();
+diff --git src/platform/BUILD.gn src/platform/BUILD.gn
+index 65debb6a55..176c228b15 100644
+--- src/platform/BUILD.gn
++++ src/platform/BUILD.gn
+@@ -44,7 +44,7 @@ if (chip_device_platform != "none" && chip_device_platform != "external") {
+     chip_device_config_thread_ftd = chip_openthread_ftd
+ 
+     # Enable including the additional data in the advertisement packets
+-    chip_enable_additional_data_advertising = false
++    chip_enable_additional_data_advertising = true
+ 
+     # Enable default/generic test-mode CommissionableDataProvider in GenericConfigurationManagerImpl
+     # === FOR TRANSITION UNTIL ALL EXAMPLES PROVIDE THEIR OWN ===
+diff --git src/platform/senscomm/scm1612s/BLEManagerImpl.cpp src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+index 4460797ec0..4c2384df6c 100644
+--- src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
++++ src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+@@ -228,8 +228,8 @@ CHIP_ERROR BLEManagerImpl::_Init()
+     memset(mDeviceName, 0, sizeof(mDeviceName));
+ 
+     PlatformMgr().ScheduleWork(DriveBLEState, 0);
+-
+-    StartBleAdvWatchTimer(6000);
++    /* Note: This workaround may be removed. */
++    // StartBleAdvWatchTimer(6000);
+ exit:
+     return err;
+ }
+@@ -806,7 +806,7 @@ void BLEManagerImpl::DriveBLEState(void)
+             }
+ 
+             // Start advertising.  This is also an asynchronous step.
+-            WISE_LOGI(TAG, "NimBLE start advertising...");
++            ChipLogProgress(DeviceLayer, "CHIPoBLE advertising start");
+             err = StartAdvertising();
+             if (err != CHIP_NO_ERROR)
+             {
+@@ -858,8 +858,7 @@ void BLEManagerImpl::DriveBLEState(void)
+             // Transition to the not Advertising state...
+             mFlags.Clear(Flags::kAdvertising);
+ 
+-            // ChipLogProgress(DeviceLayer, "CHIPoBLE advertising stopped");
+-            WISE_LOGI(TAG, "NimBLE stop advertising...");
++            ChipLogProgress(DeviceLayer, "CHIPoBLE advertising stopped");
+ 
+             CancelBleAdvTimeoutTimer();
+ 
+@@ -1200,11 +1199,12 @@ void BLEManagerImpl::HandleRXCharWrite(struct ble_gatt_char_context * param)
+     CHIP_ERROR err    = CHIP_NO_ERROR;
+     uint16_t data_len = 0;
+ 
+-    WISE_LOGI(TAG, "Write request received for CHIPoBLE RX characteristic con %u %u", param->conn_handle, param->attr_handle);
+-
+     // Copy the data to a packet buffer.
+     data_len               = OS_MBUF_PKTLEN(param->ctxt->om);
+     PacketBufferHandle buf = System::PacketBufferHandle::New(data_len, 0);
++
++    WISE_LOGI(TAG, "Write request received for CHIPoBLE RX characteristic con %u %u, data len:%u", param->conn_handle, param->attr_handle, data_len);
++
+     VerifyOrExit(!buf.IsNull(), err = CHIP_ERROR_NO_MEMORY);
+     VerifyOrExit(buf->AvailableDataLength() >= data_len, err = CHIP_ERROR_BUFFER_TOO_SMALL);
+     ble_hs_mbuf_to_flat(param->ctxt->om, buf->Start(), data_len, NULL);
+diff --git src/platform/senscomm/scm1612s/CHIPPlatformConfig.h src/platform/senscomm/scm1612s/CHIPPlatformConfig.h
+index f669d0ca60..970cbe52fc 100644
+--- src/platform/senscomm/scm1612s/CHIPPlatformConfig.h
++++ src/platform/senscomm/scm1612s/CHIPPlatformConfig.h
+@@ -30,11 +30,11 @@
+ 
+ #define CHIP_CONFIG_ABORT() abort()
+ 
+-#define CHIP_CONFIG_PERSISTED_STORAGE_KEY_TYPE uint8_t
++#define CHIP_CONFIG_PERSISTED_STORAGE_KEY_TYPE const char *
+ #define CHIP_CONFIG_PERSISTED_STORAGE_ENC_MSG_CNTR_ID 1
+ #define CHIP_CONFIG_PERSISTED_STORAGE_MAX_KEY_LENGTH 2
+ 
+-#define CHIP_CONFIG_LIFETIIME_PERSISTED_COUNTER_KEY 0x01
++#define CHIP_CONFIG_LIFETIIME_PERSISTED_COUNTER_KEY "life-count"
+ #define CHIP_CONFIG_PERSISTED_STORAGE_KEY_GLOBAL_MESSAGE_COUNTER 0x2
+ 
+ #define CHIP_CONFIG_TIME_ENABLE_CLIENT 1
+diff --git src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
+index 259c50b644..7fc0d003db 100644
+--- src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
++++ src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
+@@ -25,12 +25,16 @@
+ /* this file behaves like a config.h, comes first */
+ #include <platform/internal/CHIPDeviceLayerInternal.h>
+ 
++#include <lib/support/Base64.h>
++#include <lib/support/BytesToHex.h>
+ #include <platform/internal/GenericConfigurationManagerImpl.ipp>
++#include <platform/DeviceInstanceInfoProvider.h>
+ 
+ #include <platform/ConfigurationManager.h>
+ #include <platform/DiagnosticDataProvider.h>
+ #include <platform/senscomm/scm1612s/SCM1612SConfig.h>
+ 
++#include "FactoryDataProvider.h"
+ #include "stdio.h"
+ 
+ #include "wise_event_loop.h"
+@@ -45,6 +49,12 @@ namespace DeviceLayer {
+ 
+ using namespace ::chip::DeviceLayer::Internal;
+ 
++CHIP_ERROR LoadFactoryUniqueId(uint8_t (&uniqueId)[ConfigurationManager::kRotatingDeviceIDUniqueIDLength])
++{
++    MutableByteSpan uniqueIdSpan(uniqueId);
++    return LoadUniqueIdFromFactoryData(uniqueIdSpan);
++}
++
+ ConfigurationManagerImpl & ConfigurationManagerImpl::GetDefaultInstance()
+ {
+     static ConfigurationManagerImpl sInstance;
+@@ -56,6 +66,17 @@ CHIP_ERROR ConfigurationManagerImpl::Init()
+     CHIP_ERROR err;
+     bool failSafeArmed;
+ 
++#if 0
++    /* already calls Internal::GenericConfigurationManagerImpl<SCM1612SConfig>::Init() */
++    char uniqueId[32 + 1];
++    // Generate Unique ID only if it is not present in the storage.
++    if (GetUniqueId(uniqueId, sizeof(uniqueId)) != CHIP_NO_ERROR)
++    {
++        ReturnErrorOnFailure(GenerateUniqueId(uniqueId, sizeof(uniqueId)));
++        printf("1212uniqueId:%s\n", uniqueId);
++        ReturnErrorOnFailure(StoreUniqueId(uniqueId, strlen(uniqueId)));
++    }
++#endif
+     // Initialize the generic implementation base class.
+     err = Internal::GenericConfigurationManagerImpl<SCM1612SConfig>::Init();
+     SuccessOrExit(err);
+@@ -168,7 +189,9 @@ CHIP_ERROR ConfigurationManagerImpl::WritePersistedStorageValue(::chip::Platform
+                                                                 uint32_t value)
+ {
+     CHIP_ERROR err;
+-    SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, (char *) &persistedStorageKey };
++    /* according to Key's format see CHIP_CONFIG_PERSISTED_STORAGE_KEY_TYPE */
++    // SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, (char *) &persistedStorageKey };
++    SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, persistedStorageKey };
+ 
+     err = WriteConfigValue(configKey, value);
+     {
+@@ -294,5 +317,96 @@ ConfigurationManager & ConfigurationMgrImpl()
+     return ConfigurationManagerImpl::GetDefaultInstance();
+ }
+ 
++CHIP_ERROR ConfigurationManagerImpl::GetUniqueId(char * buf, size_t bufSize)
++{
++#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE || 1
++    CHIP_ERROR err;
++    size_t uniqueIdLen = 0;
++    err = SCM1612SConfig::ReadConfigValueStr(SCM1612SConfig::kConfigKey_UniqueId, buf, bufSize, uniqueIdLen);
++
++    ReturnErrorOnFailure(err);
++
++    ReturnErrorCodeIf(uniqueIdLen >= bufSize, CHIP_ERROR_BUFFER_TOO_SMALL);
++    buf[uniqueIdLen] = '\0';
++    ReturnErrorCodeIf(buf[uniqueIdLen] != 0, CHIP_ERROR_INVALID_STRING_LENGTH);
++
++    // get the flash uniqueID
++    uint8_t uniqueIdStoreInFile[ConfigurationManager::kRotatingDeviceIDUniqueIDLength] = {};
++    const uint8_t decodeLen =
++        static_cast<uint8_t>(chip::Base64Decode32(buf, static_cast<uint32_t>(strlen(buf)), uniqueIdStoreInFile));
++    ReturnErrorCodeIf(decodeLen != sizeof(uniqueIdStoreInFile), CHIP_ERROR_INVALID_STRING_LENGTH);
++
++    uint8_t uniqueIdStoreInFactoryData[ConfigurationManager::kRotatingDeviceIDUniqueIDLength] = {};
++    char uniqueIdStoreHex[sizeof(uniqueIdStoreInFile) * 2 + 1]               = { 0 };
++    char uniqueIdStoreInFactoryDataHex[sizeof(uniqueIdStoreInFactoryData) * 2 + 1] = { 0 };
++
++    err = LoadFactoryUniqueId(uniqueIdStoreInFactoryData);
++    ReturnErrorOnFailure(err);
++
++    ReturnErrorOnFailure(chip::Encoding::BytesToUppercaseHexBuffer(uniqueIdStoreInFile, 
++        sizeof(uniqueIdStoreInFile), uniqueIdStoreHex,
++        sizeof(uniqueIdStoreHex) - 1));
++
++    ReturnErrorOnFailure(chip::Encoding::BytesToUppercaseHexBuffer(uniqueIdStoreInFactoryData, 
++        sizeof(uniqueIdStoreInFactoryData),uniqueIdStoreInFactoryDataHex, 
++        sizeof(uniqueIdStoreInFactoryDataHex) - 1));
++
++    ChipLogProgress(DeviceLayer, "uniqueId in FS:%s; in Flash:%s", uniqueIdStoreHex, uniqueIdStoreInFactoryDataHex);
++
++    const bool uniqueIdsMatch = memcmp(uniqueIdStoreInFile, uniqueIdStoreInFactoryData, sizeof(uniqueIdStoreInFile)) == 0;
++    return uniqueIdsMatch ? CHIP_NO_ERROR : CHIP_ERROR_INCORRECT_STATE;
++#else
++    /* When use Ayla adm provider, do nothing */
++    return CHIP_NO_ERROR;
++#endif
++}
++
++CHIP_ERROR ConfigurationManagerImpl::StoreUniqueId(const char * uniqueId, size_t uniqueIdLen)
++{
++#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE || 1
++    return SCM1612SConfig::WriteConfigValueStr(SCM1612SConfig::kConfigKey_UniqueId, uniqueId, uniqueIdLen);
++#else
++    /* When use Ayla adm provider, do nothing */
++    return CHIP_NO_ERROR;
++#endif
++}
++
++CHIP_ERROR ConfigurationManagerImpl::GenerateUniqueId(char * buf, size_t bufSize)
++{
++#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE || 1
++    uint8_t uniqueId[ConfigurationManager::kRotatingDeviceIDUniqueIDLength] = {};
++    CHIP_ERROR err = LoadFactoryUniqueId(uniqueId);
++
++    ReturnErrorCodeIf(bufSize <= BASE64_ENCODED_LEN(sizeof(uniqueId)), CHIP_ERROR_BUFFER_TOO_SMALL);
++
++    if (err == CHIP_NO_ERROR)
++    {
++        ChipLogError(DeviceLayer, "Loaded unique ID from factory flash");
++    }
++    else
++    {
++        constexpr uint8_t kMacDerivedUniqueIdPrefix[4] = { 0x15, 0xfe, 0x16, 0x12 };
++        uint8_t wlanMac[6];
++
++        ChipLogError(DeviceLayer, "Loading unique ID from factory flash failed: %s; fallback to MAC-derived unique ID",
++                     ErrorStr(err));
++        memcpy(uniqueId, kMacDerivedUniqueIdPrefix, sizeof(kMacDerivedUniqueIdPrefix));
++
++        ReturnErrorOnFailure(chip::DeviceLayer::ConfigurationMgrImpl().GetPrimaryWiFiMACAddress(wlanMac));
++        memcpy(uniqueId + 4, wlanMac, sizeof(wlanMac));
++        memcpy(uniqueId + 10, wlanMac, sizeof(wlanMac));
++    }
++
++    const uint8_t len = chip::Base64Encode32(uniqueId, sizeof(uniqueId), buf);
++    ReturnErrorCodeIf(static_cast<size_t>(len) >= bufSize, CHIP_ERROR_BUFFER_TOO_SMALL);
++    buf[len] = '\0';
++    ChipLogError(DeviceLayer, "Generated unique ID: %s", buf);
++    return CHIP_NO_ERROR;
++#else
++    /* When use Ayla adm provider, do nothing */
++    return CHIP_NO_ERROR;
++#endif
++}
++
+ } // namespace DeviceLayer
+ } // namespace chip
+diff --git src/platform/senscomm/scm1612s/ConfigurationManagerImpl.h src/platform/senscomm/scm1612s/ConfigurationManagerImpl.h
+index 1f24abf3d3..50a8f78ad9 100644
+--- src/platform/senscomm/scm1612s/ConfigurationManagerImpl.h
++++ src/platform/senscomm/scm1612s/ConfigurationManagerImpl.h
+@@ -73,6 +73,10 @@ private:
+     CHIP_ERROR WriteConfigValueBin(Key key, const uint8_t * data, size_t dataLen) override;
+     void RunConfigUnitTest(void) override;
+ 
++    CHIP_ERROR GetUniqueId(char * buf, size_t bufSize) override;
++    CHIP_ERROR StoreUniqueId(const char * uniqueId, size_t uniqueIdLen) override;
++    CHIP_ERROR GenerateUniqueId(char * buf, size_t bufSize) override;
++
+     // ===== Private members reserved for use by this class only.
+     uint32_t rebootCause;
+     static void DoFactoryReset(intptr_t arg);
+diff --git src/platform/senscomm/scm1612s/FactoryDataProvider.cpp src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+index 03555925ef..5431fe531c 100644
+--- src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
++++ src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+@@ -24,7 +24,13 @@
+ 
+ #include "FactoryDataProvider.h"
+ 
++#if CHIP_ENABLE_ADDITIONAL_DATA_ADVERTISING
++/* for debug */
++#include <setup_payload/AdditionalDataPayloadGenerator.h>
++#endif
++
+ #if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE
++#include <platform/ConfigurationManager.h>
+ #include <scm_flash.h>
+ #include <stddef.h>
+ #else
+@@ -65,6 +71,7 @@ CHIP_ERROR LoadKeypairFromRaw(ByteSpan privateKey, ByteSpan publicKey, Crypto::P
+ #define SCM_FACTORY_DATA_OFFSET_HDR             (0x0400)
+ #define DAC_PRIVATE_KEY_USEAGE_SZIE             (32)
+ 
++/* Left 161 Bytes */
+ struct factoryDataMatterLayout
+ {
+     uint32_t magic;
+@@ -78,7 +85,9 @@ struct factoryDataMatterLayout
+     uint8_t saltLen;
+     uint8_t verifierLen;
+     uint8_t passcodeLen;
+-    uint8_t reserved[47];
++    uint8_t uniqueIdLen;
++    uint8_t snLen;
++    uint8_t reserved[45];
+ 
+     uint8_t cd[Credentials::kMaxCHIPCertLength];
+     uint8_t dac[Credentials::kMaxDERCertLength];
+@@ -93,6 +102,9 @@ struct factoryDataMatterLayout
+     uint8_t salt[32];
+     uint8_t verifier[97];
+     uint32_t passcode;
++    /* Use Default UniqueID Len */
++    uint8_t uniqueID[16];
++    uint8_t serialNum[20];
+ } __packed;
+ #else
+ CHIP_ERROR GenerateMacHash(const uint8_t mac[6], uint8_t hash[SCM_HASH_LEN])
+@@ -228,6 +240,40 @@ uint8_t scm_onboard_autogen_internal()
+ }
+ #endif
+ 
++CHIP_ERROR LoadUniqueIdFromFactoryData(MutableByteSpan & uniqueIdSpan)
++{
++#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE
++    int ret;
++    off_t offset;
++    uint8_t uniqueId[16] = {0};
++    uint8_t uniqueIDLen;
++
++    offset = SCM_FACTORY_DATA_OFFSET_HDR + offsetof(struct factoryDataMatterLayout, uniqueIdLen);
++    ret    = scm_partition_read(FLASH_PARTITION_FACTORY, offset, &uniqueIDLen, sizeof(uniqueIDLen));
++    ReturnErrorCodeIf(ret, CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND);
++
++    if (uniqueIDLen == 0 || uniqueIDLen == 0xFF) {
++#ifdef CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID
++        constexpr uint8_t uniqueIdDeault[] = CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID;
++#else
++        constexpr uint8_t uniqueIdDeault[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}
++#endif
++        memcpy(uniqueId, uniqueIdDeault, sizeof(uniqueId));
++    } else {
++        offset = SCM_FACTORY_DATA_OFFSET_HDR + offsetof(struct factoryDataMatterLayout, uniqueID);
++        ret    = scm_partition_read(FLASH_PARTITION_FACTORY, offset, reinterpret_cast<uint8_t *>(&uniqueId), sizeof(uniqueId));
++        ReturnErrorCodeIf(ret, CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND);
++    }
++
++    VerifyOrReturnValue(uniqueIdSpan.size() >= sizeof(uniqueId), CHIP_ERROR_INVALID_ARGUMENT);
++    memcpy(uniqueIdSpan.data(), uniqueId, sizeof(uniqueId));
++    uniqueIdSpan.reduce_size(sizeof(uniqueId));
++    return CHIP_NO_ERROR;
++#else
++    return CHIP_ERROR_NOT_IMPLEMENTED;
++#endif
++}
++
+ CHIP_ERROR FactoryDataProvider::Init()
+ {
+ #if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE
+@@ -767,6 +813,27 @@ CHIP_ERROR FactoryDataProvider::GetProductId(uint16_t & productId)
+ 
+ CHIP_ERROR FactoryDataProvider::GetPartNumber(char * buf, size_t bufSize)
+ {
++    /* use for rotatingID debugs */
++#if CHIP_ENABLE_ADDITIONAL_DATA_ADVERTISING
++    CHIP_ERROR err;
++    char rotatingDeviceIdHexBuffer[RotatingDeviceId::kHexMaxLength];
++    size_t rotatingDeviceIdValueOutputSize = 0;
++    AdditionalDataPayloadGeneratorParams additionalDataPayloadParams;
++    additionalDataPayloadParams.rotatingDeviceIdLifetimeCounter = 10;
++
++    uint8_t rotatingDeviceIdUniqueId[ConfigurationManager::kRotatingDeviceIDUniqueIDLength] = {};
++    MutableByteSpan rotatingDeviceIdUniqueIdSpan(rotatingDeviceIdUniqueId);
++
++    err = DeviceLayer::GetDeviceInstanceInfoProvider()->GetRotatingDeviceIdUniqueId(rotatingDeviceIdUniqueIdSpan);
++    additionalDataPayloadParams.rotatingDeviceIdUniqueId = rotatingDeviceIdUniqueIdSpan;
++    err = AdditionalDataPayloadGenerator().generateRotatingDeviceIdAsHexString(additionalDataPayloadParams, 
++            rotatingDeviceIdHexBuffer, ArraySize(rotatingDeviceIdHexBuffer),rotatingDeviceIdValueOutputSize);
++
++    printf("rotatingDeviceIdHexBuffer:%s\n", rotatingDeviceIdHexBuffer);
++    SuccessOrExit(err);
++exit:
++    return CHIP_NO_ERROR;
++#endif
+ #if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE && 0
+     int len = 0;
+ 
+@@ -836,17 +903,40 @@ CHIP_ERROR FactoryDataProvider::GetProductLabel(char * buf, size_t bufSize)
+ CHIP_ERROR FactoryDataProvider::GetSerialNumber(char * buf, size_t bufSize)
+ {
+ #if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE
+-    /* For Ayla related projects, we use Ayla DSN as SN. */
+     int ret;
+     off_t offset;
+-    uint8_t ayla_dsn[20];
++    uint8_t scmSN[20] = {0};
++    uint8_t scmSNLen;
++    char snSrc[12] = {0};
++
++    /* 1. Get sn len from flash */
++    offset = SCM_FACTORY_DATA_OFFSET_HDR + offsetof(struct factoryDataMatterLayout, snLen);
++    ret = scm_partition_read(FLASH_PARTITION_FACTORY, offset, &scmSNLen, sizeof(scmSNLen));
++    ReturnErrorCodeIf(ret, CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND);
++
++    ChipLogProgress(DeviceLayer, "SerialNumber(SCM) len: %u", scmSNLen);
++
++    if (scmSNLen == 0 || scmSNLen == 0xFF) {
++        /* use ayla dsn as scm sn */
++        offset = 0x0000 + 0x0;
++        strcpy(snSrc, "Ayla DSN");
++    } else {
++        /* use sn stored in matter section  */
++        offset = SCM_FACTORY_DATA_OFFSET_HDR + offsetof(struct factoryDataMatterLayout, serialNum);
++        strcpy(snSrc, "SCM SN");
++    }
++
++    ret = scm_partition_read(FLASH_PARTITION_FACTORY, offset, scmSN, sizeof(scmSN));
++    ReturnErrorCodeIf(ret, CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND);
++
++    if (scmSN[0] == 0xFF && scmSN[1] == 0xFF && scmSN[2] == 0xFF) {
++        strncpy(buf, CHIP_DEVICE_CONFIG_TEST_SERIAL_NUMBER, bufSize);
++    } else {
++        /* bufSize = kMaxSerialNumberLength + 1 is enough. */
++        memcpy(buf, scmSN, 20);
++    }
++    ChipLogProgress(DeviceLayer, "SerialNumber (%s): %s", snSrc, buf);
+ 
+-    /* ayla oem offset : 0x0000, dsn offset : 0x0 */
+-    offset = 0x0000 + 0x0;
+-    ret = scm_partition_read(FLASH_PARTITION_FACTORY, offset, ayla_dsn, sizeof(ayla_dsn));
+-    /* bufSize = kMaxSerialNumberLength + 1 is enough. */
+-    memcpy(buf, ayla_dsn, 20);
+-    ChipLogError(DeviceLayer, "SerialNumber (Ayla DSN): %s", buf);
+     return CHIP_NO_ERROR;
+ #else
+     strncpy(buf, CHIP_DEVICE_CONFIG_TEST_SERIAL_NUMBER, bufSize);
+@@ -937,23 +1027,14 @@ CHIP_ERROR FactoryDataProvider::GetHardwareVersionString(char * buf, size_t bufS
+ 
+ CHIP_ERROR FactoryDataProvider::GetRotatingDeviceIdUniqueId(MutableByteSpan & uniqueIdSpan)
+ {
+-#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE && 0
+-    int len = 0;
+-
+-    len = mfd_getRotatingDeviceIdUniqueId(uniqueIdSpan.data(), uniqueIdSpan.size());
+-    if (len > 0)
+-    {
+-        return CHIP_NO_ERROR;
+-    }
+-    else if (0 == len)
+-    {
+-        return CHIP_ERROR_PERSISTED_STORAGE_VALUE_NOT_FOUND;
+-    }
+-
+-    return CHIP_ERROR_BUFFER_TOO_SMALL;
++#if CONFIG_SENSCOMM_FACTORY_DATA_ENABLE
++    return LoadUniqueIdFromFactoryData(uniqueIdSpan);
+ #else
+-    constexpr uint8_t uniqueId[] = CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID;
+-
++#ifdef CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID
++        constexpr uint8_t uniqueId[] = CHIP_DEVICE_CONFIG_ROTATING_DEVICE_ID_UNIQUE_ID;
++#else
++        constexpr uint8_t uniqueId[] = {0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff}
++#endif
+     VerifyOrReturnValue(uniqueIdSpan.size() >= sizeof(uniqueId), CHIP_ERROR_INVALID_ARGUMENT);
+ 
+     memcpy(uniqueIdSpan.data(), uniqueId, sizeof(uniqueId));
+diff --git src/platform/senscomm/scm1612s/FactoryDataProvider.h src/platform/senscomm/scm1612s/FactoryDataProvider.h
+index 9eac96b897..cf765c6a42 100644
+--- src/platform/senscomm/scm1612s/FactoryDataProvider.h
++++ src/platform/senscomm/scm1612s/FactoryDataProvider.h
+@@ -26,6 +26,8 @@
+ namespace chip {
+ namespace DeviceLayer {
+ 
++CHIP_ERROR LoadUniqueIdFromFactoryData(MutableByteSpan & uniqueIdSpan);
++
+ class FactoryDataProvider : public chip::Credentials::DeviceAttestationCredentialsProvider,
+                             public CommissionableDataProvider,
+                             public DeviceInstanceInfoProvider
+diff --git src/platform/senscomm/scm1612s/PlatformManagerImpl.cpp src/platform/senscomm/scm1612s/PlatformManagerImpl.cpp
+index f3966af904..da01623cd8 100644
+--- src/platform/senscomm/scm1612s/PlatformManagerImpl.cpp
++++ src/platform/senscomm/scm1612s/PlatformManagerImpl.cpp
+@@ -111,7 +111,7 @@ wise_err_t PlatformManagerImpl::WiseEventHandler(void * ctx, system_event_t * ev
+     {
+         e.Type = DeviceEventType::kSCMSystemEvent;
+         memcpy(&e.Platform.SCMSystemEvent.event, event, sizeof(*event));
+-        ChipLogError(DeviceLayer, "event %d", event->event_id);
++        // ChipLogError(DeviceLayer, "event %d", event->event_id);
+         (void) sInstance.PostEvent(&e);
+ 
+         return WISE_OK;
+diff --git src/platform/senscomm/scm1612s/args.gni src/platform/senscomm/scm1612s/args.gni
+index b5bcf97e0a..89cbd20ce5 100644
+--- src/platform/senscomm/scm1612s/args.gni
++++ src/platform/senscomm/scm1612s/args.gni
+@@ -40,7 +40,7 @@ chip_enable_ota_requestor = true
+ 
+ #chip_stack_lock_tracking = "none"
+ 
+-chip_build_example_creds = true
++chip_build_example_creds = false
+ 
+ custom_toolchain = "${chip_root}/config/senscomm/toolchain:senscomm"
+ 
+diff --git third_party/senscomm/scm1612s/scm1612s_ayla.gni third_party/senscomm/scm1612s/scm1612s_ayla.gni
+index 7db0a0c5be..4755f9cf07 100644
+--- third_party/senscomm/scm1612s/scm1612s_ayla.gni
++++ third_party/senscomm/scm1612s/scm1612s_ayla.gni
+@@ -199,6 +199,7 @@ template("scm1612s_ayla_sources") {
+       "${scm1612s_sdk_root}/app/ayla/components/adb/adb_ayla_svc.c",
+       "${scm1612s_sdk_root}/app/ayla/components/adb/adb_conn_svc.c",
+       "${scm1612s_sdk_root}/app/ayla/components/adb/adb_wifi_cfg_svc.c",
++      "${scm1612s_sdk_root}/app/ayla/components/adb/adb_ota_svc.c",
+       #adm
+       "${scm1612s_sdk_root}/app/ayla/components/adm/adm.cpp", 
+       "${scm1612s_sdk_root}/app/ayla/components/adm/adm_cli.cpp",
+diff --git third_party/senscomm/scm1612s/wise-sdk third_party/senscomm/scm1612s/wise-sdk
+index 1b350d2438..91f09b0786 160000
+--- third_party/senscomm/scm1612s/wise-sdk
++++ third_party/senscomm/scm1612s/wise-sdk
+@@ -1 +1 @@
+-Subproject commit 1b350d24382885f24d2633c66d7ba246dab53b6c
++Subproject commit 91f09b0786ce4d0b69efa2f1445532b3e9cc1b7d-dirty

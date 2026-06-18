@@ -422,7 +422,7 @@ int adb_ota_svc_register(const struct adb_attr ** service)
     /* for BLE_GAP_EVENT_CONNECT & DISCONNECT CB */
     adb_conn_event_register(adb_ota_conn_event_cb, NULL);
     app_version = demo_get_app_version();
-    printf("%s: app_version:%u!\n", __func__, app_version);
+    adb_log(LOG_INFO "%s app_version:%u.%u.%u\n", __func__, app_version/100, (app_version % 100)/10, (app_version % 10));
     return al_bt_register_service(ota_svc_table);
 }
 

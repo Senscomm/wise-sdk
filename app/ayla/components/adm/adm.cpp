@@ -465,7 +465,6 @@ static void adm_connectivity_change(const ChipDeviceEvent * event)
 static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 {
 	adm_log(LOG_DEBUG "%s type 0x%04x", __func__, event->Type);
-	// printf("Matter evt type:0x%04x!!!, WiFi Evt:%d\n", event->Type, event->Platform.SCMSystemEvent.event.event_id);
 
 	switch (event->Type) {
 	case DeviceEventType::kInternetConnectivityChange:
@@ -1094,7 +1093,7 @@ void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
 	e.Type = DeviceEventType::kSCMSystemEvent;
 
 	if (!ssid || !key) {
-		printf("Invalid inputs!!\n");
+		adm_log(LOG_ERR "Invalid inputs!!\n");
 		return;
 	}
 
@@ -1106,16 +1105,8 @@ void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
 	// reuse
 	e.Platform.test.event.event_id = SYSTEM_EVENT_MAX_RETRY;
 
-	printf("Send a event to plat!!!\n");
+	adm_log(LOG_INFO "Send a event to plat!!!\n");
 	(void) PlatformMgr().PostEvent(&e);
-}
-
-void adm_post_event_to_plat_for_test(void)
-{
-    ChipDeviceEvent event;
-    event.Type                                           = DeviceEventType::kServiceProvisioningChange;
-    event.ServiceProvisioningChange.ServiceConfigUpdated = true;
-    (void) PlatformMgr().PostEvent(&event);
 }
 
 enum ada_err adm_onboard_config_generate(const char *secret)
@@ -1514,6 +1505,7 @@ void adm_start(const u8 *cert_declaration, size_t cd_len)
 	SetDeviceAttestationCredentialsProvider(GetAdmDACProvider());
 	SetDeviceInstanceInfoProvider(GetAdmDeviceInstanceInfoProvider());
 #else
+	adm_log(LOG_INFO "%s adm use flash factory data.", __func__);
 	error = mFactoryDataProvider.Init();
     if (error != CHIP_NO_ERROR)
     {

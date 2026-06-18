@@ -44,12 +44,11 @@
 #include "lighting_mgr.h"
 #include "lighting_ctrl.h"
 
-#include "bp5758d.h"
-#include "build.h"
-
+#ifdef AYLA_ADA_SERVICE_ENABLE
 #include "ftm.h"
-
-#include "host_prop_mgr.h"
+#include "bp5758d.h"
+#endif
+#include "build.h"
 
 #include "scm_flash.h"
 #include "scm_gpio.h"
@@ -60,7 +59,7 @@
 
 
 /* Note: OTA_APP_VER format should be x.x.x and x is in range [0,9] */
-#define OTA_APP_VER     "1.0.0"
+#define OTA_APP_VER     "3.0.0"
 int demo_get_app_version()
 {
     int major, minor, patch;
@@ -87,85 +86,6 @@ int demo_log_external_connectivity(void)
         DEMO_EXTERNAL_PING_HOST);
     return ret == 0 ? 1 : 0;
 }
-
-static struct {
-    s32 brightness;
-    s32 color_bright;
-    s32 color_saturation;
-    s32 color_select;
-    s32 color_temp;
-    char mode[32];
-} prop_conf_val_map = {
-    /* string must have no zero len value */
-    .mode = "null"
-};
-
-static struct prop_conf_metadata prop_conf_table[] = {
-    {
-        .prop_name = "brightness",
-        .token =CT_brightness, 
-        .item = {
-            .name = "prop/brightness", 
-            .type = ATLV_INT, 
-            .val = &(prop_conf_val_map.brightness),
-            .len = sizeof(prop_conf_val_map.brightness)
-        }
-    },
-    {
-        .prop_name = "color_bright",
-        .token =CT_color_bright, 
-        .item = {
-            .name = "prop/color_bright", 
-            .type = ATLV_INT, 
-            .val = &prop_conf_val_map.color_bright, 
-            .len = sizeof(prop_conf_val_map.color_bright)
-        }
-    },
-    {
-        .prop_name = "color_saturation",
-        .token =CT_color_saturation, 
-        .item = {
-            .name = "prop/color_saturation",
-            .type = ATLV_INT, 
-            .val = &prop_conf_val_map.color_saturation,
-            .len = sizeof(prop_conf_val_map.color_saturation)
-        }
-    },
-    {
-        .prop_name = "color_select",
-        .token =CT_color_select,
-        .item = {
-            .name = "prop/color_select",
-            .type = ATLV_INT,
-            .val = &prop_conf_val_map.color_select,
-            .len = sizeof(prop_conf_val_map.color_select)
-        }
-    },
-    {
-        .prop_name = "color_temp",
-        .token =CT_color_temp, 
-        .item = {
-            .name = "prop/color_temp",
-            .type = ATLV_INT,
-            .val = &prop_conf_val_map.color_temp,
-            .len = sizeof(prop_conf_val_map.color_temp)
-        }
-    },
-    {
-        .prop_name = "mode",
-        .token =CT_mode, 
-        .item = {
-            .name = "prop/mode",
-            .type = ATLV_UTF8,
-            .val = prop_conf_val_map.mode,
-            .len = sizeof(prop_conf_val_map.mode)
-        }
-    },
-    /* must be the last, we do not pass the table size */
-    {
-        .prop_name = NULL,
-    }
-};
 
 #define DEMO_ENDPOINT_LIGHTING	1
 
@@ -200,9 +120,11 @@ static XyColor_t xy;
 static bool onboarding;
 
 #define	msecs_to_ticks(ms)      (((ms)*1000)/osKernelGetTickFreq())
+#ifdef AYLA_ADA_SERVICE_ENABLE
 /* ayla cloud connect timer */
 #define AC_DELAY_TIMER_MSECS    (10 * 1000)
 static osTimerId_t ac_conn_timer;
+#endif
 /* matter all farbrics remove timer, reboot after 4 secs. */
 #define MF_REMOVE_DELAY_TIMER_MSECS    (4 * 1000)
 static osTimerId_t mf_remove_timer;
@@ -544,7 +466,7 @@ static void demo_evt_handler(struct app_event *evt)
     }
 
     if (need_set) {
-        printf("NEED SET!!!\n");
+        log_put(LOG_INFO "bulb reset by %s", evt->light_event.action == kLightAction_Mode2 ? "mode change" : "on");
         demo_set_light_bulb();
     }
 }
@@ -567,6 +489,7 @@ static void demo_post_light_event(uint8_t action, uint32_t value)
     app_event_post(&evt);
 }
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 /*
  * Demo set function for bool properties.
  */
@@ -689,7 +612,6 @@ static enum ada_err demo_int_set(struct ada_sprop *sprop, const void *buf,
         }
     }
 
-    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %u", __func__, sprop->name, *(int *)sprop->val);
 
 	return AE_OK;
@@ -733,7 +655,6 @@ static enum ada_err demo_string_set(struct ada_sprop *sprop, const void *buf,
         demo_post_light_event(kLightAction_Mode2, (uint32_t)color);
     }
 
-    host_prop_unsync_tag(sprop, prop_conf_table);
 	log_put(LOG_DEBUG "%s: %s %s", __func__, sprop->name, (const char *)sprop->val);
 
 	return AE_OK;
@@ -959,7 +880,7 @@ static void prop_send_by_name(const char *name)
 				__func__, name, err);
 	}
 }
-
+#endif
 void demo_send_prop(const char *name)
 {
 #ifdef AYLA_BATCH_PROP_SUPPORT
@@ -976,7 +897,9 @@ void demo_send_prop(const char *name)
 		prop_send_by_name(name);
 	}
 #else
+#ifdef AYLA_ADA_SERVICE_ENABLE
 	prop_send_by_name(name);
+#endif
 #endif
 }
 
@@ -1003,7 +926,7 @@ static void demo_lc_do_sync(u32 timeout)
 {
     u16 mireds;
 	enum ada_err err;
-
+#ifdef AYLA_ADA_SERVICE_ENABLE
     /* Synchronize to ADA properties
      */
 
@@ -1049,7 +972,7 @@ static void demo_lc_do_sync(u32 timeout)
         log_put(LOG_DEBUG "%s: send color_temp  %d OK", __func__,
                 color_temp);
     }
-
+#endif
     /* Synchronize to cluster attributes
      */
 
@@ -1118,6 +1041,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
     }
 	case ADM_EVENT_IPV4_UP:
         ip_up = 1;
+#ifdef AYLA_ADA_SERVICE_ENABLE
         if (ac_conn_timer) {
             log_put(LOG_INFO "IPV4 up, notify ADA after %d s!", AC_DELAY_TIMER_MSECS/1000);
             osTimerStart(ac_conn_timer, msecs_to_ticks(AC_DELAY_TIMER_MSECS));
@@ -1126,11 +1050,14 @@ static void demo_matter_event_cb(enum adm_event_id id)
             ada_client_ip_up();
             ada_client_health_check_en();
         }
+#endif
 		break;
 
 	case ADM_EVENT_IPV4_DOWN:
         ip_up = 0;
+#ifdef AYLA_ADA_SERVICE_ENABLE
 		ada_client_ip_down();
+#endif
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
@@ -1536,6 +1463,7 @@ static void init_ayla_clusters(void)
     MatterAylaLocalControlPluginServerInitCallback();
 }
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 static int demo_run_ftm(void)
 {
     struct app_event evt;
@@ -1563,6 +1491,7 @@ static void ac_timer_handle(void *arg)
     ada_client_health_check_en();
 #endif
 }
+#endif
 
 static void mf_remove_handle(void *arg)
 {
@@ -1572,12 +1501,17 @@ static void mf_remove_handle(void *arg)
 
 void demo_init(void)
 {
+#ifdef AYLA_ADA_SERVICE_ENABLE
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	int rc;
 #endif
+#endif
 
-	// bp5758d_init();
-    // bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+#if 0
+    /* Use your own IC init apis */
+    bp5758d_init();
+    bp5758d_set_rgbcw_channel(0, 0, 0, 156, 44);
+#endif
 
     app_event_init();
     app_event_install_handler(kEventType_Light, demo_evt_handler);
@@ -1586,6 +1520,7 @@ void demo_init(void)
     lighting_mgr_init(LightMgr());
     lighting_ctrl_init();
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
     ftm_init();
     if (demo_run_ftm()) {
         /* This is FTM mode.
@@ -1593,6 +1528,7 @@ void demo_init(void)
          */
         return;
     }
+#endif
 
 	adm_init();
     init_ayla_clusters();
@@ -1605,6 +1541,7 @@ void demo_init(void)
     adb_conn_svc_register(NULL);
     adb_ota_svc_register(NULL);
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 #ifdef AYLA_LOCAL_CONTROL_SUPPORT
 	/*
 	 * Enable local control access.
@@ -1615,23 +1552,23 @@ void demo_init(void)
 		return;
 	}
 #endif
+#endif
 
 	adm_attribute_change_cb_register(&demo_on_off_cb_entry);
 	adm_attribute_change_cb_register(&demo_level_control_cb_entry);
 	adm_attribute_change_cb_register(&demo_color_control_cb_entry);
 
+#ifdef AYLA_ADA_SERVICE_ENABLE
 	ada_sprop_mgr_register("demo_matter", demo_props, ARRAY_LEN(demo_props));
 
-#if 1
     if (!ac_conn_timer) {
         ac_conn_timer = osTimerNew(ac_timer_handle, osTimerOnce, NULL, NULL);
         // callback_init(&ac_conn_cb, ayla_client_ip_up_cb, NULL);
     }
-
+#endif
     if (!mf_remove_timer) {
         mf_remove_timer = osTimerNew(mf_remove_handle, osTimerOnce, NULL, NULL);
     }
-#endif
 }
 
 #define BUTTON_SHORT_PRESSED_PERIOD_MIN 10
@@ -1670,58 +1607,24 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
 		ada_conf_reset(2);
 	}
 }
-#define GPIO_BOOT_BUTTON  18
 
 void demo_idle(void)
 {
-	struct app_event event;
-    static unsigned long button_pressed;
-	static unsigned long button_released;
+    struct app_event event;
 
-//    host_prop_mgr_init(prop_conf_table, demo_props, ARRAY_LEN(demo_props));
-
-	// prop_send_by_name("oem_host_version");
-	// prop_send_by_name("version");
+#ifdef AYLA_ADA_SERVICE_ENABLE
     ada_sprop_send_to_by_name("oem_host_version", NODES_ALL);
     ada_sprop_send_to_by_name("version", NODES_ALL);
-
-	wise_task_wdt_add(NULL);
-	uint8_t gpio_level =0;
-
-	while (1) 
-	{
-
-        // todo: use you own gpio api!!
-#if 0
-		scm_gpio_read(GPIO_BOOT_BUTTON,&gpio_level);
-	
-        if (gpio_level == 0)
-		{
-			if (button_pressed == 0)
-			{
-				button_pressed = time_now();
-				my_printf("Button pressed");
-			}
-		//	my_printf("gpio_level %d\n",gpio_level);
-		} 
-		else
-		{		
-			if (button_pressed) 
-			{
-				button_released = time_now();
-				log_put(LOG_DEBUG "Button released");
-				demo_button_toggle(button_pressed,button_released);
-				button_pressed = 0;
-				button_released = 0;
-			}
-		}
 #endif
+
+    wise_task_wdt_add(NULL);
+
+    while (1) {
         BaseType_t eventReceived = xQueueReceive(g_app_event_queue, &event, pdMS_TO_TICKS(10));
-        while (eventReceived == pdTRUE)
-		{
+        while (eventReceived == pdTRUE) {
             app_event_dispatch(&event);
             eventReceived = xQueueReceive(g_app_event_queue, &event, 0);
         }
-	    wise_task_wdt_reset(NULL);
-	}
+        wise_task_wdt_reset(NULL);
+    }
 }
