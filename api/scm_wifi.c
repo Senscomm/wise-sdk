@@ -461,6 +461,9 @@ int scm_wifi_sta_scan(void)
 		return WISE_FAIL;
 	}
 
+	wif_scan_config.scan_type = WIFI_SCAN_TYPE_ACTIVE;
+	wif_scan_config.scan_time.active.min = 105;
+	wif_scan_config.scan_time.active.max = 130;
 	return wise_wifi_scan_start(&wif_scan_config, true, WIFI_IF_STA);
 }
 

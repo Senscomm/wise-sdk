@@ -845,11 +845,11 @@ int al_bt_process_gap_event(void *input)
 			printf("our_id:%s, peer_id:%s, conn itvl:%d latency:%d timeout:%d enc:%d auth:%d bond:%d\n",
 				addr_str1, addr_str2, desc.conn_itvl, desc.conn_latency, desc.supervision_timeout,
 				desc.sec_state.encrypted, desc.sec_state.authenticated, desc.sec_state.bonded);
-#if 0
+#if 1
 			/* Test by using Central Connection parameters */
 			struct ble_gap_upd_params params = {
-				.itvl_min = 20, // 25ms
-				.itvl_max = 40, // 50ms
+				.itvl_min = 40, // 25ms
+				.itvl_max = 80, // 50ms
 				.latency = 0,
 				.supervision_timeout = 500,  // 5s
 			};

@@ -59,7 +59,7 @@
 
 
 /* Note: OTA_APP_VER format should be x.x.x and x is in range [0,9] */
-#define OTA_APP_VER     "3.0.0"
+#define OTA_APP_VER     "1.0.1"
 int demo_get_app_version()
 {
     int major, minor, patch;
@@ -1182,6 +1182,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 #endif
     case ADM_EVENT_ALL_FABRIC_REMOVED:
     {
+#if 1
         /*
         * Note: For Iphone Alexa APP Conner Case - Reboot Device.
         * Google Home & Apple Home can use WLAN ways to add device again, but Alexa can not.
@@ -1192,6 +1193,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
             log_put(LOG_INFO "All matter farbrics are removed, reboot after %d s!", MF_REMOVE_DELAY_TIMER_MSECS/1000);
             osTimerStart(mf_remove_timer, msecs_to_ticks(MF_REMOVE_DELAY_TIMER_MSECS));
         }
+#endif
         break;
     }
 	default:
@@ -1589,14 +1591,11 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
 	}
 	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) 
 	{
-	
 		log_put(LOG_INFO "Button long pressed");
-
         // write flash partition
-        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
-        scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+        // scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
+        // scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
 		/* Trigger factory reset */
-
 		demo_matter_event_cb(ADM_EVENT_COMMISSIONING_SESSION_STARTED);
 		osDelay( MS_TO_TICKS(2000));
 		

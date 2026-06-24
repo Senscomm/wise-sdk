@@ -32,6 +32,8 @@
 #define ADB_OTA_STACK_SIZE 8192
 #define ADB_OTA_REBOOT_DELAY_MS 1000
 
+#define ADB_OTA_PROGRESS_NOTIFY_STEP    3
+
 static uint16_t app_version;
 
 enum adb_ota_cmd
@@ -178,7 +180,7 @@ static void adb_ota_progress_cb(u8 progress, void * arg)
         status          = adb_ota_ctx.status;
         status.progress = adb_ota_ctx.next_progress;
         conn            = adb_ota_ctx.conn;
-        adb_ota_ctx.next_progress += 10;
+        adb_ota_ctx.next_progress += ADB_OTA_PROGRESS_NOTIFY_STEP;
         osMutexRelease(adb_ota_ctx.lock);
         adb_ota_notify_conn(conn, &status);
         osMutexAcquire(adb_ota_ctx.lock, osWaitForever);
@@ -191,6 +193,7 @@ static void adb_ota_thread(void * arg)
     struct mcuboot_agent_params params = {
         .progress_cb = adb_ota_progress_cb,
         .auto_reboot = 0,
+        .permanent = 1,
     };
     struct adb_ota_status_msg status;
     u16 conn;

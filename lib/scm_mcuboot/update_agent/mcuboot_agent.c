@@ -536,28 +536,25 @@ error:
     return ret;
 }
 
-static void check_slot_trailer(void)
+static int prepare_slot_trailer(void)
 {
-    struct image_trailer trailer;
-    uint8_t erase_val;
-    int i;
+    int ret;
 
-    flash_area_open(FLASH_AREA_IMAGE_SECONDARY(0), &fap);
+    ret = flash_area_open(FLASH_AREA_IMAGE_SECONDARY(0), &fap);
+    if (ret < 0) {
+        printf("error: opening secondary trailer area\n");
+        return ret;
+    }
 
-    flash_area_read(fap, fap->fa_size - sizeof(struct image_trailer),
-            &trailer, sizeof(struct image_trailer));
-
-    erase_val = flash_area_erased_val(fap);
-
-    for (i = 0; i < 16; i++) {
-        if (trailer.magic[i] != erase_val) {
-            flash_area_erase(fap, fap->fa_size - sizeof(struct image_trailer),
-                    sizeof(struct image_trailer));
-            break;
-        }
+    ret = flash_area_erase(fap, fap->fa_size - sizeof(struct image_trailer),
+            sizeof(struct image_trailer));
+    if (ret < 0) {
+        printf("error: erasing secondary trailer\n");
     }
 
     flash_area_close(fap);
+
+    return ret;
 }
 
 int mcuboot_agent_run(const char *url, const struct mcuboot_agent_params *params)
@@ -610,7 +607,11 @@ int mcuboot_agent_run(const char *url, const struct mcuboot_agent_params *params
     img_oft = 0;
     fbuf_idx = 0;
 
-    check_slot_trailer();
+    ret = prepare_slot_trailer();
+    if (ret < 0) {
+        printf("prepare_slot_trailer failed!\n");
+        return CMD_RET_FAILURE;
+    }
 
     flash_crypto_enable(0);
     ret = get_firmware(addr, port_num, path);
@@ -623,7 +624,12 @@ int mcuboot_agent_run(const char *url, const struct mcuboot_agent_params *params
         return -1;
     }
 
-    boot_set_pending_multi(0, 0);
+    printf("permanent:%u\n", params->permanent);
+    ret = boot_set_pending_multi(0, params->permanent > 0 ? 1 : 0);
+    if (ret != 0) {
+        printf("error: boot_set_pending_multi failed %d\n", ret);
+        return CMD_RET_FAILURE;
+    }
 
     if (params && params->auto_reboot) {
         struct device *wdt;
@@ -641,6 +647,8 @@ static int do_mcuboot_agent(int argc, char *argv[])
 {
     struct mcuboot_agent_params params = {
         .auto_reboot = 1,
+        /* Only for test mode */
+        .permanent = 0,
     };
 
     if (argc < 2) {
