@@ -1,0 +1,35 @@
+diff --git src/platform/senscomm/scm1612s/BLEManagerImpl.cpp src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+index 4c2384df6c..5e94ccf4b7 100644
+--- src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
++++ src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+@@ -229,7 +229,7 @@ CHIP_ERROR BLEManagerImpl::_Init()
+ 
+     PlatformMgr().ScheduleWork(DriveBLEState, 0);
+     /* Note: This workaround may be removed. */
+-    // StartBleAdvWatchTimer(6000);
++    StartBleAdvWatchTimer(6000);
+ exit:
+     return err;
+ }
+@@ -1010,7 +1010,7 @@ CHIP_ERROR BLEManagerImpl::InitSCMBleLayer(void)
+ 
+     /* Set BLE Host task prio 4 and stack_size max (4096), related fixes need to be synced in npl_freertos_task_init */
+ 	ble_npl_task_init(&s_task_host, "nimble_host", bleprph_host_task,
+-			NULL, 4, 0, NULL, 4096);
++			NULL, 7, 0, NULL, 4096);
+ 
+     xSemaphoreTake(semaphoreHandle, portMAX_DELAY);
+     vSemaphoreDelete(semaphoreHandle);
+diff --git src/setup_payload/BUILD.gn src/setup_payload/BUILD.gn
+index 30b97ceca7..ef7140831c 100644
+--- src/setup_payload/BUILD.gn
++++ src/setup_payload/BUILD.gn
+@@ -18,7 +18,7 @@ import("${chip_root}/build/chip/buildconfig_header.gni")
+ 
+ declare_args() {
+   # Enable adding optional rotating device id to the additional data.
+-  chip_enable_rotating_device_id = false
++  chip_enable_rotating_device_id = true
+ }
+ 
+ buildconfig_header("additional_data_payload_buildconfig") {
