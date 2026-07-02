@@ -1,0 +1,356 @@
+diff --git src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
+index f0e41fbe69..d7d33fbd84 100644
+--- src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
++++ src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
+@@ -21,12 +21,15 @@
+ #include <platform/senscomm/scm1612s/SCM1612SConfig.h>
+ #include <platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h>
+ 
+-#include <limits>
+-
+ #include "wise_event_loop.h"
+ #include "wise_wifi_types.h"
+ #include "wise_err.h"
+ #include "scm_wifi.h"
++#include "wise_wifi.h"
++
++extern "C" uint8_t demo_get_scan_source(void);
++extern "C" void demo_set_scan_source(uint8_t);
++extern "C" void demo_set_inital_scan(bool);
+ 
+ #define SECURITY_OPEN 0
+ #define SECURITY_TKIP 2
+@@ -45,6 +48,141 @@ namespace {
+ constexpr char kWiFiSSIDKeyName[]        = "wifi-ssid";
+ constexpr char kWiFiCredentialsKeyName[] = "wifi-pass";
+ static uint8_t WiFiSSIDStr[DeviceLayer::Internal::kMaxWiFiSSIDLength];
++constexpr uint16_t kMaxCachedWiFiScanAPs = kMaxWiFiScanAPs;
++
++struct CachedWiFiScanResults
++{
++    std::array<scm_wifi_ap_info, kMaxCachedWiFiScanAPs> mResults = {};
++    uint16_t mCount                                        = 0;
++    decltype(System::SystemClock().GetMonotonicTimestamp()) mTimestamp = System::Clock::kZero;
++    bool mValid                                            = false;
++};
++
++CachedWiFiScanResults gCachedWiFiScanResults;
++
++bool HasValidCachedWiFiScanResults()
++{
++    if (!gCachedWiFiScanResults.mValid || gCachedWiFiScanResults.mTimestamp == System::Clock::kZero)
++    {
++        return false;
++    }
++
++    const auto now = System::SystemClock().GetMonotonicTimestamp();
++    /* Set the valid time to 1010s */
++    return now < (gCachedWiFiScanResults.mTimestamp + System::Clock::Seconds32(kWiFiScanNetworksTimeOutSeconds + 1000));
++}
++
++void InvalidateCachedWiFiScanResults()
++{
++    gCachedWiFiScanResults.mCount     = 0;
++    gCachedWiFiScanResults.mTimestamp = System::Clock::kZero;
++    gCachedWiFiScanResults.mValid     = false;
++}
++
++size_t GetWiFiSsidLength(const scm_wifi_ap_info & apInfo)
++{
++    return strnlen(apInfo.ssid, sizeof(apInfo.ssid));
++}
++
++// Deduplicate scan entries by BSSID so the cache keeps distinct APs even when SSIDs match.
++bool IsSameAccessPoint(const scm_wifi_ap_info & lhs, const scm_wifi_ap_info & rhs)
++{
++    return memcmp(lhs.bssid, rhs.bssid, sizeof(lhs.bssid)) == 0;
++}
++
++void MergeWiFiScanResults(const scm_wifi_ap_info * apListBuffer, uint16_t count)
++{
++    VerifyOrReturn(apListBuffer != nullptr || count == 0);
++
++    const uint16_t maxCount = static_cast<uint16_t>(gCachedWiFiScanResults.mResults.size());
++
++    for (uint16_t index = 0; index < count; ++index)
++    {
++        const scm_wifi_ap_info & candidate = apListBuffer[index];
++        bool updatedExisting               = false;
++
++        for (uint16_t cachedIndex = 0; cachedIndex < gCachedWiFiScanResults.mCount; ++cachedIndex)
++        {
++            if (IsSameAccessPoint(gCachedWiFiScanResults.mResults[cachedIndex], candidate))
++            {
++                gCachedWiFiScanResults.mResults[cachedIndex] = candidate;
++                updatedExisting                              = true;
++                break;
++            }
++        }
++
++        if (updatedExisting)
++        {
++            continue;
++        }
++
++        if (gCachedWiFiScanResults.mCount < maxCount)
++        {
++            gCachedWiFiScanResults.mResults[gCachedWiFiScanResults.mCount++] = candidate;
++            continue;
++        }
++
++        auto weakestIt = std::min_element(gCachedWiFiScanResults.mResults.begin(),
++                                          gCachedWiFiScanResults.mResults.begin() + gCachedWiFiScanResults.mCount,
++                                          [](const scm_wifi_ap_info & lhs, const scm_wifi_ap_info & rhs) {
++                                              return lhs.rssi < rhs.rssi;
++                                          });
++        if (weakestIt != gCachedWiFiScanResults.mResults.begin() + gCachedWiFiScanResults.mCount &&
++            candidate.rssi > weakestIt->rssi)
++        {
++            *weakestIt = candidate;
++        }
++    }
++
++    gCachedWiFiScanResults.mTimestamp = System::SystemClock().GetMonotonicTimestamp();
++    gCachedWiFiScanResults.mValid     = gCachedWiFiScanResults.mCount > 0;
++}
++
++void LogCachedWiFiScanResults()
++{
++    ChipLogError(DeviceLayer, "Cached WiFi scan results: valid=%d count=%u", gCachedWiFiScanResults.mValid,
++                    gCachedWiFiScanResults.mCount);
++
++    for (uint16_t index = 0; index < gCachedWiFiScanResults.mCount; ++index)
++    {
++        const scm_wifi_ap_info & apInfo = gCachedWiFiScanResults.mResults[index];
++        ChipLogProgress(DeviceLayer,
++                        "Cached AP[%u]: ssid=%s channel=%u auth=%d rssi=%d bssid=%02x:%02x:%02x:%02x:%02x:%02x", index,
++                        apInfo.ssid, apInfo.channel, apInfo.auth, apInfo.rssi, apInfo.bssid[0], apInfo.bssid[1],
++                        apInfo.bssid[2], apInfo.bssid[3], apInfo.bssid[4], apInfo.bssid[5]);
++    }
++}
++
++const scm_wifi_ap_info * FindCachedScanResult(const char * ssid, uint8_t ssidLen)
++{
++    if (!HasValidCachedWiFiScanResults())
++    {
++        return nullptr;
++    }
++
++    const scm_wifi_ap_info * bestMatch = nullptr;
++
++    for (uint16_t index = 0; index < gCachedWiFiScanResults.mCount; ++index)
++    {
++        const scm_wifi_ap_info & apInfo = gCachedWiFiScanResults.mResults[index];
++        const size_t cachedSsidLen      = GetWiFiSsidLength(apInfo);
++
++        if (cachedSsidLen != ssidLen)
++        {
++            continue;
++        }
++
++        if (memcmp(apInfo.ssid, ssid, ssidLen) == 0)
++        {
++            if (bestMatch == nullptr || apInfo.rssi > bestMatch->rssi)
++            {
++                bestMatch = &apInfo;
++            }
++        }
++    }
++
++    return bestMatch;
++}
+ } // namespace
+ 
+ CHIP_ERROR WiseWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusChangeCallback)
+@@ -92,7 +230,8 @@ CHIP_ERROR WiseWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusChang
+     mSavedNetwork.credentialsLen = credentialsLen;
+     mSavedNetwork.ssidLen        = ssidLen;
+     mStagingNetwork              = mSavedNetwork;
+-
++    // avoid inital wifi scan if wifi configs saved
++    demo_set_inital_scan(false);
+     ConnectWiFiNetwork(mSavedNetwork.ssid, ssidLen, mSavedNetwork.credentials, credentialsLen);
+     return err;
+ }
+@@ -189,7 +328,7 @@ Status WiseWiFiDriver::AddOrUpdateNetwork(ByteSpan ssid, ByteSpan credentials, M
+     mStagingNetwork.ssidLen = static_cast<decltype(mStagingNetwork.ssidLen)>(ssid.size());
+ 
+     mStagingNetwork.auth_mode = credentials.size() != 0 ? WIFI_AUTH_WPA2_PSK : WIFI_AUTH_OPEN;
+-
++    ChipLogError(NetworkProvisioning, "AddOrUpdateNetwork ssid:%s, cred:%s\n", mStagingNetwork.ssid, mStagingNetwork.credentials);
+     return Status::kSuccess;
+ }
+ 
+@@ -221,6 +360,9 @@ Status WiseWiFiDriver::ReorderNetwork(ByteSpan networkId, uint8_t index, Mutable
+ CHIP_ERROR WiseWiFiDriver::ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen, const char * key, uint8_t keyLen)
+ {
+     scm_wifi_assoc_request req = {0};
++    uint8_t pmk_stored[WISE_PMK_LEN] = {0};
++    scm_wifi_fast_assoc_request fast_request = {0};
++    const scm_wifi_ap_info * cachedApInfo = nullptr;
+     int ret;
+     ChipLogProgress(NetworkProvisioning, "WiseWiFiDriver::ConnectWiFiNetwork");
+ 
+@@ -247,19 +389,46 @@ CHIP_ERROR WiseWiFiDriver::ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen
+     req.pairwise = SCM_WIFI_PAIRWISE_AES;
+ 
+     scm_wifi_sta_set_config(&req, NULL);
+-#if 0
+-    ChipLogProgress(NetworkProvisioning, "ssid: %s %d", ssid, ssidLen);
+-    ChipLogProgress(NetworkProvisioning, "key: %s %d", key, keyLen);
+-    ChipLogProgress(NetworkProvisioning, "auth: %d", mStagingNetwork.auth_mode);
+-#endif
++    ret = scm_wifi_get_options(SCM_WIFI_STA_GET_PSK, pmk_stored);
+ 
+-    ChipLogProgress(NetworkProvisioning, "Setting up connection for WiFi SSID: %.*s", static_cast<int>(ssidLen), ssid);
++    ChipLogProgress(NetworkProvisioning, "Setting up connection for WiFi SSID: %s", ssid);
+ 
+     //ReturnErrorOnFailure(ConnectivityMgr().SetWiFiStationMode(ConnectivityManager::kWiFiStationMode_Disabled));
+     //ReturnErrorOnFailure(ConnectivityMgr().SetWiFiStationMode(ConnectivityManager::kWiFiStationMode_Enabled));
+ 
+     ChipLogProgress(DeviceLayer, "Attempting to connect WiFi station interface");
+-    ret = scm_wifi_sta_connect();
++    cachedApInfo = FindCachedScanResult(ssid, ssidLen);
++    if (cachedApInfo != nullptr && ret == WISE_OK)
++    {
++        memcpy(fast_request.req.ssid, ssid, ssidLen);
++        fast_request.req.auth     = req.auth;
++        fast_request.req.pairwise = req.pairwise;
++        memcpy(fast_request.req.bssid, cachedApInfo->bssid, sizeof(fast_request.req.bssid));
++        fast_request.channel = static_cast<unsigned char>(cachedApInfo->channel);
++        memcpy(fast_request.psk, pmk_stored, WISE_PMK_LEN);
++
++        ChipLogError(DeviceLayer, "Using fast connect for cached WiFi SSID: %s on channel %u", ssid, fast_request.channel);
++        ret = scm_wifi_sta_fast_connect(&fast_request);
++        if (ret != WISE_OK)
++        {
++            ChipLogError(DeviceLayer, "scm_wifi_sta_fast_connect() failed, fallback to generic connect");
++            ret = scm_wifi_sta_connect();
++        }
++    }
++    else
++    {
++        if (cachedApInfo == nullptr)
++        {
++            ChipLogError(DeviceLayer, "No cached scan hit for WiFi SSID: %s, use generic connect", ssid);
++        }
++        else
++        {
++            ChipLogError(DeviceLayer, "No cached PSK for WiFi SSID: %s, use generic connect", ssid);
++        }
++
++        ret = scm_wifi_sta_connect();
++    }
++
+     if (ret != WISE_OK)
+     {
+         ChipLogError(DeviceLayer, "scm_wifi_connect() failed");
+@@ -363,7 +532,20 @@ bool WiseWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
+     }
+     else // scan all networks
+     {
+-        scm_wifi_sta_scan();
++        bool CacheValid = HasValidCachedWiFiScanResults();
++        ChipLogError(DeviceLayer, "Cache scan results %s", CacheValid ? "valid" : "invalid");
++        if (CacheValid)
++        {
++            ChipDeviceEvent e = { 0 };
++            e.Type = DeviceEventType::kSCMSystemEvent;
++            e.Platform.SCMSystemEvent.event.event_id = SYSTEM_EVENT_SCAN_DONE;
++            (void) PlatformMgr().PostEvent(&e);
++        }
++        else
++        {
++            scm_wifi_sta_scan();
++            demo_set_scan_source(3);
++        }
+     }
+ 
+     return true;
+@@ -371,30 +553,51 @@ bool WiseWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
+ 
+ void WiseWiFiDriver::OnScanWiFiNetworkDone()
+ {
++    uint16_t apNumber = kMaxWiFiScanAPs;
++    uint16_t num = 0;
+     if (!GetInstance().mpScanCallback)
+     {
+         ChipLogProgress(DeviceLayer, "No scan callback");
++        if (demo_get_scan_source() == 1)
++        {
++            std::array<scm_wifi_ap_info, kMaxWiFiScanAPs> apBuffer = {};
++
++            if (scm_wifi_sta_scan_results(apBuffer.data(), &apNumber, apBuffer.size()) == WISE_OK)
++            {
++                MergeWiFiScanResults(apBuffer.data(), apNumber);
++                ChipLogProgress(DeviceLayer, "Merged %u WiFi scan results without callback, cache count=%u", apNumber,
++                                gCachedWiFiScanResults.mCount);
++                LogCachedWiFiScanResults();
++            }
++            else
++            {
++                ChipLogError(DeviceLayer, "Failed to cache WiFi scan results without callback");
++                InvalidateCachedWiFiScanResults();
++            }
++        }
+         return;
+     }
+-    uint16_t ap_number = 32, num;
+-
+-    // Since this is the dynamic memory allocation, restrict it to a configured limit
+-    ap_number = std::min(static_cast<uint16_t>(CHIP_DEVICE_CONFIG_MAX_SCAN_NETWORKS_RESULTS), ap_number);
+ 
+-    std::unique_ptr<scm_wifi_ap_info[]> ap_buffer_ptr(new scm_wifi_ap_info[ap_number]());
+-    if (ap_buffer_ptr == NULL)
++    scm_wifi_ap_info * ap_list_buffer = new scm_wifi_ap_info[apNumber]();
++    if (ap_list_buffer == nullptr)
+     {
+         ChipLogError(DeviceLayer, "can't malloc memory for ap_list_buffer");
+         GetInstance().mpScanCallback->OnFinished(Status::kUnknownError, CharSpan(), nullptr);
+         GetInstance().mpScanCallback = nullptr;
+         return;
+     }
+-    scm_wifi_ap_info * ap_list_buffer = ap_buffer_ptr.get();
+-    if (scm_wifi_sta_scan_results(ap_list_buffer, &num, ap_number) == WISE_OK)
++
++    if (scm_wifi_sta_scan_results(ap_list_buffer, &num, apNumber) == WISE_OK)
+     {
+-        if (CHIP_NO_ERROR == DeviceLayer::SystemLayer().ScheduleLambda([num, ap_list_buffer]() {
++        MergeWiFiScanResults(ap_list_buffer, num);
++        const bool hasCachedResults   = HasValidCachedWiFiScanResults();
++        const bool useCachedResults   = hasCachedResults || num == 0;
++        const uint16_t resultCount    = useCachedResults && hasCachedResults ? gCachedWiFiScanResults.mCount : num;
++        const scm_wifi_ap_info * data = useCachedResults && hasCachedResults ? gCachedWiFiScanResults.mResults.data() : ap_list_buffer;
++
++        if (CHIP_NO_ERROR == DeviceLayer::SystemLayer().ScheduleLambda([resultCount, ap_list_buffer, data, useCachedResults]() {
+                 std::unique_ptr<scm_wifi_ap_info[]> auto_free(ap_list_buffer);
+-                WiseScanResponseIterator iter(num, ap_list_buffer);
++                WiseScanResponseIterator iter(resultCount, data);
+                 if (GetInstance().mpScanCallback)
+                 {
+                     GetInstance().mpScanCallback->OnFinished(Status::kSuccess, CharSpan(), &iter);
+@@ -406,10 +609,15 @@ void WiseWiFiDriver::OnScanWiFiNetworkDone()
+                 }
+             }))
+         {
+-            ap_buffer_ptr.release();
++            if (useCachedResults)
++            {
++                ChipLogError(DeviceLayer, "Reported merged WiFi scan cache, fresh scan count: %u cache count: %u", num,
++                             gCachedWiFiScanResults.mCount);
++            }
+         }
+         else
+         {
++            delete[] ap_list_buffer;
+             ChipLogError(DeviceLayer, "can't schedule the scan result processing");
+             GetInstance().mpScanCallback->OnFinished(Status::kUnknownError, CharSpan(), nullptr);
+             GetInstance().mpScanCallback = nullptr;
+@@ -417,6 +625,7 @@ void WiseWiFiDriver::OnScanWiFiNetworkDone()
+     }
+     else
+     {
++        delete[] ap_list_buffer;
+         ChipLogError(DeviceLayer, "can't get ap_records ");
+         GetInstance().mpScanCallback->OnFinished(Status::kUnknownError, CharSpan(), nullptr);
+         GetInstance().mpScanCallback = nullptr;
