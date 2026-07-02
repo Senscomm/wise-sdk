@@ -52,13 +52,32 @@
 
 #include "scm_flash.h"
 #include "scm_gpio.h"
+#include "scm_fs.h"
+#include "wise_wifi.h"
 #include "ping.h"
-
 
 #include "iotalink.h"
 
+/* wpas notifies the scan through event callbacks, and after obtaining the scan results, the data will be erased */
+static uint8_t g_scan_source = 0;
 
-/* Note: OTA_APP_VER format should be x.x.x and x is in range [0,9] */
+uint8_t demo_get_scan_source(void)
+{
+    return g_scan_source;
+}
+
+void demo_set_scan_source(uint8_t src)
+{
+    g_scan_source = src;
+}
+
+static bool g_initial_scan_enable = true;
+
+void demo_set_inital_scan(bool enable)
+{
+    g_initial_scan_enable = enable;
+}
+
 #define OTA_APP_VER     "1.0.1"
 int demo_get_app_version()
 {
@@ -421,13 +440,11 @@ static void demo_evt_handler(struct app_event *evt)
         u8 on_only = (u8)evt->light_event.value;
         demo_light_bulb_do_action(ON_ACTION, 0, true);
         need_set = on_only != 0 ? false : true;
-        printf("[ON]need set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode2:
     {
         need_set = true;
-        printf("[Mode2] set:%d\n", need_set);
         break;
     }
     case kLightAction_Mode:
@@ -1021,6 +1038,146 @@ static void demo_lc_sync(bool timeout)
     app_event_post(&evt);
 }
 
+#define INITIAL_WIFI_SCAN_RETRY_COUNT  3
+static int8_t initial_wifi_scan_rounds_left;
+
+static void demo_start_initial_wifi_scan(void)
+{
+    wifi_scan_config_t wif_scan_config;
+    wise_err_t scan_err;
+
+    log_put(LOG_INFO "Start initial wifi scan, rounds left after this: %u", initial_wifi_scan_rounds_left);
+    adb_bt_scan_cancel_wrap();
+
+    demo_set_scan_source(1);
+
+    memset(&wif_scan_config, 0, sizeof(wifi_scan_config_t));
+    wif_scan_config.scan_type            = WIFI_SCAN_TYPE_ACTIVE;
+    wif_scan_config.scan_time.active.min = 105;
+    wif_scan_config.scan_time.active.max = 130;
+    scan_err = wise_wifi_scan_start(&wif_scan_config, true, WIFI_IF_STA);
+    if (scan_err != WISE_OK) {
+        log_put(LOG_ERR "Initial wifi scan start failed: %d", scan_err);
+        initial_wifi_scan_rounds_left = 0;
+        adb_bt_scan_start_wrap();
+        return;
+    }
+
+    adb_bt_scan_start_wrap();
+}
+
+#define BUTTON_LONG_PRESSED_FLASH_STATE    (0xAA)
+
+static void demo_lc_run_events(struct app_event *events,
+        size_t event_count, int repeat, u32 timeout,
+        void (*callback)(bool timeout))
+{
+    size_t i;
+
+    lighting_ctrl_terminate(false, false);
+    for (i = 0; i < event_count; i++) {
+        lighting_ctrl_add_event(&events[i]);
+    }
+    lighting_ctrl_run(repeat, timeout, callback);
+}
+
+static void demo_lc_start_commissioning(void)
+{
+    struct app_event evt[] = {
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_On,
+                .value = 1,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Mode,
+                .value = 0,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Level,
+                .value = 127,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Temp,
+                .value = 78,
+            }
+        },
+        {
+            .type = kEventType_Timer,
+            .timer_event = {
+                .value = 500,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Off,
+            }
+        },
+        {
+            .type = kEventType_Timer,
+            .timer_event = {
+                .value = 500,
+            }
+        },
+    };
+
+    if (onboarding) {
+        return;
+    }
+
+    demo_lc_run_events(evt, ARRAY_LEN(evt), -1, 60000 /* 1 min. */,
+        demo_lc_completed);
+    onboarding = true;
+}
+
+static void demo_lc_complete_commissioning(void)
+{
+    struct app_event evt[] = {
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_On,
+                .value = 1,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Mode,
+                .value = 0,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Level,
+                .value = 254,
+            }
+        },
+        {
+            .type = kEventType_Light,
+            .light_event = {
+                .action = kLightAction_Temp,
+                .value = 78,
+            }
+        }
+    };
+
+    demo_lc_run_events(evt, ARRAY_LEN(evt), 1, 0, demo_lc_sync);
+    onboarding = false;
+}
+
 static void demo_matter_event_cb(enum adm_event_id id)
 {
 	uint8_t state = 0;
@@ -1037,8 +1194,26 @@ static void demo_matter_event_cb(enum adm_event_id id)
          */
         log_put(LOG_INFO "Set light manager state to ON.");
         demo_post_light_event(kLightAction_On, 1);
+
+        if (g_initial_scan_enable)
+        {
+            /* Start initial wifi scan */
+            log_put(LOG_INFO "Start a initial wifi scan");
+            initial_wifi_scan_rounds_left = INITIAL_WIFI_SCAN_RETRY_COUNT;
+            demo_start_initial_wifi_scan();
+        }
+        else
+            log_put(LOG_INFO "Cancel a initial wifi scan");
+
         break;
     }
+    case ADM_EVENT_WIFI_SCAN_DONE:
+        initial_wifi_scan_rounds_left--;
+        if (g_initial_scan_enable && demo_get_scan_source() == 1 && initial_wifi_scan_rounds_left > 0) {
+            // log_put(LOG_INFO "Inital scan done trigger scan again");
+            demo_start_initial_wifi_scan();
+        }
+		break;
 	case ADM_EVENT_IPV4_UP:
         ip_up = 1;
 #ifdef AYLA_ADA_SERVICE_ENABLE
@@ -1052,7 +1227,6 @@ static void demo_matter_event_cb(enum adm_event_id id)
         }
 #endif
 		break;
-
 	case ADM_EVENT_IPV4_DOWN:
         ip_up = 0;
 #ifdef AYLA_ADA_SERVICE_ENABLE
@@ -1061,125 +1235,27 @@ static void demo_matter_event_cb(enum adm_event_id id)
 		break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STARTED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_OPENED:
-#if 1//定制
-		scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
-		printf("=========================> state: 0x%02x\n", state);
-		if (state == 0xAA) {
-			scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
-		} else {
-            break;
-        }
-#endif
+#ifdef BUTTON_LONG_PRESSED_FLASH_STATE
     {
-        int i;
-        struct app_event evt[] = {
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_On,
-                    .value = 1,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Mode,
-                    .value = 0,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Level,
-                    .value = 127,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Temp,
-                    .value = 78,
-                }
-            },
-            {
-                .type = kEventType_Timer,
-                .timer_event = {
-                    .value = 500,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Off,
-                }
-            },
-            {
-                .type = kEventType_Timer,
-                .timer_event = {
-                    .value = 500,
-                }
-            },
-        };
-
-        if (onboarding)
-            break;
-
-        lighting_ctrl_terminate(false, false);
-        for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
-            lighting_ctrl_add_event(&evt[i]);
+        scm_partition_read(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
+        log_put(LOG_INFO "button long pressed flash state: 0x%02x\n", state);
+        if (state == BUTTON_LONG_PRESSED_FLASH_STATE)
+        {
+            scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096);
+            iotalink_button_state_set(0xff);
+            demo_lc_start_commissioning();
         }
-        lighting_ctrl_run(-1, 60000/* 1 min. */, demo_lc_completed);
-
-        onboarding = true;
     }
+#else
+        demo_lc_start_commissioning();
+#endif
         break;
 	case ADM_EVENT_COMMISSIONING_SESSION_STOPPED:
 	case ADM_EVENT_COMMISSIONING_WINDOW_CLOSED:
         break;
-#if 1
 	case ADM_EVENT_COMMISSIONING_COMPLETE:
-	{
-        int i;
-        struct app_event evt[] = {
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_On,
-                    .value = 1,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Mode,
-                    .value = 0,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Level,
-                    .value = 254,
-                }
-            },
-            {
-                .type = kEventType_Light,
-                .light_event = {
-                    .action = kLightAction_Temp,
-                    .value = 78,
-                }
-            }
-        };
-        lighting_ctrl_terminate(false, false);
-        for (i = 0; i < sizeof(evt) / sizeof(evt[0]); i++) {
-            lighting_ctrl_add_event(&evt[i]);
-        }
-        lighting_ctrl_run(1, 0, demo_lc_sync);
-
-        onboarding = false;
+        demo_lc_complete_commissioning();
         break;
-    }
-#endif
     case ADM_EVENT_ALL_FABRIC_REMOVED:
     {
 #if 1
@@ -1497,8 +1573,12 @@ static void ac_timer_handle(void *arg)
 
 static void mf_remove_handle(void *arg)
 {
+#ifdef AYLA_ADA_SERVICE_ENABLE
     /* Only reboot */
     ada_conf_reset(0);
+#else
+    wise_restart();
+#endif
 }
 
 void demo_init(void)
@@ -1579,32 +1659,35 @@ void demo_init(void)
 
 void demo_button_toggle(unsigned long pressed, unsigned long released)
 {
-	uint8_t state = 0xAA;
-	if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) && ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX))
-	{
-		my_printf( "Button short pressed");
-	//	bool _switch = sg_light_ctrl_data.switch_status;	
-		
-		/************************>>单击开关灯<<********************************/
-		light_power_set(!power);
-		iotalink_light_ctrl_process();
-	}
-	if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD)) 
-	{
-		log_put(LOG_INFO "Button long pressed");
-        // write flash partition
-        // scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
-        // scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
-		/* Trigger factory reset */
-		demo_matter_event_cb(ADM_EVENT_COMMISSIONING_SESSION_STARTED);
-		osDelay( MS_TO_TICKS(2000));
-		
-        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096); 
+    uint8_t state = BUTTON_LONG_PRESSED_FLASH_STATE;
+    if (pressed && ((released - pressed) > BUTTON_SHORT_PRESSED_PERIOD_MIN) &&
+        ((released - pressed) < BUTTON_SHORT_PRESSED_PERIOD_MAX))
+    {
+        log_put("Button short pressed");
+        /* Turn on/off the light by short press */
+        light_power_set(!power);
+        iotalink_light_ctrl_process();
+    }
+    if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD))
+    {
+        log_put(LOG_INFO "Button long pressed");
+        /* Set long press flash state */
+        // todo: use FS instead of other flash partition
+        scm_partition_erase(FLASH_PARTITION_TMP, 0, 4096);
         scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
-
-		
-		ada_conf_reset(2);
-	}
+        /* It's not recommended to do so */
+        iotalink_button_state_set(state);
+        /* Set the light flashing to indicate the network commission state */
+        demo_lc_start_commissioning();
+        osDelay(MS_TO_TICKS(2000));
+#ifdef AYLA_ADA_SERVICE_ENABLE
+        ada_conf_reset(2);
+#else
+        scm_fs_clear_all_config_value(NULL);
+        osDelay(MS_TO_TICKS(1000));
+        wise_restart();
+#endif
+    }
 }
 
 void demo_idle(void)

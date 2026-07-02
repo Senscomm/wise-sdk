@@ -854,15 +854,7 @@ void wlt_ble_remote_control(u8 keyvalue)
 	iotalink_light_ctrl_process();
 }
 
-
-
-//	osTimerStart(countdown_timer,   MS_TO_TICKS(60*60*1000)) ;
-
-
-	//	osTimerStop(countdown_timer);
-	//	osTimerStart(my_test_timer, MS_TO_TICKS(10));
-
-
-
-
-
+void iotalink_button_state_set(u8 state)
+{
+	sg_light_ctrl_data.matter_state = state;
+}

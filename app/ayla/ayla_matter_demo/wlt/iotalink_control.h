@@ -134,7 +134,6 @@ void auto_flash_operation_init(void);
 void wlt_ble_remote_control(u8 keyvalue);
 
 void set_auto_flag(u8 state);
-
+void iotalink_button_state_set(u8 state);
 
 #endif
-

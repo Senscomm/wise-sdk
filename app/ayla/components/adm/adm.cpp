@@ -40,7 +40,7 @@
 #include <adm/adm.h>
 #include "adm_int.h"
 #include <al/al_os_mem.h>
-
+#include <adb/adb.h>
 #include "wise_event.h"
 
 #if CONFIG_TEST_EVENT_TRIGGER_ENABLED
@@ -472,10 +472,12 @@ static void adm_device_event(const ChipDeviceEvent * event, intptr_t arg)
 		break;
 
 	case DeviceEventType::kCHIPoBLEConnectionEstablished:
+		adb_bt_scan_cancel_wrap();
 		adm_log(LOG_DEBUG "CHIPoBLE connection established");
 		break;
 
 	case DeviceEventType::kCHIPoBLEConnectionClosed:
+		adb_bt_scan_start_wrap();
 		adm_log(LOG_DEBUG "CHIPoBLE disconnected");
 		break;
 

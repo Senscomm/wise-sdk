@@ -35,6 +35,8 @@
 #include "scm_wifi.h"
 #include "wise_event.h"
 
+extern void demo_set_scan_source(u8_t src);
+extern u8_t demo_get_scan_source(void);
 
 #ifdef AYLA_BLUETOOTH_SUPPORT
 
@@ -270,7 +272,6 @@ static void adb_wifi_cfg_scan_done_handler(void)
 	scm_wifi_ap_info * scan_list_buf = malloc(scan_max_num * sizeof(scm_wifi_ap_info));
 
 	if (scm_wifi_sta_scan_results(scan_list_buf, &num, scan_max_num) == WISE_OK) {
-		printf("num:%d\n", num);
 		for (int i = 0; i < num; i++) {
 			scan->ssid.len = strlen(scan_list_buf[i].ssid);
 			memcpy(scan->ssid.id, scan_list_buf[i].ssid, scan->ssid.len);
@@ -282,11 +283,10 @@ static void adb_wifi_cfg_scan_done_handler(void)
 			sec_type = scan_list_buf[i].auth;
 			scan->wmi_sec = sec_type;
 			adb_wifi_cfg_encode_scan_result_msg(i, scan, &msg);
-			// printf("ssid:%s, len:%d, sec1:%d, sec2:%d, sec3:%d\n", scan_list_buf[i].ssid, msg.ssid_len, msg.security, scan->wmi_sec, scan_list_buf[i].auth);
 			al_bt_notify(scan_result_chr, (u8 *)&msg, (u16)sizeof(msg));
 			sys_msleep(100);
 		}
-		//! send a len=0 msg to indicate the last scan result
+		/* send a len=0 msg to indicate the last scan result */
 		adb_wifi_cfg_encode_scan_result_msg(num, NULL, &msg);
 		al_bt_notify(scan_result_chr, (u8 *)&msg, (u16)sizeof(msg));
 	}
@@ -376,8 +376,11 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 #endif
 		break;
 	case ADM_EVENT_WIFI_SCAN_DONE:
-		printf("WiFi Start Scan!!\n");
-		adb_wifi_cfg_scan_done_handler();
+		if (demo_get_scan_source() == 2) {
+			adb_log(LOG_INFO "Recv adb wifi service scan done.");
+			adb_wifi_cfg_scan_done_handler();
+			adb_bt_scan_start_wrap();
+		}
 		break;
 	default:
 		/*
@@ -414,7 +417,7 @@ static void adb_wifi_cfg_client_event_handler(void *arg, enum ada_err err)
 	if (!client_up) {
 		client_up = 1;
 		/* Note: HYD APP need use conn_state - 5 to initiate register. */
-		printf("[HYD]the app can register device now!!\n");
+		adb_log(LOG_INFO "[HYD]the app can register device now!!\n");
 		adb_wifi_cfg_send_connect_status_msg(WIFI_STATE_UP,WIFI_ERR_NONE);
 	}
 }
@@ -449,8 +452,10 @@ static enum adb_att_err adb_wifi_cfg_scan_start_cb(u16 conn,
 		return ADB_ATT_UNLIKELY;
 	}
 #endif
-	// scan all networks
+    /* Stop BLE Passive Scan */
+    adb_bt_scan_cancel_wrap();
 	scm_wifi_sta_scan();
+	demo_set_scan_source(2);
 
 	return ADB_ATT_SUCCESS;
 }
@@ -491,7 +496,7 @@ static enum adb_att_err adb_wifi_cfg_connect_request_cb(u16 conn,
 		return ADB_ATT_UNLIKELY;
 	}
 #else
-	printf("[Recv]:ssid: %s, len:%d, sec:%d, key:%s, key len:%d\n", (char *)(conn_req->ssid), 
+	adb_log(LOG_INFO "[Recv]:ssid: %s, len:%d, sec:%d, key:%s, key len:%d\n", (char *)(conn_req->ssid), 
 		conn_req->ssid_len, conn_req->security, (char *)(conn_req->key), conn_req->key_len);
 	scm_wifi_assoc_request req = {0};
 	memcpy(req.ssid, conn_req->ssid, conn_req->ssid_len);
