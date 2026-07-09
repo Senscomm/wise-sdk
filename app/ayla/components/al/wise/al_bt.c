@@ -848,8 +848,8 @@ int al_bt_process_gap_event(void *input)
 #if 1
 			/* Slave update parameters may not take effect */
 			struct ble_gap_upd_params params = {
-				.itvl_min = 40, // 25ms
-				.itvl_max = 80, // 50ms
+				.itvl_min = 25, // 25ms
+				.itvl_max = 50, // 50ms
 				.latency = 0,
 				.supervision_timeout = 500,  // 5s
 			};

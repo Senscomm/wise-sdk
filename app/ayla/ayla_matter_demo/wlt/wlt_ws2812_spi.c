@@ -69,7 +69,7 @@ void spi_event_post(const struct spi_event * event)
 {
     BaseType_t status;
 
-    status = xQueueSend(g_spi_tx_evt_q, event, 1);
+    status = xQueueSend(g_spi_tx_evt_q, event, 10);
     if (!status) {
         // log_put(LOG_ERR "Failed to post event to app task event queue");
 		printf("Failed to post event to app task event queue!\n");

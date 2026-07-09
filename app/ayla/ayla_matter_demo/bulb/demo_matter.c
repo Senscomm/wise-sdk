@@ -78,14 +78,14 @@ void demo_set_inital_scan(bool enable)
     g_initial_scan_enable = enable;
 }
 
-#define OTA_APP_VER     "1.0.1"
+#define OTA_APP_VER     "0.0.0"
 int demo_get_app_version()
 {
     int major, minor, patch;
     if (sscanf(OTA_APP_VER, "%d.%d.%d", &major, &minor, &patch) != 3) {
         return -1;
     }
-    return major * 100 + minor * 10 + patch;
+    return major * 256 + minor + patch;
 }
 
 uint8_t ip_up;
