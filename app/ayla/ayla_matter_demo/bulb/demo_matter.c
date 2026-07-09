@@ -123,8 +123,8 @@ static char mode[32];
 static u8 alexa_enabled;
 static u8 google_enable;
 static u8 local_voice_enable;
-//static u8 power;
-//static int brightness;
+static u8 power;
+static int brightness;
 static int color_bright;
 static int color_saturation;
 static int color_select;
@@ -151,12 +151,12 @@ static osTimerId_t mf_remove_timer;
 /*****************************《 Template 》**************************************/
 #include "iotalink_control.h"
 // wlt_add
-static u8 power;
+// static u8 power;
 
 static u16 big_mode;//大模式
 
 //全局亮度
-static u32 brightness;
+// static u32 brightness;
 
 // 动态场景相关
 static u16 scene;
@@ -166,7 +166,7 @@ static u32 speed;
 static u32 temperature;
 
 // 彩光
-static u32 color;
+// static u32 color;
 
 //律动
 static u32 music;
@@ -225,7 +225,7 @@ void light_temperature_update(uint32_t value)
 
 void light_color_update(uint32_t value)
 {
-    color = value;
+    color_select = value;
     demo_send_prop("Color"); 
 }
 
@@ -408,7 +408,9 @@ static void demo_set_light_bulb(void)
     }
     demo_light_bulb_do_action(MODE_ACTION, &color, true);
     if (!color) {
+        level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
         temp = color_temp; /* no conversion needed */
+        demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
         demo_light_bulb_do_action(TEMP_ACTION, &temp, true);
     } else {
         rgb.r = (((u32)color_select) >> 16) & 0xff;
@@ -416,9 +418,6 @@ static void demo_set_light_bulb(void)
         rgb.b = (((u32)color_select) >>  0) & 0xff;
         demo_light_bulb_do_action(COLOR_ACTION, (u8 *)&rgb, true);
     }
-    /* No matter which Mode, Level should be the last. That means recover temp or color, then level. */
-    level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
-    demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
 }
 
 static void demo_evt_handler(struct app_event *evt)
@@ -783,9 +782,9 @@ static enum ada_err wlt_attributes_set(struct ada_sprop *sprop,const void *buf, 
 		{
 			light_temper_set(temperature);	
 		}
-		else if(sprop->val == &color)
+		else if(sprop->val == &color_select)
 		{
-			light_color_set(color);				
+			light_color_set(color_select);				
 		}
 		else if(sprop->val == &music)
 		{
@@ -876,7 +875,7 @@ static struct ada_sprop demo_props[] = {
 
 	{ "Temperature", ATLV_INT, &temperature, sizeof(temperature),ada_sprop_get_int, wlt_attributes_set },
 
-	{ "Color", ATLV_INT, &color, sizeof(color),ada_sprop_get_int, wlt_attributes_set },
+	{ "Color", ATLV_INT, &color_select, sizeof(color_select),ada_sprop_get_int, wlt_attributes_set },
 
 	{ "Scene", ATLV_INT,&scene, sizeof(scene),ada_sprop_get_int, wlt_attributes_set },
 
@@ -989,6 +988,12 @@ static void demo_lc_do_sync(u32 timeout)
         log_put(LOG_DEBUG "%s: send color_temp  %d OK", __func__,
                 color_temp);
     }
+#else
+    /* set initial values to sync up */
+    power = 1;
+    strncpy(mode, "white", sizeof(mode));
+    brightness = color_bright = 87;
+    color_temp = 50;
 #endif
     /* Synchronize to cluster attributes
      */
@@ -1678,6 +1683,7 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
         /* It's not recommended to do so */
         iotalink_button_state_set(state);
         /* Set the light flashing to indicate the network commission state */
+        onboarding = false;
         demo_lc_start_commissioning();
         osDelay(MS_TO_TICKS(2000));
 #ifdef AYLA_ADA_SERVICE_ENABLE

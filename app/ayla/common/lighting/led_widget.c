@@ -186,7 +186,7 @@ static void led_widget_control_white(struct led_widget *lw)
     target = (lw->level == 0) ? 0 :\
              (((bp5758d_get_max_level() - bp5758d_get_min_level()) * lw->level) / 254);
 #else
-    target = lw->level;
+    target = (lw->level == 0) ? 0 : (100 * lw->level) / 254;
 #endif
     cool = (uint16_t)((target * lw->temp) / 100);
     warm = (uint16_t)((target * (100 - lw->temp)) / 100);
