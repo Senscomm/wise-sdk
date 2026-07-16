@@ -1,0 +1,842 @@
+From 8a40757d30f2e7dc4a2df3edb9ac9389c6fe4751 Mon Sep 17 00:00:00 2001
+From: Wade Wu <wade.wu@senscomm.com>
+Date: Thu, 16 Jul 2026 15:58:57 +0800
+Subject: [PATCH] opti 1. initial scan; 2. UDP ep pool too small
+
+---
+ .../scm1612s/data_model/bulb/ayla_demo.zap    | 425 ------------------
+ .../senscomm/scm1612s/BLEManagerImpl.cpp      |  22 +-
+ .../scm1612s/ConfigurationManagerImpl.cpp     |   3 +-
+ .../scm1612s/ConnectivityManagerImpl_WIFI.cpp |  22 +-
+ .../senscomm/scm1612s/FactoryDataProvider.cpp |   5 +-
+ .../senscomm/scm1612s/InetPlatformConfig.h    |   2 +-
+ .../NetworkCommissioningWiFiDriver.cpp        | 115 ++++-
+ .../scm1612s/NetworkCommissioningWiFiDriver.h |  17 +-
+ 8 files changed, 154 insertions(+), 457 deletions(-)
+
+diff --git a/examples/ayla-app/senscomm/scm1612s/data_model/bulb/ayla_demo.zap b/examples/ayla-app/senscomm/scm1612s/data_model/bulb/ayla_demo.zap
+index f654cc2a3f..cd7264235f 100755
+--- a/examples/ayla-app/senscomm/scm1612s/data_model/bulb/ayla_demo.zap
++++ b/examples/ayla-app/senscomm/scm1612s/data_model/bulb/ayla_demo.zap
+@@ -30,11 +30,6 @@
+       "path": "../../../../../../src/app/zap-templates/app-templates.json",
+       "type": "gen-templates-json",
+       "version": "chip-v1"
+-    },
+-    {
+-      "pathRelativity": "relativeToZap",
+-      "path": "ayla-extensions.xml",
+-      "type": "zcl-xml-standalone"
+     }
+   ],
+   "endpointTypes": [
+@@ -2010,426 +2005,6 @@
+               "reportableChange": 0
+             }
+           ]
+-        },
+-        {
+-          "name": "AylaBase",
+-          "code": 64512,
+-          "mfgCode": 4995,
+-          "define": "AYLA_BASE_CLUSTER",
+-          "side": "server",
+-          "enabled": 1,
+-          "attributes": [
+-            {
+-              "name": "Dsn",
+-              "code": 0,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "OemId",
+-              "code": 1,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "OemModel",
+-              "code": 2,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "TemplateVersion",
+-              "code": 3,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "SetupToken",
+-              "code": 4,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "GeneratedCommandList",
+-              "code": 65528,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "AcceptedCommandList",
+-              "code": 65529,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "AttributeList",
+-              "code": 65531,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "FeatureMap",
+-              "code": 65532,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "bitmap32",
+-              "included": 1,
+-              "storageOption": "RAM",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "ClusterRevision",
+-              "code": 65533,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "int16u",
+-              "included": 1,
+-              "storageOption": "RAM",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "1",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            }
+-          ]
+-        },
+-        {
+-          "name": "AylaLocalControl",
+-          "code": 64513,
+-          "mfgCode": 4995,
+-          "define": "AYLA_LOCAL_CONTROL_CLUSTER",
+-          "side": "server",
+-          "enabled": 1,
+-          "attributes": [
+-            {
+-              "name": "MailboxMask",
+-              "code": 0,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "int16u",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Mailbox0InUse",
+-              "code": 256,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "boolean",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Inbox0",
+-              "code": 257,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Outbox0",
+-              "code": 258,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Mailbox1InUse",
+-              "code": 272,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "boolean",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Inbox1",
+-              "code": 273,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Outbox1",
+-              "code": 274,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Mailbox2InUse",
+-              "code": 288,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "boolean",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Inbox2",
+-              "code": 289,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 0,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "Outbox2",
+-              "code": 290,
+-              "mfgCode": 4995,
+-              "side": "server",
+-              "type": "char_string",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "GeneratedCommandList",
+-              "code": 65528,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "AcceptedCommandList",
+-              "code": 65529,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "AttributeList",
+-              "code": 65531,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "array",
+-              "included": 1,
+-              "storageOption": "External",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": null,
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "FeatureMap",
+-              "code": 65532,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "bitmap32",
+-              "included": 1,
+-              "storageOption": "RAM",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "0",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            },
+-            {
+-              "name": "ClusterRevision",
+-              "code": 65533,
+-              "mfgCode": null,
+-              "side": "server",
+-              "type": "int16u",
+-              "included": 1,
+-              "storageOption": "RAM",
+-              "singleton": 1,
+-              "bounded": 0,
+-              "defaultValue": "1",
+-              "reportable": 1,
+-              "minInterval": 1,
+-              "maxInterval": 65534,
+-              "reportableChange": 0
+-            }
+-          ]
+         }
+       ]
+     },
+diff --git a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+index 5e94ccf4b7..2b4cfd9425 100644
+--- a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
++++ b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+@@ -769,14 +769,14 @@ void BLEManagerImpl::DriveBLEState(void)
+         }
+     }
+ 
+-    /* Scanning always ON */
+-    if (!fBleScanOn)
+-    {
+-        if (!adb_bt_scan_start_wrap())
+-        {
+-            fBleScanOn = 1;
+-        }
+-    }
++    // /* Scanning always ON */
++    // if (!fBleScanOn)
++    // {
++    //     if (!adb_bt_scan_start_wrap())
++    //     {
++    //         fBleScanOn = 1;
++    //     }
++    // }
+ 
+     // If the application has enabled CHIPoBLE and BLE advertising...
+     if (mServiceMode == ConnectivityManager::kCHIPoBLEServiceMode_Enabled &&
+@@ -1755,14 +1755,14 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
+ #endif
+     }
+ 
+-    ChipLogProgress(DeviceLayer, "Configuring CHIPoBLE advertising (interval %" PRIu32 " ms, %sconnectable)",
+-                    (((uint32_t) adv_params.itvl_min) * 10) / 16, (connectable) ? "" : "non-");
++    // ChipLogProgress(DeviceLayer, "Configuring CHIPoBLE advertising (interval %" PRIu32 " ms, %sconnectable)",
++    //                 (((uint32_t) adv_params.itvl_min) * 10) / 16, (connectable) ? "" : "non-");
+ 
+     {
+         if (ble_gap_adv_active())
+         {
+             /* Advertising is already active. Stop and restart with the new parameters */
+-            ChipLogProgress(DeviceLayer, "Device already advertising, stop active advertisement and restart");
++            // ChipLogProgress(DeviceLayer, "Device already advertising, stop active advertisement and restart");
+             err = MapBLEError(ble_gap_adv_stop());
+             if (err != CHIP_NO_ERROR)
+             {
+diff --git a/src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp b/src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
+index 7fc0d003db..76dfe359e5 100644
+--- a/src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
++++ b/src/platform/senscomm/scm1612s/ConfigurationManagerImpl.cpp
+@@ -172,7 +172,8 @@ CHIP_ERROR ConfigurationManagerImpl::ReadPersistedStorageValue(::chip::Platform:
+                                                                uint32_t & value)
+ {
+     CHIP_ERROR err;
+-    SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, (char *) &persistedStorageKey };
++    // SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, (char *) &persistedStorageKey };
++    SCM1612SConfig::Key configKey{ SCM1612SConfig::kConfigNamespace_ChipCounters, persistedStorageKey };
+ 
+     err = ReadConfigValue(configKey, value);
+     if (err == CHIP_DEVICE_ERROR_CONFIG_NOT_FOUND)
+diff --git a/src/platform/senscomm/scm1612s/ConnectivityManagerImpl_WIFI.cpp b/src/platform/senscomm/scm1612s/ConnectivityManagerImpl_WIFI.cpp
+index 68cff9b146..ed4bffea73 100644
+--- a/src/platform/senscomm/scm1612s/ConnectivityManagerImpl_WIFI.cpp
++++ b/src/platform/senscomm/scm1612s/ConnectivityManagerImpl_WIFI.cpp
+@@ -113,6 +113,7 @@ CHIP_ERROR ConnectivityManagerImpl::InitWiFi(void)
+         {
+             ChipLogProgress(DeviceLayer, "WiFi start fail");
+         }
++        NetworkCommissioning::WiseWiFiDriver::GetInstance().ConfigureInitialScan(2);
+         err = CHIP_NO_ERROR;
+         SuccessOrExit(err);
+ #endif
+@@ -182,13 +183,28 @@ void ConnectivityManagerImpl::_OnWiFiPlatformEvent(const ChipDeviceEvent * event
+     switch (event->Platform.SCMSystemEvent.event.event_id)
+     {
+     case SYSTEM_EVENT_SCAN_DONE:
++    {
+         ChipLogProgress(DeviceLayer, "SYSTEM_EVENT_SCAN_DONE");
+-        NetworkCommissioning::WiseWiFiDriver::GetInstance().OnScanWiFiNetworkDone();
++        auto & wifiDriver = NetworkCommissioning::WiseWiFiDriver::GetInstance();
++        const bool wasBlockingConnections = wifiDriver.IsInitialScanBlockingConnections();
++        wifiDriver.OnScanWiFiNetworkDone();
++        if (wasBlockingConnections && !wifiDriver.IsInitialScanBlockingConnections())
++        {
++            // DriveStationState();
++            wifiDriver.ConnectSavedNetwork();
++        }
+         break;
++    }
+     case SYSTEM_EVENT_STA_START:
+-        ChipLogProgress(DeviceLayer, "SYSTEM_EVENT_STA_START");
+-        DriveStationState();
++    {
++        ChipLogError(DeviceLayer, "SYSTEM_EVENT_STA_START");
++        auto & wifiDriver = NetworkCommissioning::WiseWiFiDriver::GetInstance();
++        if (!wifiDriver.StartInitialScanOnStationStart())
++        {
++            DriveStationState();
++        }
+         break;
++    }
+     case SYSTEM_EVENT_STA_CONNECTED:
+         ChipLogProgress(DeviceLayer, "SYSTEM_EVENT_STA_CONNECTED");
+         if (mWiFiStationState == kWiFiStationState_Connecting)
+diff --git a/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp b/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+index 5431fe531c..899c2aee8c 100644
+--- a/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
++++ b/src/platform/senscomm/scm1612s/FactoryDataProvider.cpp
+@@ -819,16 +819,17 @@ CHIP_ERROR FactoryDataProvider::GetPartNumber(char * buf, size_t bufSize)
+     char rotatingDeviceIdHexBuffer[RotatingDeviceId::kHexMaxLength];
+     size_t rotatingDeviceIdValueOutputSize = 0;
+     AdditionalDataPayloadGeneratorParams additionalDataPayloadParams;
+-    additionalDataPayloadParams.rotatingDeviceIdLifetimeCounter = 10;
+ 
+     uint8_t rotatingDeviceIdUniqueId[ConfigurationManager::kRotatingDeviceIDUniqueIDLength] = {};
+     MutableByteSpan rotatingDeviceIdUniqueIdSpan(rotatingDeviceIdUniqueId);
+ 
+     err = DeviceLayer::GetDeviceInstanceInfoProvider()->GetRotatingDeviceIdUniqueId(rotatingDeviceIdUniqueIdSpan);
+     additionalDataPayloadParams.rotatingDeviceIdUniqueId = rotatingDeviceIdUniqueIdSpan;
++    ReturnErrorOnFailure(
++        chip::DeviceLayer::ConfigurationMgr().GetLifetimeCounter(additionalDataPayloadParams.rotatingDeviceIdLifetimeCounter));
+     err = AdditionalDataPayloadGenerator().generateRotatingDeviceIdAsHexString(additionalDataPayloadParams, 
+             rotatingDeviceIdHexBuffer, ArraySize(rotatingDeviceIdHexBuffer),rotatingDeviceIdValueOutputSize);
+-
++    printf("rotatingDeviceIdLifetimeCounter:%u\n", additionalDataPayloadParams.rotatingDeviceIdLifetimeCounter);
+     printf("rotatingDeviceIdHexBuffer:%s\n", rotatingDeviceIdHexBuffer);
+     SuccessOrExit(err);
+ exit:
+diff --git a/src/platform/senscomm/scm1612s/InetPlatformConfig.h b/src/platform/senscomm/scm1612s/InetPlatformConfig.h
+index ffdfb1fcca..6aab31338c 100644
+--- a/src/platform/senscomm/scm1612s/InetPlatformConfig.h
++++ b/src/platform/senscomm/scm1612s/InetPlatformConfig.h
+@@ -49,7 +49,7 @@
+ #endif // INET_CONFIG_NUM_TCP_ENDPOINTS
+ 
+ #ifndef INET_CONFIG_NUM_UDP_ENDPOINTS
+-#define INET_CONFIG_NUM_UDP_ENDPOINTS 6
++#define INET_CONFIG_NUM_UDP_ENDPOINTS 10
+ #endif // INET_CONFIG_NUM_UDP_ENDPOINTS
+ 
+ #define INET_CONFIG_OVERRIDE_SYSTEM_TCP_USER_TIMEOUT 0
+diff --git a/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp b/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
+index d7d33fbd84..c255f02953 100644
+--- a/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
++++ b/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.cpp
+@@ -21,16 +21,16 @@
+ #include <platform/senscomm/scm1612s/SCM1612SConfig.h>
+ #include <platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h>
+ 
++#include "ada/err.h"
++#include "ayla/utypes.h"
++#include "adb/adb.h"
++
+ #include "wise_event_loop.h"
+ #include "wise_wifi_types.h"
+ #include "wise_err.h"
+ #include "scm_wifi.h"
+ #include "wise_wifi.h"
+ 
+-extern "C" uint8_t demo_get_scan_source(void);
+-extern "C" void demo_set_scan_source(uint8_t);
+-extern "C" void demo_set_inital_scan(bool);
+-
+ #define SECURITY_OPEN 0
+ #define SECURITY_TKIP 2
+ #define SECURITY_CCMP 3
+@@ -49,6 +49,7 @@ constexpr char kWiFiSSIDKeyName[]        = "wifi-ssid";
+ constexpr char kWiFiCredentialsKeyName[] = "wifi-pass";
+ static uint8_t WiFiSSIDStr[DeviceLayer::Internal::kMaxWiFiSSIDLength];
+ constexpr uint16_t kMaxCachedWiFiScanAPs = kMaxWiFiScanAPs;
++static uint8_t totalScanRounds;
+ 
+ struct CachedWiFiScanResults
+ {
+@@ -140,7 +141,7 @@ void MergeWiFiScanResults(const scm_wifi_ap_info * apListBuffer, uint16_t count)
+ 
+ void LogCachedWiFiScanResults()
+ {
+-    ChipLogError(DeviceLayer, "Cached WiFi scan results: valid=%d count=%u", gCachedWiFiScanResults.mValid,
++    ChipLogError(DeviceLayer, "Cached WiFi scan results: round=%u valid=%d count=%u", totalScanRounds, gCachedWiFiScanResults.mValid,
+                     gCachedWiFiScanResults.mCount);
+ 
+     for (uint16_t index = 0; index < gCachedWiFiScanResults.mCount; ++index)
+@@ -230,12 +231,75 @@ CHIP_ERROR WiseWiFiDriver::Init(NetworkStatusChangeCallback * networkStatusChang
+     mSavedNetwork.credentialsLen = credentialsLen;
+     mSavedNetwork.ssidLen        = ssidLen;
+     mStagingNetwork              = mSavedNetwork;
+-    // avoid inital wifi scan if wifi configs saved
+-    demo_set_inital_scan(false);
++
++    if (IsInitialScanBlockingConnections())
++    {
++        EnableInitConnect = true;
++        ChipLogProgress(NetworkProvisioning, "Deferring WiFi connect until initial scan completes");
++        return CHIP_NO_ERROR;
++    }
++
+     ConnectWiFiNetwork(mSavedNetwork.ssid, ssidLen, mSavedNetwork.credentials, credentialsLen);
+     return err;
+ }
+ 
++void WiseWiFiDriver::ConfigureInitialScan(uint8_t scanRounds)
++{
++    EnableInitialScan     = (scanRounds > 0);
++    InitialScanTriggered  = false;
++    InitialScanInProgress = false;
++    InitialScanCnt        = scanRounds;
++    totalScanRounds = scanRounds;
++}
++
++bool WiseWiFiDriver::IsInitialScanBlockingConnections() const
++{
++    return EnableInitialScan;
++}
++
++void WiseWiFiDriver::ClearInitialScanState()
++{
++    EnableInitialScan     = false;
++    InitialScanTriggered  = true;
++    InitialScanInProgress = false;
++    InitialScanCnt        = 0;
++    adb_bt_scan_start_wrap();
++}
++
++bool WiseWiFiDriver::StartNextInitialScanRound()
++{
++    VerifyOrReturnValue(EnableInitialScan && InitialScanCnt > 0, false);
++
++    wifi_scan_config_t scanConfig = {};
++
++    // ChipLogError(NetworkProvisioning, "Start initial WiFi scan, rounds left after this: %u", InitialScanCnt);
++
++    scanConfig.scan_type            = WIFI_SCAN_TYPE_ACTIVE;
++    scanConfig.scan_time.active.min = 100;
++    scanConfig.scan_time.active.max = 130;
++
++    if (wise_wifi_scan_start(&scanConfig, true, WIFI_IF_STA) != WISE_OK)
++    {
++        ChipLogError(NetworkProvisioning, "Initial WiFi scan start failed");
++        ClearInitialScanState();
++        return false;
++    }
++
++    InitialScanInProgress = true;
++    return true;
++}
++
++bool WiseWiFiDriver::StartInitialScanOnStationStart()
++{
++    if (!EnableInitialScan || InitialScanTriggered)
++    {
++        return false;
++    }
++
++    InitialScanTriggered = true;
++    return StartNextInitialScanRound();
++}
++
+ CHIP_ERROR WiseWiFiDriver::CommitConfiguration()
+ {
+     CHIP_ERROR err;
+@@ -357,6 +421,17 @@ Status WiseWiFiDriver::ReorderNetwork(ByteSpan networkId, uint8_t index, Mutable
+     return Status::kSuccess;
+ }
+ 
++CHIP_ERROR WiseWiFiDriver::ConnectSavedNetwork()
++{
++    if (EnableInitConnect)
++    {
++        EnableInitConnect = false;
++        return ConnectWiFiNetwork(mSavedNetwork.ssid, mSavedNetwork.ssidLen, mSavedNetwork.credentials, mSavedNetwork.credentialsLen);
++    }
++
++    return CHIP_NO_ERROR;
++}
++
+ CHIP_ERROR WiseWiFiDriver::ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen, const char * key, uint8_t keyLen)
+ {
+     scm_wifi_assoc_request req = {0};
+@@ -364,7 +439,8 @@ CHIP_ERROR WiseWiFiDriver::ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen
+     scm_wifi_fast_assoc_request fast_request = {0};
+     const scm_wifi_ap_info * cachedApInfo = nullptr;
+     int ret;
+-    ChipLogProgress(NetworkProvisioning, "WiseWiFiDriver::ConnectWiFiNetwork");
++    ChipLogError(NetworkProvisioning, "WiseWiFiDriver::ConnectWiFiNetwork");
++    VerifyOrReturnError(!IsInitialScanBlockingConnections(), CHIP_ERROR_INCORRECT_STATE);
+ 
+     ReturnErrorOnFailure(ConnectivityMgr().SetWiFiStationMode(ConnectivityManager::kWiFiStationMode_Enabled));
+ 
+@@ -544,7 +620,6 @@ bool WiseWiFiDriver::StartScanWiFiNetworks(ByteSpan ssid)
+         else
+         {
+             scm_wifi_sta_scan();
+-            demo_set_scan_source(3);
+         }
+     }
+ 
+@@ -558,7 +633,7 @@ void WiseWiFiDriver::OnScanWiFiNetworkDone()
+     if (!GetInstance().mpScanCallback)
+     {
+         ChipLogProgress(DeviceLayer, "No scan callback");
+-        if (demo_get_scan_source() == 1)
++        if (GetInstance().EnableInitialScan)
+         {
+             std::array<scm_wifi_ap_info, kMaxWiFiScanAPs> apBuffer = {};
+ 
+@@ -567,13 +642,31 @@ void WiseWiFiDriver::OnScanWiFiNetworkDone()
+                 MergeWiFiScanResults(apBuffer.data(), apNumber);
+                 ChipLogProgress(DeviceLayer, "Merged %u WiFi scan results without callback, cache count=%u", apNumber,
+                                 gCachedWiFiScanResults.mCount);
+-                LogCachedWiFiScanResults();
+             }
+             else
+             {
+                 ChipLogError(DeviceLayer, "Failed to cache WiFi scan results without callback");
+                 InvalidateCachedWiFiScanResults();
+             }
++
++            if (GetInstance().InitialScanCnt > 0)
++            {
++                GetInstance().InitialScanCnt--;
++            }
++
++            if (GetInstance().InitialScanCnt > 0)
++            {
++                if (!GetInstance().StartNextInitialScanRound())
++                {
++                    ChipLogError(DeviceLayer, "Failed to continue initial WiFi scan");
++                }
++            }
++            else
++            {
++                LogCachedWiFiScanResults();
++                ChipLogProgress(DeviceLayer, "Initial WiFi scan completed");
++                GetInstance().ClearInitialScanState();
++            }
+         }
+         return;
+     }
+diff --git a/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h b/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h
+index 6a042dad07..7b843fc477 100644
+--- a/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h
++++ b/src/platform/senscomm/scm1612s/NetworkCommissioningWiFiDriver.h
+@@ -116,10 +116,14 @@ public:
+                               uint8_t & outNetworkIndex) override;
+     void ScanNetworks(ByteSpan ssid, ScanCallback * callback) override;
+ 
++    CHIP_ERROR ConnectSavedNetwork();
+     CHIP_ERROR ConnectWiFiNetwork(const char * ssid, uint8_t ssidLen, const char * key, uint8_t keyLen);
+ 
+     void OnConnectWiFiNetwork();
+     void OnScanWiFiNetworkDone();
++    void ConfigureInitialScan(uint8_t scanRounds);
++    bool StartInitialScanOnStationStart();
++    bool IsInitialScanBlockingConnections() const;
+     void UpdateWiFiAuthmode();
+     CHIP_ERROR SetLastDisconnectReason(const ChipDeviceEvent * event);
+     int16_t GetLastDisconnectReason();
+@@ -132,12 +136,19 @@ public:
+ private:
+     bool NetworkMatch(const WiFiNetwork & network, ByteSpan networkId);
+     bool StartScanWiFiNetworks(ByteSpan ssid);
++    bool StartNextInitialScanRound();
++    void ClearInitialScanState();
+ 
+     WiFiNetwork mSavedNetwork   = {};
+     WiFiNetwork mStagingNetwork = {};
+-    ScanCallback * mpScanCallback;
+-    ConnectCallback * mpConnectCallback;
+-    int16_t lastDisconnectedReason;
++    ScanCallback * mpScanCallback        = nullptr;
++    ConnectCallback * mpConnectCallback  = nullptr;
++    int16_t lastDisconnectedReason       = 0;
++    bool EnableInitialScan               = true;
++    bool InitialScanTriggered            = false;
++    bool InitialScanInProgress           = false;
++    uint8_t InitialScanCnt               = 2;
++    bool EnableInitConnect               = false;
+ };
+ 
+ } // namespace NetworkCommissioning
+-- 
+2.34.1
+
