@@ -35,15 +35,13 @@
 #include "scm_wifi.h"
 #include "wise_event.h"
 
-extern void demo_set_scan_source(u8_t src);
-extern u8_t demo_get_scan_source(void);
-
 #ifdef AYLA_BLUETOOTH_SUPPORT
 
 #define ADB_WIFI_CFG_SSID_LEN	32
 #define ADB_WIFI_CFG_BSSID_LEN	6
 #define WIFI_MAX_KEY_LEN 64
 
+static bool is_local_wifi_scan = false;
 /*
  * Ayla specific security type definitions
  */
@@ -376,7 +374,8 @@ static void adb_wifi_cfg_wifi_event_handler(enum adm_event_id id)
 #endif
 		break;
 	case ADM_EVENT_WIFI_SCAN_DONE:
-		if (demo_get_scan_source() == 2) {
+		if (is_local_wifi_scan) {
+			is_local_wifi_scan = false;
 			adb_log(LOG_INFO "Recv adb wifi service scan done.");
 			adb_wifi_cfg_scan_done_handler();
 			adb_bt_scan_start_wrap();
@@ -455,7 +454,7 @@ static enum adb_att_err adb_wifi_cfg_scan_start_cb(u16 conn,
     /* Stop BLE Passive Scan */
     adb_bt_scan_cancel_wrap();
 	scm_wifi_sta_scan();
-	demo_set_scan_source(2);
+	is_local_wifi_scan = true;
 
 	return ADB_ATT_SUCCESS;
 }

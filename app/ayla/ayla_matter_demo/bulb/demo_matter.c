@@ -58,26 +58,6 @@
 
 #include "iotalink.h"
 
-/* wpas notifies the scan through event callbacks, and after obtaining the scan results, the data will be erased */
-static uint8_t g_scan_source = 0;
-
-uint8_t demo_get_scan_source(void)
-{
-    return g_scan_source;
-}
-
-void demo_set_scan_source(uint8_t src)
-{
-    g_scan_source = src;
-}
-
-static bool g_initial_scan_enable = true;
-
-void demo_set_inital_scan(bool enable)
-{
-    g_initial_scan_enable = enable;
-}
-
 #define OTA_APP_VER     "0.0.0"
 int demo_get_app_version()
 {
@@ -992,11 +972,12 @@ static void demo_lc_do_sync(u32 timeout)
     /* set initial values to sync up */
     power = 1;
     strncpy(mode, "white", sizeof(mode));
-    brightness = color_bright = 87;
+    brightness = color_bright = 100;
     color_temp = 50;
 #endif
     /* Synchronize to cluster attributes
      */
+    log_put(LOG_INFO "%s: Sync to cluster attrs", __func__);
 
     err = adm_write_boolean(DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID,
             ADM_ON_OFF_AID, power);
@@ -1041,34 +1022,6 @@ static void demo_lc_sync(bool timeout)
     evt.install_event.arg = (timeout ? 1 : 0);
 
     app_event_post(&evt);
-}
-
-#define INITIAL_WIFI_SCAN_RETRY_COUNT  3
-static int8_t initial_wifi_scan_rounds_left;
-
-static void demo_start_initial_wifi_scan(void)
-{
-    wifi_scan_config_t wif_scan_config;
-    wise_err_t scan_err;
-
-    log_put(LOG_INFO "Start initial wifi scan, rounds left after this: %u", initial_wifi_scan_rounds_left);
-    adb_bt_scan_cancel_wrap();
-
-    demo_set_scan_source(1);
-
-    memset(&wif_scan_config, 0, sizeof(wifi_scan_config_t));
-    wif_scan_config.scan_type            = WIFI_SCAN_TYPE_ACTIVE;
-    wif_scan_config.scan_time.active.min = 105;
-    wif_scan_config.scan_time.active.max = 130;
-    scan_err = wise_wifi_scan_start(&wif_scan_config, true, WIFI_IF_STA);
-    if (scan_err != WISE_OK) {
-        log_put(LOG_ERR "Initial wifi scan start failed: %d", scan_err);
-        initial_wifi_scan_rounds_left = 0;
-        adb_bt_scan_start_wrap();
-        return;
-    }
-
-    adb_bt_scan_start_wrap();
 }
 
 #define BUTTON_LONG_PRESSED_FLASH_STATE    (0xAA)
@@ -1183,11 +1136,47 @@ static void demo_lc_complete_commissioning(void)
     onboarding = false;
 }
 
+static const char *demo_adm_event_id_to_string(enum adm_event_id id)
+{
+    static const char *const kEventNames[] = {
+        [ADM_EVENT_INITIALIZED] = "INITIALIZED",
+        [ADM_EVENT_IPV4_UP] = "IPV4_UP",
+        [ADM_EVENT_IPV4_DOWN] = "IPV4_DOWN",
+        [ADM_EVENT_IPV6_UP] = "IPV6_UP",
+        [ADM_EVENT_IPV6_DOWN] = "IPV6_DOWN",
+        [ADM_EVENT_COMMISSIONING_SESSION_STARTED] = "COMMISSIONING_SESSION_STARTED",
+        [ADM_EVENT_COMMISSIONING_SESSION_STOPPED] = "COMMISSIONING_SESSION_STOPPED",
+        [ADM_EVENT_COMMISSIONING_WINDOW_OPENED] = "COMMISSIONING_WINDOW_OPENED",
+        [ADM_EVENT_COMMISSIONING_WINDOW_CLOSED] = "COMMISSIONING_WINDOW_CLOSED",
+        [ADM_EVENT_COMMISSIONING_COMPLETE] = "COMMISSIONING_COMPLETE",
+        [ADM_EVENT_COMMISSIONING_ESTABLISH_STARTED] = "COMMISSIONING_ESTABLISH_STARTED",
+        [ADM_EVENT_COMMISSIONING_ESTABLISH_ERROR] = "COMMISSIONING_ESTABLISH_ERROR",
+        [ADM_EVENT_BLE_ADVERTISING_START] = "BLE_ADVERTISING_START",
+        [ADM_EVENT_BLE_ADVERTISING_STOP] = "BLE_ADVERTISING_STOP",
+        [ADM_EVENT_ALL_FABRIC_REMOVED] = "ALL_FABRIC_REMOVED",
+        [ADM_EVENT_WIFI_SCAN_DONE] = "WIFI_SCAN_DONE",
+        [ADM_EVENT_WIFI_STA_START] = "WIFI_STA_START",
+        [ADM_EVENT_WIFI_STA_CONNECTED] = "WIFI_STA_CONNECTED",
+        [ADM_EVENT_WIFI_STA_DISCONNECTED] = "WIFI_STA_DISCONNECTED",
+        [ADM_EVENT_WIFI_STA_STOP] = "WIFI_STA_STOP",
+        [ADM_EVENT_WIFI_STA_GOT_IP] = "WIFI_STA_GOT_IP",
+        [ADM_EVENT_WIFI_STA_LOST_IP] = "WIFI_STA_LOST_IP",
+        [ADM_EVENT_WIFI_STA_GOT_IP6] = "WIFI_STA_GOT_IP6",
+        [ADM_EVENT_WIFI_STA_NO_NETWORK] = "WIFI_STA_NO_NETWORK",
+    };
+
+    if ((unsigned int) id < ARRAY_LEN(kEventNames) && kEventNames[id] != NULL) {
+        return kEventNames[id];
+    }
+
+    return "ADM_EVENT_UNKNOWN";
+}
+
 static void demo_matter_event_cb(enum adm_event_id id)
 {
 	uint8_t state = 0;
 
-	log_put(LOG_DEBUG2 "%s %d", __func__, id);
+    log_put(LOG_INFO "%s %s(%d)", __func__, demo_adm_event_id_to_string(id), id);
 
 	switch (id) {
     case ADM_EVENT_INITIALIZED:
@@ -1200,25 +1189,13 @@ static void demo_matter_event_cb(enum adm_event_id id)
         log_put(LOG_INFO "Set light manager state to ON.");
         demo_post_light_event(kLightAction_On, 1);
 
-        if (g_initial_scan_enable)
-        {
-            /* Start initial wifi scan */
-            log_put(LOG_INFO "Start a initial wifi scan");
-            initial_wifi_scan_rounds_left = INITIAL_WIFI_SCAN_RETRY_COUNT;
-            demo_start_initial_wifi_scan();
-        }
-        else
-            log_put(LOG_INFO "Cancel a initial wifi scan");
+        power = 1;
+        strncpy(mode, "white", sizeof(mode));
+        brightness = color_bright = 100;
+        color_temp = 50;
 
         break;
     }
-    case ADM_EVENT_WIFI_SCAN_DONE:
-        initial_wifi_scan_rounds_left--;
-        if (g_initial_scan_enable && demo_get_scan_source() == 1 && initial_wifi_scan_rounds_left > 0) {
-            // log_put(LOG_INFO "Inital scan done trigger scan again");
-            demo_start_initial_wifi_scan();
-        }
-		break;
 	case ADM_EVENT_IPV4_UP:
         ip_up = 1;
 #ifdef AYLA_ADA_SERVICE_ENABLE
@@ -1320,6 +1297,7 @@ static struct adm_attribute_change_callback demo_on_off_cb_entry =
 	DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID, ADM_ON_OFF_AID,
 	demo_on_off_cb);
 
+static bool first_lc_sync_case_rebuild = true;
 static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
     u32 cluster, u32 attribute, u8 type, u16 size, u8 *value)
 {
@@ -1343,6 +1321,12 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
         /* XXX: what should we do? It seems to be the best to ignore it.
          */
         log_put(LOG_WARN "%s: level_control %d ignored", __func__, *value);
+
+        if (first_lc_sync_case_rebuild) {
+            demo_lc_sync(0);
+            first_lc_sync_case_rebuild = false;
+        }
+
         return AE_OK;
     }
 
@@ -1673,8 +1657,12 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
         light_power_set(!power);
         iotalink_light_ctrl_process();
     }
-    if (pressed && ((released - pressed) > BUTTON_LONG_PRESSED_PERIOD))
+    if (pressed && ((released - pressed) >= BUTTON_LONG_PRESSED_PERIOD))
     {
+        /* Set the light flashing to indicate the network commission state */
+        onboarding = false;
+        demo_lc_start_commissioning();
+
         log_put(LOG_INFO "Button long pressed");
         /* Set long press flash state */
         // todo: use FS instead of other flash partition
@@ -1682,9 +1670,6 @@ void demo_button_toggle(unsigned long pressed, unsigned long released)
         scm_partition_write(FLASH_PARTITION_TMP, 0, &state, sizeof(state));
         /* It's not recommended to do so */
         iotalink_button_state_set(state);
-        /* Set the light flashing to indicate the network commission state */
-        onboarding = false;
-        demo_lc_start_commissioning();
         osDelay(MS_TO_TICKS(2000));
 #ifdef AYLA_ADA_SERVICE_ENABLE
         ada_conf_reset(2);
