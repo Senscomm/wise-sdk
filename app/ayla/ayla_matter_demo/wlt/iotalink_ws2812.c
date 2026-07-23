@@ -3851,7 +3851,8 @@ void haoyida_234_mode_deal( int modeunite)
 	{
 		case 0://自动循环
 			break;
-		case 1://正向幻彩		
+		case 1://正向幻彩	
+			haoyida_magic_flow_effect(modeunite%2);	
 			break;	
 		case 2://反向幻彩
 			haoyida_magic_flow_effect(modeunite%2);
