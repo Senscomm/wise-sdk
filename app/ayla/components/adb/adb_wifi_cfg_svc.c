@@ -40,8 +40,11 @@
 #define ADB_WIFI_CFG_SSID_LEN	32
 #define ADB_WIFI_CFG_BSSID_LEN	6
 #define WIFI_MAX_KEY_LEN 64
+#define ADB_WIFI_SCAN_DUP_GUARD_MS 3000U
 
 static bool is_local_wifi_scan = false;
+static bool scan_guard_initialized = false;
+static u32 last_scan_start_ms;
 /*
  * Ayla specific security type definitions
  */
@@ -444,6 +447,17 @@ static enum adb_att_err adb_wifi_cfg_wps_start_cb(u16 conn,
 static enum adb_att_err adb_wifi_cfg_scan_start_cb(u16 conn,
     const struct adb_attr *attr, u8 *buf, u16 length)
 {
+    u32 now = sys_now();
+
+	if (scan_guard_initialized) {
+		u32 elapsed = now - last_scan_start_ms;
+
+		if (elapsed < ADB_WIFI_SCAN_DUP_GUARD_MS) {
+			adb_log(LOG_WARN "scan start rejected, duplicate request in %u ms", elapsed);
+			return ADB_ATT_UNLIKELY;
+		}
+	}
+
 #ifdef ADW_OPEN
 	if (adw_wifi_configured()) {
 		adb_log(LOG_WARN
@@ -453,6 +467,8 @@ static enum adb_att_err adb_wifi_cfg_scan_start_cb(u16 conn,
 #endif
     /* Stop BLE Passive Scan */
     adb_bt_scan_cancel_wrap();
+	scan_guard_initialized = true;
+	last_scan_start_ms = now;
 	scm_wifi_sta_scan();
 	is_local_wifi_scan = true;
 
