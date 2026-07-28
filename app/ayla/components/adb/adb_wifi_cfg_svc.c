@@ -40,7 +40,7 @@
 #define ADB_WIFI_CFG_SSID_LEN	32
 #define ADB_WIFI_CFG_BSSID_LEN	6
 #define WIFI_MAX_KEY_LEN 64
-#define ADB_WIFI_SCAN_DUP_GUARD_MS 3000U
+#define ADB_WIFI_SCAN_DUP_GUARD_MS 5000U
 
 static bool is_local_wifi_scan = false;
 static bool scan_guard_initialized = false;
@@ -285,7 +285,7 @@ static void adb_wifi_cfg_scan_done_handler(void)
 			scan->wmi_sec = sec_type;
 			adb_wifi_cfg_encode_scan_result_msg(i, scan, &msg);
 			al_bt_notify(scan_result_chr, (u8 *)&msg, (u16)sizeof(msg));
-			sys_msleep(100);
+			sys_msleep(150);
 		}
 		/* send a len=0 msg to indicate the last scan result */
 		adb_wifi_cfg_encode_scan_result_msg(num, NULL, &msg);
