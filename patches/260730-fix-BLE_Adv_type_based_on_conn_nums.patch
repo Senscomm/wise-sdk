@@ -1,0 +1,32 @@
+commit 233584a6edf10009688f4660daee064b5fdaf927
+Author: Wade Wu <wade.wu@senscomm.com>
+Date:   Thu Jul 30 17:21:14 2026 +0800
+
+    Fix: BLE Adv type based on conn nums
+
+diff --git a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+index 2b4cfd9425..0ba5fac06b 100644
+--- a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
++++ b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
+@@ -53,6 +53,9 @@
+ #include "ada/err.h"
+ #include "ayla/utypes.h"
+ #include "adb/adb.h"
++
++extern "C" int ble_hs_conn_can_alloc(void);
++
+ /**
+  * Apart from the "Matter" part in the broadcast, the remaining 16 bytes, len + type + name = 16, 
+  * so the max length of "device name" is 14 bytes. Ayla svc id takes 4 bytes, and can be removed
+@@ -1725,6 +1728,11 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
+     // Advertise connectable if we haven't reached the maximum number of connections.
+     size_t numCons       = _NumConnections();
+     bool connectable     = (numCons < kMaxConnections);
++    if (!ble_hs_conn_can_alloc())
++    {
++        ChipLogError(DeviceLayer, "BLE can not alloc conn!!");
++        connectable = false;
++    }
+     adv_params.conn_mode = connectable ? BLE_GAP_CONN_MODE_UND : BLE_GAP_CONN_MODE_NON;
+ 
+     // Advertise in fast mode if it is connectable advertisement and
