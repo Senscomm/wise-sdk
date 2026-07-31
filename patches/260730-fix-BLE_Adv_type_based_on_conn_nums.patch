@@ -1,11 +1,11 @@
-commit 233584a6edf10009688f4660daee064b5fdaf927
+commit 3e560886f4f4b45051ca569fbb19eca60d342a5f
 Author: Wade Wu <wade.wu@senscomm.com>
 Date:   Thu Jul 30 17:21:14 2026 +0800
 
     Fix: BLE Adv type based on conn nums
 
 diff --git a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
-index 2b4cfd9425..0ba5fac06b 100644
+index 2b4cfd9425..aad18920be 100644
 --- a/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
 +++ b/src/platform/senscomm/scm1612s/BLEManagerImpl.cpp
 @@ -53,6 +53,9 @@
@@ -18,14 +18,23 @@ index 2b4cfd9425..0ba5fac06b 100644
  /**
   * Apart from the "Matter" part in the broadcast, the remaining 16 bytes, len + type + name = 16, 
   * so the max length of "device name" is 14 bytes. Ayla svc id takes 4 bytes, and can be removed
-@@ -1725,6 +1728,11 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
+@@ -1725,6 +1728,20 @@ CHIP_ERROR BLEManagerImpl::StartAdvertising(void)
      // Advertise connectable if we haven't reached the maximum number of connections.
      size_t numCons       = _NumConnections();
      bool connectable     = (numCons < kMaxConnections);
 +    if (!ble_hs_conn_can_alloc())
 +    {
-+        ChipLogError(DeviceLayer, "BLE can not alloc conn!!");
-+        connectable = false;
++        ChipLogError(DeviceLayer, "BLE can not alloc extra conn, stop adv.");
++        if (ble_gap_adv_active())
++        {
++            err = MapBLEError(ble_gap_adv_stop());
++            if (err != CHIP_NO_ERROR)
++            {
++                ChipLogError(DeviceLayer, "ble_gap_adv_stop() failed: %s, cannot restart", ErrorStr(err));
++                return err;
++            }
++        }
++        return CHIP_NO_ERROR;
 +    }
      adv_params.conn_mode = connectable ? BLE_GAP_CONN_MODE_UND : BLE_GAP_CONN_MODE_NON;
  
