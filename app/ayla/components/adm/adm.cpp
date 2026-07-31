@@ -1025,6 +1025,7 @@ public:
 	}
 };
 
+constexpr auto k_timeout_seconds = 300;
 class AdmFabricDelegate final : public chip::FabricTable::Delegate
 {
 public:
@@ -1037,6 +1038,19 @@ public:
 		    __func__, fabricTable.FabricCount(), fabricIndex);
 		if (fabricTable.FabricCount() == 0) {
 			adm_event_callback(ADM_EVENT_ALL_FABRIC_REMOVED);
+			/* Reopen Commission WiFi Window  */
+			chip::CommissioningWindowManager  &commissionMgr = chip::Server::GetInstance().GetCommissioningWindowManager();
+			constexpr auto kTimeoutSeconds = chip::System::Clock::Seconds16(k_timeout_seconds);
+            if (!commissionMgr.IsCommissioningWindowOpen()) {
+                /* After removing last fabric, this example does not remove the Wi-Fi credentials
+                 * and still has IP connectivity so, only advertising on BLE.
+                 */
+                CHIP_ERROR err = commissionMgr.OpenBasicCommissioningWindow(kTimeoutSeconds,
+                                                                            chip::CommissioningWindowAdvertisement::kAllSupported);
+                if (err != CHIP_NO_ERROR) {
+                    adm_log(LOG_INFO, "Failed to open commissioning window, err:%" CHIP_ERROR_FORMAT, err.Format());
+                }
+            }
 		}
 	}
 };
