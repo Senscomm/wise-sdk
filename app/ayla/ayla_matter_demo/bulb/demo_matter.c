@@ -1240,7 +1240,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
         break;
     case ADM_EVENT_ALL_FABRIC_REMOVED:
     {
-#if 1
+#if 0
         /*
         * Note: For Iphone Alexa APP Conner Case - Reboot Device.
         * Google Home & Apple Home can use WLAN ways to add device again, but Alexa can not.

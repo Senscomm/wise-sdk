@@ -845,7 +845,7 @@ int al_bt_process_gap_event(void *input)
 			adb_log(LOG_INFO "our_id:%s, peer_id:%s, conn itvl:%d latency:%d timeout:%d enc:%d auth:%d bond:%d",
 				addr_str1, addr_str2, desc.conn_itvl, desc.conn_latency, desc.supervision_timeout,
 				desc.sec_state.encrypted, desc.sec_state.authenticated, desc.sec_state.bonded);
-#if 1
+#if 0
 			/* Slave update parameters may not take effect */
 			struct ble_gap_upd_params params = {
 				.itvl_min = 25, // 25ms
