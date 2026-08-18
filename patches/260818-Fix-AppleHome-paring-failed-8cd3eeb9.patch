@@ -1,0 +1,191 @@
+commit 91a5fdb1bfb4d2fd5ead79d4933780c08cd3eeb9
+Author: Wade Wu <wade.wu@senscomm.com>
+Date:   Tue Aug 18 09:32:37 2026 +0800
+
+    Fix AppleHome paring failed (mDNS multicast related)
+
+diff --git a/src/app/server/Dnssd.cpp b/src/app/server/Dnssd.cpp
+index 3df796434e..b7444df014 100644
+--- a/src/app/server/Dnssd.cpp
++++ b/src/app/server/Dnssd.cpp
+@@ -16,6 +16,7 @@
+  */
+ 
+ #include <app/server/Dnssd.h>
++#include <app/server/Server.h>
+ 
+ #include <app-common/zap-generated/cluster-enums.h>
+ #include <inttypes.h>
+@@ -47,14 +48,21 @@ namespace chip {
+ namespace app {
+ namespace {
+ 
++constexpr FabricIndex kPrimaryFabricIndex   = 1;
++constexpr FabricIndex kFailSafeFabricIndex  = 2;
++constexpr uint8_t kMaxFailSafeDnssdAttempts = 3;
++constexpr uint16_t kFailSafeDnssdDelaySeconds = 4;
++
+ void OnPlatformEvent(const DeviceLayer::ChipDeviceEvent * event)
+ {
+     switch (event->Type)
+     {
+     case DeviceLayer::DeviceEventType::kDnssdInitialized:
+-    case DeviceLayer::DeviceEventType::kDnssdRestartNeeded:
+         app::DnssdServer::Instance().StartServer();
+         break;
++    case DeviceLayer::DeviceEventType::kDnssdRestartNeeded:
++        app::DnssdServer::Instance().HandleDnssdRestartNeeded();
++        break;
+     default:
+         break;
+     }
+@@ -197,6 +205,32 @@ CHIP_ERROR DnssdServer::AdvertiseOperational()
+             continue;
+         }
+ 
++        if (fabricInfo.GetFabricIndex() != kPrimaryFabricIndex &&
++            (fabricInfo.GetFabricIndex() != kFailSafeFabricIndex || !mHandlingDnssdRestart))
++        {
++            if (fabricInfo.GetFabricIndex() == kFailSafeFabricIndex)
++            {
++                auto & failSafeContext = Server::GetInstance().GetFailSafeContext();
++                if (failSafeContext.IsFailSafeArmed(kFailSafeFabricIndex) && !mDnssdRestartNeededPending)
++                {
++                    ChipDeviceEvent event;
++                    event.Type = DeviceEventType::kDnssdRestartNeeded;
++                    mDnssdRestartNeededPending = true;
++                    CHIP_ERROR error = DeviceLayer::PlatformMgr().PostEvent(&event);
++                    if (error != CHIP_NO_ERROR)
++                    {
++                        mDnssdRestartNeededPending = false;
++                        ChipLogError(Discovery, "Failed to post kDnssdRestartNeeded: %" CHIP_ERROR_FORMAT, error.Format());
++                    }
++                    else
++                    {
++                        ChipLogProgress(Discovery, "Posted kDnssdRestartNeeded for fail-safe fabric index %u", static_cast<unsigned>(kFailSafeFabricIndex));
++                    }
++                }
++            }
++            continue;
++        }
++
+         uint8_t macBuffer[DeviceLayer::ConfigurationManager::kPrimaryMACAddressLength];
+         MutableByteSpan mac(macBuffer);
+         GetPrimaryOrFallbackMACAddress(mac);
+@@ -225,6 +259,75 @@ CHIP_ERROR DnssdServer::AdvertiseOperational()
+     return CHIP_NO_ERROR;
+ }
+ 
++void DnssdServer::HandleDnssdRestartNeeded()
++{
++    mDnssdRestartNeededPending = false;
++    auto & failSafeContext     = Server::GetInstance().GetFailSafeContext();
++    if (!failSafeContext.IsFailSafeArmed(kFailSafeFabricIndex))
++    {
++        StartServer();
++        return;
++    }
++
++    if (mFailSafeDnssdTimerArmed || mFailSafeDnssdAttempts >= kMaxFailSafeDnssdAttempts)
++    {
++        ChipLogProgress(Discovery, "Ignore kDnssdRestartNeeded: timerArmed=%u attempts=%u/%u",
++                        mFailSafeDnssdTimerArmed ? 1 : 0, static_cast<unsigned>(mFailSafeDnssdAttempts),
++                        static_cast<unsigned>(kMaxFailSafeDnssdAttempts));
++        return;
++    }
++
++    ChipLogProgress(Discovery, "Delay kDnssdRestartNeeded handling by %us, attempt %u/%u",
++                    static_cast<unsigned>(kFailSafeDnssdDelaySeconds), static_cast<unsigned>(mFailSafeDnssdAttempts + 1),
++                    static_cast<unsigned>(kMaxFailSafeDnssdAttempts));
++    mFailSafeDnssdTimerArmed =
++        DeviceLayer::SystemLayer().StartTimer(System::Clock::Seconds16(kFailSafeDnssdDelaySeconds),
++                                              HandleFailSafeDnssdRestartTimer, this) == CHIP_NO_ERROR;
++    if (!mFailSafeDnssdTimerArmed)
++    {
++        ChipLogError(Discovery, "Failed to start delayed kDnssdRestartNeeded handling timer");
++    }
++}
++
++void DnssdServer::HandleFailSafeDnssdRestartTimer(System::Layer * systemLayer, void * appState)
++{
++    (void) systemLayer;
++    static_cast<DnssdServer *>(appState)->OnFailSafeDnssdRestartTimer();
++}
++
++void DnssdServer::OnFailSafeDnssdRestartTimer()
++{
++    mFailSafeDnssdTimerArmed = false;
++
++    auto & failSafeContext = Server::GetInstance().GetFailSafeContext();
++    if (!failSafeContext.IsFailSafeArmed(kFailSafeFabricIndex) || mFailSafeDnssdAttempts >= kMaxFailSafeDnssdAttempts)
++    {
++        ChipLogProgress(Discovery, "Stop delayed DNS-SD restart: failSafeFabric2=%u attempts=%u/%u",
++                        failSafeContext.IsFailSafeArmed(kFailSafeFabricIndex) ? 1 : 0,
++                        static_cast<unsigned>(mFailSafeDnssdAttempts), static_cast<unsigned>(kMaxFailSafeDnssdAttempts));
++        mFailSafeDnssdAttempts = 0;
++        return;
++    }
++
++    ++mFailSafeDnssdAttempts;
++    mHandlingDnssdRestart = true;
++    ChipLogProgress(Discovery, "Handle delayed DNS-SD restart attempt %u/%u",
++                    static_cast<unsigned>(mFailSafeDnssdAttempts), static_cast<unsigned>(kMaxFailSafeDnssdAttempts));
++    StartServer();
++    mHandlingDnssdRestart = false;
++
++    if (failSafeContext.IsFailSafeArmed(kFailSafeFabricIndex) && mFailSafeDnssdAttempts < kMaxFailSafeDnssdAttempts)
++    {
++        HandleDnssdRestartNeeded();
++    }
++    else
++    {
++        ChipLogProgress(Discovery, "Completed delayed DNS-SD restart attempts: %u",
++                        static_cast<unsigned>(mFailSafeDnssdAttempts));
++        mFailSafeDnssdAttempts = 0;
++    }
++}
++
+ CHIP_ERROR DnssdServer::Advertise(bool commissionableNode, chip::Dnssd::CommissioningMode mode)
+ {
+     auto advertiseParameters = chip::Dnssd::CommissionAdvertisingParameters()
+@@ -399,6 +502,12 @@ void DnssdServer::StopServer()
+     // Make sure we don't hold on to a dangling fabric table pointer.
+     mFabricTable = nullptr;
+ 
++    DeviceLayer::SystemLayer().CancelTimer(HandleFailSafeDnssdRestartTimer, this);
++    mDnssdRestartNeededPending = false;
++    mHandlingDnssdRestart      = false;
++    mFailSafeDnssdTimerArmed   = false;
++    mFailSafeDnssdAttempts     = 0;
++
+     DeviceLayer::PlatformMgr().RemoveEventHandler(OnPlatformEventWrapper, 0);
+ 
+ #if CHIP_DEVICE_CONFIG_ENABLE_EXTENDED_DISCOVERY
+diff --git a/src/app/server/Dnssd.h b/src/app/server/Dnssd.h
+index e669f4d086..e1824f0a16 100644
+--- a/src/app/server/Dnssd.h
++++ b/src/app/server/Dnssd.h
+@@ -106,6 +106,11 @@ public:
+     /// (Re-)starts the Dnssd server, using the provided commissioning mode.
+     void StartServer(Dnssd::CommissioningMode mode);
+ 
++    /// Handles a DNS-SD restart event posted while fail-safe is armed for fabric index 2.
++    void HandleDnssdRestartNeeded();
++    static void HandleFailSafeDnssdRestartTimer(System::Layer * systemLayer, void * appState);
++    void OnFailSafeDnssdRestartTimer();
++
+     //// Stop the Dnssd server.  After this call, SetFabricTable must be called
+     //// again before calling StartServer().
+     void StopServer();
+@@ -171,6 +176,11 @@ private:
+     // Ephemeral discriminator to use instead of the default if set
+     Optional<uint16_t> mEphemeralDiscriminator;
+ 
++    bool mDnssdRestartNeededPending = false;
++    bool mHandlingDnssdRestart      = false;
++    bool mFailSafeDnssdTimerArmed   = false;
++    uint8_t mFailSafeDnssdAttempts  = 0;
++
+ #if CHIP_DEVICE_CONFIG_ENABLE_EXTENDED_DISCOVERY
+     Time::TimeSource<Time::Source::kSystem> mTimeSource;
+ 
