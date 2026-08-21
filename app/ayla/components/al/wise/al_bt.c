@@ -2127,15 +2127,15 @@ static struct al_bt_scan_filters
 };
 
 
-// ========== 新增：多包过滤上下文 ==========
-// 避免短时间内重复打印同一设备的符合条件广播
+// ========== 重复包过滤上下文 ==========
+// 报文内容相同则认为是同一包，直接丢弃。
+// 遥控器每次按键会更新包内计数值，报文内容必然变化；
+// 同一广播的重复包内容完全相同，据此去重。
 static struct {
-    ble_addr_t last_addr;          // 最后处理的设备地址
-    uint32_t last_time_ms;         // 最后处理的时间（毫秒）
-    uint32_t filter_interval_ms;   // 过滤间隔（默认xxxms）
-} scan_filter_ctx = {
-    .filter_interval_ms = 250,
-};
+    uint8_t data[BLE_HCI_MAX_ADV_DATA_LEN]; /* 上一次报文内容 */
+    uint8_t len;                            /* 上一次报文长度 */
+    uint8_t valid;                          /* 是否已有记录 */
+} scan_filter_ctx;
 
 
 // ==========wlt 新增：辅助函数 - 打印字节数组 ==========
@@ -2362,8 +2362,6 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
             return 0;
         }
 
-		int ii;
-
 		// 1. 基础长度检查：至少包含 Len(1) + Type(1) + CompanyID(2) = 4 字节
 		   if (event->disc.length_data < 4) {
 			   return 0; // 数据长度不足，直接跳过
@@ -2384,19 +2382,18 @@ static int bt_gap_scan_event(struct ble_gap_event * event, void * arg)
 				   return 0; // 不符合条件，跳过
 			   }
 		
-			// 4. 多包过滤：同一设备100ms内不重复打印
-			uint32_t current_tick = osKernelGetTickCount();
-			uint32_t current_ms = current_tick * 1000 / osKernelGetTickFreq();
-			// 检查是否是同一设备 + 时间间隔是否小于过滤阈值
-			int is_same_addr = !memcmp(event->disc.addr.val, scan_filter_ctx.last_addr.val, 6);
-			if (is_same_addr && (current_ms - scan_filter_ctx.last_time_ms) < scan_filter_ctx.filter_interval_ms) {
-				return 0; // 短时间重复包，跳过
+			// 4. 重复包过滤：报文内容相同则认为是同一包
+			if (scan_filter_ctx.valid &&
+			    scan_filter_ctx.len == event->disc.length_data &&
+			    !memcmp(scan_filter_ctx.data, event->disc.data,
+			        event->disc.length_data)) {
+				return 0; /* 内容相同的重复包，跳过 */
 			}
-			
-			// 5. 更新过滤上下文（记录当前设备和时间）
-			memcpy(scan_filter_ctx.last_addr.val, event->disc.addr.val, 6);
-			scan_filter_ctx.last_addr.type = event->disc.addr.type;
-			scan_filter_ctx.last_time_ms = current_ms;
+			/* 记录当前报文内容，用于与后续包比较 */
+			memcpy(scan_filter_ctx.data, event->disc.data,
+			    event->disc.length_data);
+			scan_filter_ctx.len = event->disc.length_data;
+			scan_filter_ctx.valid = 1;
 #if 0
 
 		// . 完整打印符合条件的广播数据
@@ -2474,9 +2471,9 @@ int al_bt_scan_start(void)
     /* scan interval 500ms */
     scan_params.itvl = BLE_GAP_SCAN_ITVL_MS(200);
     /* scan window 20-40ms */
-    scan_params.window = BLE_GAP_SCAN_WIN_MS(32);
+    scan_params.window = BLE_GAP_SCAN_WIN_MS(60);
     /* For multiple broadcasts from the same device, only report once - based on the scene settings. */
-    scan_params.filter_duplicates = 1;
+    scan_params.filter_duplicates = 0;
     scan_params.limited = 0;
     scan_params.filter_policy = BLE_HCI_SCAN_FILT_NO_WL;
 
