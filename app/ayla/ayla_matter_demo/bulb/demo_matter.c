@@ -58,7 +58,7 @@
 
 #include "iotalink.h"
 
-#define OTA_APP_VER     "0.6.0"
+#define OTA_APP_VER     "0.7.0"
 int demo_get_app_version()
 {
     int major, minor, patch;

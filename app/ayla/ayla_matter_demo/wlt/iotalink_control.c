@@ -218,8 +218,8 @@ void light_sensitivity_set(u8 sensitivity)
 
 	extern u8 MUSIC_SENSITIVITY ; // 用于律动灵敏度调整
 
-	MUSIC_SENSITIVITY = 500 - (100-sensitivity)*4; // 用于律动灵敏度调整0-100--> 500 -100
-
+	// MUSIC_SENSITIVITY = 500 - (100-sensitivity)*4; // 用于律动灵敏度调整0-100--> 500 -100
+	MUSIC_SENSITIVITY = 500 - (sensitivity)*4; // 用于律动灵敏度调整0-100--> 100 -500
 
 	printf("light_sensitivity_set==%d  MUSIC_SENSITIVITY %d \n",sensitivity,MUSIC_SENSITIVITY);
 
@@ -264,11 +264,17 @@ void iotalink_light_ctrl_process(void)
 
 	if(auto_flag==0)	osTimerStop(auto_timer) ;
 
-	rgb_colorful_buffer_clean();
-	rgb_value_sync();
-	wlt_led_pwm_set_duty(0,0);
-
-
+	// rgb_colorful_buffer_clean();
+	// rgb_value_sync();
+	
+	if( sg_light_ctrl_data.mode == COLOR_MODE ||
+		sg_light_ctrl_data.mode == SCENE_MODE ||
+		sg_light_ctrl_data.mode == CUSTOME_MODE ||
+		sg_light_ctrl_data.mode == MUSIC_MODE )
+	{
+		wlt_led_pwm_set_duty(0,0);
+	}
+	
 	LOCAL_MAGIC_MODE =0;
 	MUSIC_LOCAL_MODE =0;
 
@@ -284,6 +290,7 @@ void iotalink_light_ctrl_process(void)
 
 
 				light_ctrl_data_calculate_cw(sg_light_ctrl_data.temper,&sg_light_ctrl_data.target_val);
+				sg_light_ctrl_data.target_val.white = 0u;
 				printf(" c %d  w %d \n",sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm);
 				wlt_light_set_rgbcw(sg_light_ctrl_data.target_val.white,sg_light_ctrl_data.target_val.warm,0,0,0);
 
@@ -405,7 +412,8 @@ void wlt_ble_app_control(u8 *buf, u16 length)
 			{
 				light_mode_set(WHITE_MODE);
 				//light_ctrl_data_calculate_cw();
-				light_bright_set(buf[3]);
+				light_temper_set(100-buf[3]);
+				// light_bright_set(buf[3]);
 			}	 
 			break;	
 		case  6://律动效果
@@ -461,8 +469,8 @@ u32 color_list[] = {
    0x0000FF,/// {"蓝 (Blue)",  
    0x800080, // {"紫 (Violet)"
    0xFFFFFF} ; // {"白 (White)",
-u8 write_list[]={100,0};
-
+// u8 write_list[]={100,0};
+u8 write_list[]={0,0};
 
 
 void countdown_timer_cb(void *arv)

@@ -20,7 +20,7 @@ unsigned char MUSIC_SENSITIVITY = 200; // 用于律动灵敏度调整
 
 #define abs(a,b)  (a>b ? a-b : b-a )
 
-#define  MUSIC_STATIC  240 // 静态无声音获取的adc值
+#define  MUSIC_STATIC  50 // 静态无声音获取的adc值
 
 
 static  u16  RGB_LED_NUM = 40 ;//按40个灯珠
@@ -54,7 +54,10 @@ void iotalink_music_process_0_0(void)
 	int loop = 0,loop2=0;
 	int max_voltage = 0;
 
-	while(loop++< CONFIG_MUSIC_SAMPLING_COUNT )
+
+	// while(loop++< CONFIG_MUSIC_SAMPLING_COUNT )
+	max_voltage = 0;
+    for(loop = 0; loop < CONFIG_MUSIC_SAMPLING_COUNT; loop++)
 	{
 		if (max_voltage < Voltages[loop])
 		{
@@ -77,7 +80,7 @@ void iotalink_music_process_0_0(void)
 			rhythm_value_sum = 0;
 			loop1 = 0;
 			my_printf("-----rhythm_value_avr:%d ----\n",rhythm_value_avr);
-		}		
+		}
 
 	if (v_value < rhythm_value_avr|| v_value < MUSIC_SENSITIVITY)
 	{
