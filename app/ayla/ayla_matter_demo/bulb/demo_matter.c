@@ -364,11 +364,27 @@ static int demo_convert_mireds_to_temp(u16 mireds)
     return (int)T;
 }
 
+/*
+ * The lighting manager completes an action through a 10 ms one-shot timer. If
+ * that timer never fires (e.g. the FreeRTOS timer command queue overflowed),
+ * waiting here would block the dispatch loop forever. Give up after this many
+ * ms and force the manager state to completed so the event loop always makes
+ * progress.
+ */
+#define DO_ACTION_WAIT_TIMEOUT_MS    200
+
 static void demo_light_bulb_do_action(Action_t action, uint8_t *value,
         bool wait)
 {
     bool initiated = lighting_mgr_initiate_action(LightMgr(), 0, action, value);
+    u64 wait_start = al_clock_get_total_ms();
+
     while (initiated && wait && !lighting_mgr_is_light_on(LightMgr())) {
+        if (al_clock_get_total_ms() - wait_start > DO_ACTION_WAIT_TIMEOUT_MS) {
+            log_put(LOG_ERR "[%s] action %d wait timed out, force complete", __func__, action);
+            lighting_mgr_force_complete(LightMgr());
+            break;
+        }
         al_os_thread_sleep(1);
     }
 }
@@ -386,12 +402,13 @@ static void demo_set_light_bulb(void)
         log_put(LOG_ERR "invalid mode: %s", mode);
         return;
     }
+    log_put(LOG_INFO "switch mode to: %s, color:%u", mode, color);
     demo_light_bulb_do_action(MODE_ACTION, &color, true);
     if (!color) {
         level = (u8)demo_convert_range(brightness, 0, 100, 0, 254);
         temp = color_temp; /* no conversion needed */
-        demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
         demo_light_bulb_do_action(TEMP_ACTION, &temp, true);
+        demo_light_bulb_do_action(LEVEL_ACTION, &level, level ? true : false);
     } else {
         rgb.r = (((u32)color_select) >> 16) & 0xff;
         rgb.g = (((u32)color_select) >>  8) & 0xff;
@@ -968,12 +985,6 @@ static void demo_lc_do_sync(u32 timeout)
         log_put(LOG_DEBUG "%s: send color_temp  %d OK", __func__,
                 color_temp);
     }
-#else
-    /* set initial values to sync up */
-    power = 1;
-    strncpy(mode, "white", sizeof(mode));
-    brightness = color_bright = 100;
-    color_temp = 50;
 #endif
     /* Synchronize to cluster attributes
      */
@@ -1127,7 +1138,7 @@ static void demo_lc_complete_commissioning(void)
             .type = kEventType_Light,
             .light_event = {
                 .action = kLightAction_Temp,
-                .value = 78,
+                .value = 100,
             }
         }
     };
@@ -1172,6 +1183,24 @@ static const char *demo_adm_event_id_to_string(enum adm_event_id id)
     return "ADM_EVENT_UNKNOWN";
 }
 
+static void matter_bulb_inital_state_set()
+{
+    /* inital rgb = (255,255,255) */
+    HsvColor_t hsv_init = RgbToHsv(0xFF, 0xFF, 0xFF);
+
+    power = 1;
+    log_put(LOG_INFO "Set light manager state to ON.");
+    demo_post_light_event(kLightAction_On, 1);
+
+    brightness = color_bright = 100;
+    color_temp = 34;
+    color_select = (0 << 24 | 0xFF << 16 | 0xFF << 8 | 0xFF);
+    color_saturation = demo_convert_range(hsv_init.s, 0, 254, 0, 100);;
+    /* default mode set to white */
+    strncpy(mode, "white", sizeof(mode));
+    demo_post_light_event(kLightAction_Mode2, 1);
+} 
+
 static void demo_matter_event_cb(enum adm_event_id id)
 {
 	uint8_t state = 0;
@@ -1181,6 +1210,7 @@ static void demo_matter_event_cb(enum adm_event_id id)
 	switch (id) {
     case ADM_EVENT_INITIALIZED:
     {
+#if 0
         /*
          * For Some Conner Cases, we need to set light manager ON.
          * One Case: Home APP still on color set page, but device already reboots,
@@ -1193,7 +1223,10 @@ static void demo_matter_event_cb(enum adm_event_id id)
         strncpy(mode, "white", sizeof(mode));
         brightness = color_bright = 100;
         color_temp = 50;
-
+#else
+        // matter bulb inital state set
+        matter_bulb_inital_state_set();
+#endif
         break;
     }
 	case ADM_EVENT_IPV4_UP:
@@ -1297,7 +1330,6 @@ static struct adm_attribute_change_callback demo_on_off_cb_entry =
 	DEMO_ENDPOINT_LIGHTING, ADM_ON_OFF_CID, ADM_ON_OFF_AID,
 	demo_on_off_cb);
 
-static bool first_lc_sync_case_rebuild = true;
 static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
     u32 cluster, u32 attribute, u8 type, u16 size, u8 *value)
 {
@@ -1321,12 +1353,6 @@ static enum ada_err demo_level_control_cb(u8 post_change, u16 endpoint,
         /* XXX: what should we do? It seems to be the best to ignore it.
          */
         log_put(LOG_WARN "%s: level_control %d ignored", __func__, *value);
-
-        if (first_lc_sync_case_rebuild) {
-            demo_lc_sync(0);
-            first_lc_sync_case_rebuild = false;
-        }
-
         return AE_OK;
     }
 
@@ -1591,6 +1617,15 @@ void demo_init(void)
     lighting_mgr_init(LightMgr());
     lighting_ctrl_init();
 
+    /*
+     * Start the SDK task watchdog. demo_idle() subscribes the dispatch task
+     * via wise_task_wdt_add(NULL) and feeds the watchdog at the bottom of its
+     * loop; if an event handler blocks the loop for too long, the watchdog
+     * reports the task and (with CONFIG_TASK_WATCHDOG_RESET enabled) resets
+     * the device.
+     */
+    wise_task_wdt_init(15);
+
 #ifdef AYLA_ADA_SERVICE_ENABLE
     ftm_init();
     if (demo_run_ftm()) {
@@ -1701,3 +1736,36 @@ void demo_idle(void)
         wise_task_wdt_reset(NULL);
     }
 }
+
+/* Reserve it for subsequent debugging first */
+#if 1
+#include <cli.h>
+
+static int do_mdns_adv(int argc, char *argv[])
+{
+    const char *format;
+    u8 type;
+
+	if (argc != 3) {
+		return CMD_RET_USAGE;
+	}
+
+    format = argv[1];
+	type = atoi(argv[2]);
+
+	if (type !=  1 &&  type != 0) {
+		return CMD_RET_USAGE;
+	}
+
+    if (!strcmp(format, "type")) {
+        adm_post_event_to_plat_dbg(type);
+    } else {
+        return CMD_RET_USAGE;
+    }
+
+	return CMD_RET_SUCCESS;
+}
+
+CMD(mdns_adv, do_mdns_adv, "mdns operation/commissional adv", "mdns_adv <type> <0/1>");
+
+#endif

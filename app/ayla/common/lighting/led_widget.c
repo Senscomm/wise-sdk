@@ -150,6 +150,7 @@ void led_widget_color(struct led_widget *lw, RgbColor_t rgb)
     lw->rgb = rgb;
 
     if (lw->color == false) {
+        log_put(LOG_ERR "set color, but lw->color: %d", lw->color);
         return;
     }
 

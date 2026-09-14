@@ -686,7 +686,12 @@ extern "C" enum ada_err adm_write_attribute(u16 endpoint, u32 cluster,
 		return AE_BUSY;
 	}
 #else
-	PlatformMgr().LockChipStack();
+	/* Using TryLock instead of Lock */
+	// PlatformMgr().LockChipStack();
+	if (!PlatformMgr().TryLockChipStack()) {
+		adm_log(LOG_ERR "%s could not get lock", __func__);
+		return AE_BUSY;
+	}
 #endif
 
 #ifdef AYLA_SCM_SUPPORT
@@ -1122,6 +1127,18 @@ void adm_post_event_to_plat(char *ssid, char *key, u8 auth)
 	e.Platform.test.event.event_id = SYSTEM_EVENT_MAX_RETRY;
 
 	adm_log(LOG_INFO "Send a event to plat!!!\n");
+	(void) PlatformMgr().PostEvent(&e);
+}
+
+void adm_post_event_to_plat_dbg(u8 type)
+{
+	ChipDeviceEvent e = { 0 };
+	e.Type = DeviceEventType::kSCMSystemEvent;
+
+	// reuse
+	e.Platform.test.event.event_id = SYSTEM_EVENT_REKEY;
+
+	adm_log(LOG_INFO "Send a dbg event to plat!!!\n");
 	(void) PlatformMgr().PostEvent(&e);
 }
 

@@ -75,6 +75,7 @@ bool lighting_mgr_is_light_off(struct lighting_mgr *lm);
 bool lighting_mgr_is_action_in_progress(struct lighting_mgr *lm);
 bool lighting_mgr_initiate_action(struct lighting_mgr *lm, int32_t actor,
         Action_t action, uint8_t * value);
+void lighting_mgr_force_complete(struct lighting_mgr *lm);
 void lighting_mgr_enable_auto_turn_off(struct lighting_mgr *lm, bool on);
 void lighting_mgr_set_auto_turn_off_uuration(struct lighting_mgr *lm, uint32_t duration_sec);
 void lighting_mgr_set_callbacks(struct lighting_mgr *lm, callback_fn_initiated action_initiated_cb,

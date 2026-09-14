@@ -274,6 +274,61 @@ void lighting_mgr_cancel_timer(struct lighting_mgr *lm)
     }
 }
 
+/*
+ * Force any in-flight action to its completed state.
+ *
+ * This is a recovery path for the case where the one-shot actuator movement
+ * timer never fires (e.g. the FreeRTOS timer command queue overflowed and the
+ * start command was lost), which would otherwise leave callers blocked forever
+ * in their "wait until light is on" loop.
+ *
+ * If the lost timer fires later, lm_actuator_movement_timer_event_handler()
+ * sees a completed state and does nothing, so the completion callback is
+ * invoked exactly once.
+ */
+void lighting_mgr_force_complete(struct lighting_mgr *lm)
+{
+    Action_t action = INVALID_ACTION;
+
+    switch (lm->state) {
+    case kState_OnInitiated:
+        lm->state = kState_OnCompleted;
+        action = ON_ACTION;
+        break;
+    case kState_OffInitiated:
+        lm->state = kState_OffCompleted;
+        action = OFF_ACTION;
+        break;
+    case kState_LevelInitiated:
+        lm->state = kState_OnCompleted;
+        action = LEVEL_ACTION;
+        break;
+    case kState_ModeInitiated:
+        lm->state = kState_OnCompleted;
+        action = MODE_ACTION;
+        break;
+    case kState_TempInitiated:
+        lm->state = kState_OnCompleted;
+        action = TEMP_ACTION;
+        break;
+    case kState_ColorInitiated:
+        lm->state = kState_OnCompleted;
+        action = COLOR_ACTION;
+        break;
+    default:
+        /* Nothing in flight. */
+        return;
+    }
+
+    lighting_mgr_cancel_timer(lm);
+
+    log_put(LOG_WARN "[%s] action %d force completed", __func__, action);
+
+    if (lm->action_completed_cb) {
+        lm->action_completed_cb(action);
+    }
+}
+
 /* XXX: state change must be done asynchronously, i.e., in the timer task context
  *      because the app will wait for completion from its message loop.
  */

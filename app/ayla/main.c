@@ -30,7 +30,7 @@
 
 #include <cmsis_os.h>
 
-#define AYLA_DEMO_STACK_SIZE		1024 * 8
+#define AYLA_DEMO_STACK_SIZE		1024 * 5
 
 void ayla_demo_task(void *arg)
 {
@@ -102,4 +102,3 @@ CMD(ayla, do_ayla,
 );
 
 #endif
-
